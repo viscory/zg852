@@ -133,5 +133,8 @@
   "beta.title": "Beta features",
   "beta.vectors": "Interest preferences",
   "beta.note": "Experimental. Preferences can change which areas the map shows.",
-  "results.noRoutes": "No route legs are available for this place."
+  "results.noRoutes": "No route legs are available for this place.",
+  "results.fareNote": "Adult Octopus fare estimates. Check the operator for exact fares.",
+  "results.fareMtr": "MTR {value}",
+  "results.fareBus": "Bus {value}"
 }

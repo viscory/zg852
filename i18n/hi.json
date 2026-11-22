@@ -133,5 +133,8 @@
   "beta.title": "बीटा सुविधाएँ",
   "beta.vectors": "रुचि की पसंद",
   "beta.note": "प्रयोगात्मक। पसंद मानचित्र पर दिखने वाले क्षेत्र बदल सकती है।",
-  "results.noRoutes": "No route legs are available for this place."
+  "results.noRoutes": "No route legs are available for this place.",
+  "results.fareNote": "वयस्क ऑक्टोपस किराये का अनुमान। सटीक किराये के लिए ऑपरेटर से जाँचें।",
+  "results.fareMtr": "एमटीआर {value}",
+  "results.fareBus": "बस {value}"
 }

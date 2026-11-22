@@ -133,5 +133,8 @@
   "beta.title": "ベータ機能",
   "beta.vectors": "興味の好み",
   "beta.note": "実験的です。好みは地図に表示されるエリアを変えることがあります。",
-  "results.noRoutes": "No route legs are available for this place."
+  "results.noRoutes": "No route legs are available for this place.",
+  "results.fareNote": "大人のオクトパス料金の概算です。正確な料金は運行事業者に確認してください。",
+  "results.fareMtr": "MTR {value}",
+  "results.fareBus": "バス {value}"
 }

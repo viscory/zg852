@@ -133,5 +133,8 @@
   "beta.title": "测试版功能",
   "beta.vectors": "兴趣偏好",
   "beta.note": "实验功能。偏好可以改变地图显示的区域。",
-  "results.noRoutes": "No route legs are available for this place."
+  "results.noRoutes": "No route legs are available for this place.",
+  "results.fareNote": "成人八达通车费估算。确实车费请向运营商查询。",
+  "results.fareMtr": "港铁 {value}",
+  "results.fareBus": "巴士 {value}"
 }

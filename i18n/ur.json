@@ -133,5 +133,8 @@
   "beta.title": "بیٹا خصوصیات",
   "beta.vectors": "دلچسپی کی ترجیحات",
   "beta.note": "تجرباتی۔ ترجیح نقشے پر دکھنے والے علاقے بدل سکتی ہے۔",
-  "results.noRoutes": "No route legs are available for this place."
+  "results.noRoutes": "No route legs are available for this place.",
+  "results.fareNote": "بالغ آکٹوپس کرایے کا تخمینہ۔ درست کرایے کے لیے آپریٹر سے چیک کریں۔",
+  "results.fareMtr": "ایم ٹی آر {value}",
+  "results.fareBus": "بس {value}"
 }

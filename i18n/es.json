@@ -133,5 +133,8 @@
   "beta.title": "Funciones beta",
   "beta.vectors": "Preferencias de intereses",
   "beta.note": "Experimental. Una preferencia puede cambiar las zonas mostradas en el mapa.",
-  "results.noRoutes": "No route legs are available for this place."
+  "results.noRoutes": "No route legs are available for this place.",
+  "results.fareNote": "Estimaciones de tarifas Octopus para adultos. Consulta al operador para las tarifas exactas.",
+  "results.fareMtr": "MTR {value}",
+  "results.fareBus": "Autobús {value}"
 }

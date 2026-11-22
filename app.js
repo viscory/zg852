@@ -23,6 +23,7 @@ const CLEAN_STYLE={
   version:8,
   name:'zg852 clean',
   sources:{openmaptiles:{type:'vector',url:'https://tiles.openfreemap.org/planet',attribution:'© OpenStreetMap contributors, OpenFreeMap, © OpenMapTiles'}},
+  glyphs:'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
   layers:[
     {id:'background',type:'background',paint:{'background-color':'#fffaf8'}},
     {id:'park',type:'fill',source:'openmaptiles','source-layer':'park',filter:['match',['geometry-type'],['MultiPolygon','Polygon'],true,false],paint:{'fill-color':'#f6e8e5'}},
@@ -40,7 +41,10 @@ const CLEAN_STYLE={
     {id:'highway_motorway_inner',type:'line',source:'openmaptiles','source-layer':'transportation',minzoom:6,filter:['all',['match',['geometry-type'],['LineString','MultiLineString'],true,false],['all',['match',['get','brunnel'],['bridge','tunnel'],false,true],['==',['get','class'],'motorway']]],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#ffffff','line-width':['interpolate',['exponential',1.4],['zoom'],4,2,6,1.3,20,30]}},
     {id:'railway',type:'line',source:'openmaptiles','source-layer':'transportation',minzoom:13,filter:['all',['match',['geometry-type'],['LineString','MultiLineString'],true,false],['all',['!',['has','service']],['==',['get','class'],'rail']]],layout:{'line-join':'round'},paint:{'line-color':'#c8b5b1','line-width':['interpolate',['exponential',1.3],['zoom'],16,3,20,7]}},
     {id:'railway_dashline',type:'line',source:'openmaptiles','source-layer':'transportation',minzoom:13,filter:['all',['match',['geometry-type'],['LineString','MultiLineString'],true,false],['all',['!',['has','service']],['==',['get','class'],'rail']]],layout:{'line-join':'round'},paint:{'line-color':'#ffffff','line-dasharray':[3,3],'line-width':['interpolate',['exponential',1.3],['zoom'],16,2,20,6]}},
-    {id:'boundary',type:'line',source:'openmaptiles','source-layer':'boundary',minzoom:8,filter:['all',['==',['typeof',['get','admin_level']],'number'],['>=',['get','admin_level'],3],['<=',['get','admin_level'],6],['!=',['get','maritime'],1]],paint:{'line-color':'#d8c2be','line-dasharray':[1,1],'line-width':1}}
+    {id:'boundary',type:'line',source:'openmaptiles','source-layer':'boundary',minzoom:8,filter:['all',['==',['typeof',['get','admin_level']],'number'],['>=',['get','admin_level'],3],['<=',['get','admin_level'],6],['!=',['get','maritime'],1]],paint:{'line-color':'#d8c2be','line-dasharray':[1,1],'line-width':1}},
+    {id:'place-label',type:'symbol',source:'openmaptiles','source-layer':'place',minzoom:7,filter:['match',['get','class'],['city','town','village','suburb','neighbourhood'],true,false],layout:{'text-field':['coalesce',['get','name:en'],['get','name']],'text-font':['Noto Sans Regular'],'text-size':['interpolate',['linear'],['zoom'],7,11,12,13,16,14],'text-max-width':9,'text-anchor':'center'},paint:{'text-color':'#241716','text-halo-color':'#fffaf8','text-halo-width':1.2}},
+    {id:'poi-label',type:'symbol',source:'openmaptiles','source-layer':'poi',minzoom:13,filter:['match',['get','class'],['station','bus_stop','school','hospital','park','museum'],true,false],layout:{'text-field':['coalesce',['get','name:en'],['get','name']],'text-font':['Noto Sans Regular'],'text-size':11,'text-max-width':8,'text-anchor':'top','text-offset':[0,0.8]},paint:{'text-color':'#705b57','text-halo-color':'#fffaf8','text-halo-width':1}},
+    {id:'road-label',type:'symbol',source:'openmaptiles','source-layer':'transportation_name',minzoom:13,filter:['all',['has','name'],['match',['get','class'],['motorway','trunk','primary','secondary','tertiary'],true,false]],layout:{'symbol-placement':'line','text-field':['coalesce',['get','name:en'],['get','name']],'text-font':['Noto Sans Regular'],'text-size':11,'text-max-width':10},paint:{'text-color':'#705b57','text-halo-color':'#fffaf8','text-halo-width':1}}
   ]
 };
 
@@ -96,6 +100,38 @@ function preferenceText(value){
 }
 function round1(value){return Math.round(value*10)/10;}
 function round2(value){return Math.round(value*100)/100;}
+const RAIL_FARE_BANDS=[[2,4.9],[5,6.5],[9,8.2],[14,10.6],[20,13.2],[30,16.8],[Infinity,20.5]];
+const BUS_FARE_BANDS=[[4,5.5],[8,7.2],[15,9.6],[25,13.2],[Infinity,17.7]];
+function bandFare(km,bands){return bands.find(([limit])=>km<=limit)[1];}
+function legDistanceKm(leg){
+  let metres=0;
+  for(let i=1;i<leg.coords.length;i++){
+    const a=leg.coords[i-1],b=leg.coords[i];
+    if(isNum(a[0])&&isNum(a[1])&&isNum(b[0])&&isNum(b[1]))metres+=haversine(a[0],a[1],b[0],b[1]);
+  }
+  return metres/1000;
+}
+function routeFares(route){
+  let rail=0,bus=0;
+  for(const leg of route.legs){
+    if(leg.mode==='walk')continue;
+    const km=legDistanceKm(leg);
+    if(leg.mode==='rail')rail+=bandFare(km,RAIL_FARE_BANDS);
+    else bus+=bandFare(km,BUS_FARE_BANDS);
+  }
+  return{rail:round1(rail),bus:round1(bus),total:round1(rail+bus)};
+}
+function prepareRoutes(result,active=activePeople){
+  result.routes=sols.map((solution,j)=>describe(solution,active[j].origin,result.node));
+  result.routes.forEach(route=>{route.fares=routeFares(route);});
+  result.paths=result.routes.map(route=>route.path);
+  return result;
+}
+function money(value){return `HK$${num(value)}`;}
+function fareMarkup(route){
+  const fares=route?.fares||{rail:0,bus:0};
+  return `<span class="person-fares"><span class="fare rail">${esc(t('results.fareMtr',{value:money(fares.rail)}))}</span><span class="fare bus">${esc(t('results.fareBus',{value:money(fares.bus)}))}</span></span>`;
+}
 
 function t(key,vars={}){
   const source=I18N[locale]||EN;
@@ -398,18 +434,50 @@ function clearMapOutput(){
   results=[];
   cloudCells=[];
   selection={kind:'result',index:0};
+  selected=0;
   const detail=$('detail');if(detail)detail.hidden=true;
+  const list=$('resultsList');if(list)list.innerHTML='';
   cloudLayer?.clearLayers();
   routeLayer?.clearLayers();
   pointLayer?.clearLayers();
 }
+function renderResults(active=activePeople){
+  const list=$('resultsList'),state=$('resultState'),count=$('nres'),emptyRun=$('emptyRun');
+  if(!list||!state||!count)return;
+  if(!results.length){
+    list.innerHTML='';
+    state.textContent=t('results.empty');
+    state.hidden=false;
+    count.textContent='';
+    if(emptyRun)emptyRun.hidden=false;
+    return;
+  }
+  state.hidden=true;
+  if(emptyRun)emptyRun.hidden=true;
+  count.textContent=t('results.areas',{count:results.length});
+  list.innerHTML=results.map((r,i)=>`<button class="result-row" type="button" data-index="${i}" aria-label="${esc(`${t('results.selectTitle')}: ${r.label}`)}">
+    <span class="result-head"><b>${esc(r.label)}</b><span class="tag">${esc(t('cat.'+r.catKey))}</span><span class="district">${esc(r.district)}</span></span>
+    <span class="result-times"><span>${esc(t('results.spread',{value:num(r.gap)}))}</span><span>${esc(t('results.longest',{value:num(r.slowest)}))}</span></span>
+    <span class="result-people">${r.routes.map((route,j)=>`<span class="result-person"><span class="avatar ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span><span class="person-name">${esc(displayName(active[j],j))}</span>${fareMarkup(route)}</span>`).join('')}</span>
+  </button>`).join('');
+  list.querySelectorAll('.result-row').forEach(row=>{row.onclick=()=>selectResult(Number(row.dataset.index),active);});
+  markSelectedResult();
+}
+function markSelectedResult(){
+  document.querySelectorAll('.result-row').forEach(row=>row.classList.toggle('selected',Number(row.dataset.index)===selected));
+}
 function renderEmpty(){
   clearError();
   clearMapOutput();
+  renderResults();
 }
 function renderSkeleton(){
   clearError();
   clearMapOutput();
+  const state=$('resultState'),count=$('nres'),emptyRun=$('emptyRun');
+  if(state){state.textContent=t('options.searching');state.hidden=false;}
+  if(count)count.textContent='';
+  if(emptyRun)emptyRun.hidden=true;
 }
 function setWorking(working){
   const label=working?t('options.searching'):t('options.search');
@@ -849,11 +917,9 @@ function compute(){
     times:c.times.map(round1),fastest:round1(c.fastest),slowest:round1(c.slowest),gap:round1(c.gap),score:round1(c.score),
     fit:cellPreference(c),vector:cellVector(c),count:cellCount(c),
   }));
-  results.forEach(r=>{
-    r.routes=sols.map((s,j)=>describe(s,activePeople[j].origin,r.node));
-    r.paths=r.routes.map(x=>x.path);
-  });
+  results.forEach(r=>prepareRoutes(r,activePeople));
   if(!results.length){renderEmpty();showError(t('results.noFit'));return;}
+  renderResults(activePeople);
   drawOrigins(activePeople);drawCloud(budget);applySelection(activePeople);
 }
 function drawOrigins(active=activePeople){
@@ -930,9 +996,7 @@ function buildResultFromCell(cell,active=activePeople){
     times:cell.times.map(round),fastest:round(cell.fastest),slowest:round(cell.slowest),gap:round(cell.gap),score:round(cell.score),
     fit:cellPreference(cell),vector:cellVector(cell),count:cellCount(cell),
   };
-  result.routes=sols.map((solution,j)=>describe(solution,active[j].origin,node));
-  result.paths=result.routes.map(route=>route.path);
-  return result;
+  return prepareRoutes(result,active);
 }
 function selectCell(cell){
   hideTooltip();
@@ -964,6 +1028,7 @@ function renderSelection(r,active=activePeople){
   if(!r)return;
   const index=results.findIndex(result=>resultMatches(result,r));
   selected=index;
+  markSelectedResult();
   $('detail').hidden=false;
   routeLayer.clearLayers();pointLayer.clearLayers();
   let legCount=0;
@@ -984,7 +1049,7 @@ function renderSelection(r,active=activePeople){
   $('detailSub').textContent=`${t('results.spread',{value:num(r.gap)})} ${t('results.longest',{value:num(r.slowest)})}${preference}`;
   $('steps').innerHTML=legCount?r.routes.map((route,j)=>`<div class="step">
     <span class="dot ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>
-    <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(leg=>`<span class="leg route-${leg.mode}">${esc(legLabel(leg))}</span>`).join('')}</span><span class="muted">${esc(minuteText(r.times[j]))}</span></span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t('results.noRoutes'))}</span></span></div>`;
+    <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(leg=>`<span class="leg route-${leg.mode}">${esc(legLabel(leg))}</span>`).join('')}</span><span class="muted">${esc(minuteText(r.times[j]))}</span>${fareMarkup(route)}</span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t('results.noRoutes'))}</span></span></div>`;
   const pts=r.paths.flat().concat(active.map(p=>[p.origin.lat,p.origin.lon]));
   if(pts.length)map.fitBounds(pts,{padding:[60,60],maxZoom:14});
 }
@@ -1024,7 +1089,7 @@ function rerender(){
   results.forEach(r=>{r.district=districtFor(r.lat,r.lon);});
   updateSettingsLabels();
   renderCards();
-  if(results.length){drawOrigins(activePeople);drawCloud(settings.budget);applySelection(activePeople);}
+  if(results.length){renderResults(activePeople);drawOrigins(activePeople);drawCloud(settings.budget);applySelection(activePeople);}
   else renderEmpty();
   renderDirectoryList();
 }
@@ -1076,6 +1141,7 @@ $('betaVectors').onchange=async()=>{
 document.querySelectorAll('[data-vector]').forEach(input=>{input.oninput=readSettingsFromDom;});
 $('locale').onchange=e=>changeLocale(e.target.value);
 $('go').onclick=triggerSearch;
+$('emptyRun').onclick=triggerSearch;
 $('recenter').onclick=recenterMap;
 $('share').onclick=shareScenario;
 $('cancelPin').onclick=clearPinMode;

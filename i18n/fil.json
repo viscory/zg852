@@ -133,5 +133,8 @@
   "beta.title": "Mga tampok na beta",
   "beta.vectors": "Mga kagustuhan sa interes",
   "beta.note": "Eksperimental. Maaaring baguhin ng kagustuhan ang mga lugar sa mapa.",
-  "results.noRoutes": "No route legs are available for this place."
+  "results.noRoutes": "No route legs are available for this place.",
+  "results.fareNote": "Mga tinatayang pamasahe ng matatandang Octopus. Tingnan sa operator para sa eksaktong pamasahe.",
+  "results.fareMtr": "MTR {value}",
+  "results.fareBus": "Bus {value}"
 }

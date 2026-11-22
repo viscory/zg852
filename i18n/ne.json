@@ -133,5 +133,8 @@
   "beta.title": "बेटा सुविधाहरू",
   "beta.vectors": "रुचि प्राथमिकताहरू",
   "beta.note": "प्रयोगात्मक। रुचिले नक्सामा देखिने क्षेत्रहरू बदल्न सक्छ।",
-  "results.noRoutes": "No route legs are available for this place."
+  "results.noRoutes": "No route legs are available for this place.",
+  "results.fareNote": "वयस्क अक्टोपस भाडाको अनुमान। सही भाडाका लागि अपरेटरसँग जाँच गर्नुहोस्।",
+  "results.fareMtr": "एमटीआर {value}",
+  "results.fareBus": "बस {value}"
 }

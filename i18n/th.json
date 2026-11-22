@@ -133,5 +133,8 @@
   "beta.title": "ฟีเจอร์เบต้า",
   "beta.vectors": "ความชอบด้านความสนใจ",
   "beta.note": "อยู่ในช่วงทดลอง ความชอบสามารถเปลี่ยนพื้นที่ที่แสดงบนแผนที่ได้",
-  "results.noRoutes": "No route legs are available for this place."
+  "results.noRoutes": "No route legs are available for this place.",
+  "results.fareNote": "ประมาณค่าโดยสาร Octopus สำหรับผู้ใหญ่ โปรดตรวจสอบค่าโดยสารจริงกับผู้ให้บริการ",
+  "results.fareMtr": "MTR {value}",
+  "results.fareBus": "รถบัส {value}"
 }

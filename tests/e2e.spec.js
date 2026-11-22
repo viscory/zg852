@@ -105,10 +105,12 @@ test('production module wiring avoids inline importmaps and CSP exceptions', asy
   expect(build).not.toContain('unsafe-inline');
 });
 
-test('clean basemap has no raster tile layer or symbol labels', async ({ page }) => {
+test('clean basemap adds keyless place labels without raster tiles', async ({ page }) => {
   const source = await page.evaluate(async () => (await (await fetch('app.js')).text()));
   expect(source).not.toContain('tile.openstreetmap.org');
-  expect(source).not.toContain("type:'symbol'");
+  expect(source).toContain("type:'symbol'");
+  expect(source).toContain("glyphs:'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf'");
+  expect(source).toContain("'source-layer':'place'");
   expect(source).toContain('tiles.openfreemap.org/planet');
 });
 
@@ -123,16 +125,23 @@ test('defaults load and a two-person search draws fair map areas', async ({ page
   await expect(page.locator('.start-input').nth(1)).toHaveValue('North Point');
   await expect(page.locator('#detail')).toBeHidden();
   await expect(page.locator('path.heat-cell')).toHaveCount(0);
-  await expect(page.locator('#resultsList')).toHaveCount(0);
-  await expect(page.locator('#resultState')).toHaveCount(0);
+  await expect(page.locator('#resultsList')).toBeEmpty();
+  await expect(page.locator('#resultState')).toBeVisible();
+  await expect(page.locator('#nres')).toBeEmpty();
 
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('.result-row.selected')).toHaveCount(1);
+  await expect(page.locator('.result-row').first()).toContainText('MTR HK$');
+  await expect(page.locator('.result-row').first()).toContainText('Bus HK$');
   await expect(page.locator('#detail')).toBeVisible();
   await expect(page.locator('#detailTitle')).not.toBeEmpty();
   await expect(page.locator('#detailDistrict')).not.toBeEmpty();
   await expect(page.locator('#steps .step')).toHaveCount(2);
   await expect(page.locator('.step').first()).toContainText('Person A');
+  await expect(page.locator('.step').first()).toContainText('MTR HK$');
+  await expect(page.locator('.step').first()).toContainText('Bus HK$');
   await expect(page.locator('#steps .dot').first()).toHaveText('PA');
   await expect(page.locator('#steps .dot').nth(1)).toHaveText('PB');
   await expect.poll(() => page.locator('path.route-line.route-person-0').count()).toBeGreaterThan(0);
@@ -254,20 +263,20 @@ test('scenario removal works down to one and card controls are icon-only', async
   await expect(page.locator('#error')).toHaveText('Add at least two people with a start place.');
 });
 
-test('people and controls stay in one left panel while the map fills the rest', async ({ page }) => {
-  await expect(page.locator('.layout > .side')).toHaveCount(1);
-  await expect(page.locator('.side-left #go')).toBeVisible();
-  await expect(page.locator('.side-left #tolerance')).toBeVisible();
-  await expect(page.locator('.side-left #budget')).toBeVisible();
-  await expect(page.locator('.side-left #reset')).toBeVisible();
+test('people and results stay left, controls stay right, and the map fills the middle', async ({ page }) => {
+  await expect(page.locator('.layout > .side')).toHaveCount(2);
   await expect(page.locator('.side-left .card')).toHaveCount(2);
-  await expect(page.locator('.side-right')).toHaveCount(0);
-  await expect(page.locator('#resultsList')).toHaveCount(0);
-  await expect(page.locator('#resultState')).toHaveCount(0);
-  await expect(page.locator('#nres')).toHaveCount(0);
+  await expect(page.locator('.side-left #add')).toBeVisible();
+  await expect(page.locator('.side-left #resultsList')).toBeAttached();
+  await expect(page.locator('.side-left #resultState')).toBeVisible();
+  await expect(page.locator('.side-left #nres')).toBeEmpty();
+  await expect(page.locator('.side-right #go')).toBeVisible();
+  await expect(page.locator('.side-right #tolerance')).toBeVisible();
+  await expect(page.locator('.side-right #budget')).toBeVisible();
+  await expect(page.locator('.side-right #reset')).toBeVisible();
+  await expect(page.locator('.side-right #detail')).toBeHidden();
   await expect(headerLibrary(page)).toBeVisible();
   await expect(page.locator('.main #map')).toBeVisible();
-  await expect(page.locator('.main #detail')).toBeHidden();
 });
 
 function headerLibrary(page) {
@@ -430,7 +439,7 @@ test('rejects an unset origin with an inline error and no map output', async ({ 
   await expect(page.locator('#error')).toHaveText('Choose a start place for every person.');
   await expect(page.locator('#detail')).toBeHidden();
   await expect(page.locator('path.heat-cell')).toHaveCount(0);
-  await expect(page.locator('#resultsList')).toHaveCount(0);
+  await expect(page.locator('#resultsList')).toBeEmpty();
 });
 
 test('tight tolerance and budget produce no map areas', async ({ page }) => {
@@ -617,6 +626,7 @@ test('mobile layout puts the map above the panel and keeps the legend visible', 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator('#map')).toBeVisible();
   await expect(page.locator('.side-left')).toBeVisible();
+  await expect(page.locator('.side-right')).toBeVisible();
   await expect(page.locator('.legend')).toBeVisible();
   await expect(page.locator('.legend-head')).toBeVisible();
   await expect(page.locator('.legend .vector-key')).toBeHidden();

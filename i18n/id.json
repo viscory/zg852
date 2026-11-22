@@ -133,5 +133,8 @@
   "beta.title": "Fitur beta",
   "beta.vectors": "Preferensi ketertarikan",
   "beta.note": "Eksperimental. Preferensi dapat mengubah area yang ditampilkan peta.",
-  "results.noRoutes": "No route legs are available for this place."
+  "results.noRoutes": "No route legs are available for this place.",
+  "results.fareNote": "Estimasi tarif Octopus dewasa. Periksa operator untuk tarif pasti.",
+  "results.fareMtr": "MTR {value}",
+  "results.fareBus": "Bus {value}"
 }

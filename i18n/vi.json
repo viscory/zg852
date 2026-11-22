@@ -133,5 +133,8 @@
   "beta.title": "Tính năng beta",
   "beta.vectors": "Tùy chọn sở thích",
   "beta.note": "Thử nghiệm. Sở thích có thể thay đổi các khu vực hiển thị trên bản đồ.",
-  "results.noRoutes": "No route legs are available for this place."
+  "results.noRoutes": "No route legs are available for this place.",
+  "results.fareNote": "Ước tính giá vé Octopus người lớn. Kiểm tra nhà điều hành để biết giá chính xác.",
+  "results.fareMtr": "MTR {value}",
+  "results.fareBus": "Xe buýt {value}"
 }
