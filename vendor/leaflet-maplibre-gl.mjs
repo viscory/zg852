@@ -1,7 +1,7 @@
 /* jshint esversion: 6, -W008, -W030, -W083 */
 // Generated from src/leaflet-maplibre-gl.mjs. Run `npm run build` to update.
-import * as LeafletModule from "leaflet";
-import * as maplibregl from "maplibre-gl";
+import * as LeafletModule from "./leaflet-src.esm.js";
+import * as maplibregl from "./maplibre-gl.mjs";
 //#region src/leaflet-maplibre-gl.mjs
 var L = LeafletModule.default || LeafletModule;
 var MaplibreGL = L.Layer.extend({

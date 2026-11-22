@@ -1,9 +1,9 @@
-import * as L from 'leaflet';
+import * as L from './vendor/leaflet-src.esm.js';
 import { maplibreGL } from './vendor/leaflet-maplibre-gl.mjs';
 
-const ACCENT='#10B981';
-const PERSON_COLORS=['#F97316','#38BDF8','#C084FC','#FACC15','#34D399','#FB7185','#22D3EE','#A3E635'];
-const HEAT_COLORS=['#064E3B','#047857','#059669','#10B981','#34D399','#6EE7B7'];
+const ACCENT='#C8102E';
+const PERSON_COLORS=['#F97316','#0E7490','#7C3AED','#B45309','#0F766E','#BE185D','#0891B2','#4D7C0F'];
+const HEAT_COLORS=['#7F1D1D','#991B1B','#B91C1C','#DC2626','#EF4444','#FCA5A5'];
 const LETTERS='ABCDEFGH';
 const LOCALES=['en','zh-Hant','zh-Hans','ja','ko','hi','ur','fil','id','fr','th','vi','ne','es','de'];
 const RTL_LOCALES=new Set(['ur']);
@@ -24,23 +24,23 @@ const CLEAN_STYLE={
   name:'zg852 clean',
   sources:{openmaptiles:{type:'vector',url:'https://tiles.openfreemap.org/planet',attribution:'© OpenStreetMap contributors, OpenFreeMap, © OpenMapTiles'}},
   layers:[
-    {id:'background',type:'background',paint:{'background-color':'#eef0ed'}},
-    {id:'park',type:'fill',source:'openmaptiles','source-layer':'park',filter:['match',['geometry-type'],['MultiPolygon','Polygon'],true,false],paint:{'fill-color':'#dfe7dc'}},
-    {id:'water',type:'fill',source:'openmaptiles','source-layer':'water',filter:['all',['match',['geometry-type'],['MultiPolygon','Polygon'],true,false],['!=',['get','brunnel'],'tunnel']],paint:{'fill-antialias':true,'fill-color':'#c3ced2'}},
-    {id:'waterway',type:'line',source:'openmaptiles','source-layer':'waterway',filter:['match',['geometry-type'],['LineString','MultiLineString'],true,false],paint:{'line-color':'#c3ced2'}},
-    {id:'landuse_residential',type:'fill',source:'openmaptiles','source-layer':'landuse',maxzoom:16,filter:['all',['match',['geometry-type'],['MultiPolygon','Polygon'],true,false],['==',['get','class'],'residential']],paint:{'fill-color':'#e7e7e2','fill-opacity':0.8}},
-    {id:'landcover_wood',type:'fill',source:'openmaptiles','source-layer':'landcover',minzoom:10,filter:['all',['match',['geometry-type'],['MultiPolygon','Polygon'],true,false],['==',['get','class'],'wood']],paint:{'fill-color':'#d7ded5','fill-opacity':0.9}},
-    {id:'building',type:'fill',source:'openmaptiles','source-layer':'building',minzoom:12,paint:{'fill-antialias':true,'fill-color':'#e3e3de','fill-outline-color':'#d4d4d0'}},
-    {id:'road_area_pier',type:'fill',source:'openmaptiles','source-layer':'transportation',filter:['all',['match',['geometry-type'],['MultiPolygon','Polygon'],true,false],['==',['get','class'],'pier']],paint:{'fill-antialias':true,'fill-color':'#eef0ed'}},
-    {id:'highway_path',type:'line',source:'openmaptiles','source-layer':'transportation',filter:['all',['match',['geometry-type'],['LineString','MultiLineString'],true,false],['==',['get','class'],'path']],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#d8d8d4','line-opacity':0.9,'line-width':1}},
+    {id:'background',type:'background',paint:{'background-color':'#fffaf8'}},
+    {id:'park',type:'fill',source:'openmaptiles','source-layer':'park',filter:['match',['geometry-type'],['MultiPolygon','Polygon'],true,false],paint:{'fill-color':'#f6e8e5'}},
+    {id:'water',type:'fill',source:'openmaptiles','source-layer':'water',filter:['all',['match',['geometry-type'],['MultiPolygon','Polygon'],true,false],['!=',['get','brunnel'],'tunnel']],paint:{'fill-antialias':true,'fill-color':'#e4ecee'}},
+    {id:'waterway',type:'line',source:'openmaptiles','source-layer':'waterway',filter:['match',['geometry-type'],['LineString','MultiLineString'],true,false],paint:{'line-color':'#e4ecee'}},
+    {id:'landuse_residential',type:'fill',source:'openmaptiles','source-layer':'landuse',maxzoom:16,filter:['all',['match',['geometry-type'],['MultiPolygon','Polygon'],true,false],['==',['get','class'],'residential']],paint:{'fill-color':'#f5f0ee','fill-opacity':0.8}},
+    {id:'landcover_wood',type:'fill',source:'openmaptiles','source-layer':'landcover',minzoom:10,filter:['all',['match',['geometry-type'],['MultiPolygon','Polygon'],true,false],['==',['get','class'],'wood']],paint:{'fill-color':'#edf1ea','fill-opacity':0.9}},
+    {id:'building',type:'fill',source:'openmaptiles','source-layer':'building',minzoom:12,paint:{'fill-antialias':true,'fill-color':'#f0e9e7','fill-outline-color':'#e2d2cf'}},
+    {id:'road_area_pier',type:'fill',source:'openmaptiles','source-layer':'transportation',filter:['all',['match',['geometry-type'],['MultiPolygon','Polygon'],true,false],['==',['get','class'],'pier']],paint:{'fill-antialias':true,'fill-color':'#fffaf8'}},
+    {id:'highway_path',type:'line',source:'openmaptiles','source-layer':'transportation',filter:['all',['match',['geometry-type'],['LineString','MultiLineString'],true,false],['==',['get','class'],'path']],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#e7d9d6','line-opacity':0.9,'line-width':1}},
     {id:'highway_minor',type:'line',source:'openmaptiles','source-layer':'transportation',minzoom:8,filter:['all',['match',['geometry-type'],['LineString','MultiLineString'],true,false],['match',['get','class'],['minor','service','track'],true,false]],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#ffffff','line-opacity':0.95,'line-width':['interpolate',['exponential',1.55],['zoom'],13,1.8,20,20]}},
-    {id:'highway_major_casing',type:'line',source:'openmaptiles','source-layer':'transportation',minzoom:11,filter:['all',['match',['geometry-type'],['LineString','MultiLineString'],true,false],['match',['get','class'],['primary','secondary','tertiary','trunk'],true,false]],layout:{'line-cap':'butt','line-join':'miter'},paint:{'line-color':'#d5d5d5','line-width':['interpolate',['exponential',1.3],['zoom'],10,3,20,23]}},
+    {id:'highway_major_casing',type:'line',source:'openmaptiles','source-layer':'transportation',minzoom:11,filter:['all',['match',['geometry-type'],['LineString','MultiLineString'],true,false],['match',['get','class'],['primary','secondary','tertiary','trunk'],true,false]],layout:{'line-cap':'butt','line-join':'miter'},paint:{'line-color':'#e7d9d6','line-width':['interpolate',['exponential',1.3],['zoom'],10,3,20,23]}},
     {id:'highway_major_inner',type:'line',source:'openmaptiles','source-layer':'transportation',minzoom:11,filter:['all',['match',['geometry-type'],['LineString','MultiLineString'],true,false],['match',['get','class'],['primary','secondary','tertiary','trunk'],true,false]],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#ffffff','line-width':['interpolate',['exponential',1.3],['zoom'],10,2,20,20]}},
-    {id:'highway_motorway_casing',type:'line',source:'openmaptiles','source-layer':'transportation',minzoom:6,filter:['all',['match',['geometry-type'],['LineString','MultiLineString'],true,false],['all',['match',['get','brunnel'],['bridge','tunnel'],false,true],['==',['get','class'],'motorway']]],layout:{'line-cap':'butt','line-join':'miter'},paint:{'line-color':'#d5d5d5','line-width':['interpolate',['exponential',1.4],['zoom'],5.8,0,6,3,20,40]}},
+    {id:'highway_motorway_casing',type:'line',source:'openmaptiles','source-layer':'transportation',minzoom:6,filter:['all',['match',['geometry-type'],['LineString','MultiLineString'],true,false],['all',['match',['get','brunnel'],['bridge','tunnel'],false,true],['==',['get','class'],'motorway']]],layout:{'line-cap':'butt','line-join':'miter'},paint:{'line-color':'#e7d9d6','line-width':['interpolate',['exponential',1.4],['zoom'],5.8,0,6,3,20,40]}},
     {id:'highway_motorway_inner',type:'line',source:'openmaptiles','source-layer':'transportation',minzoom:6,filter:['all',['match',['geometry-type'],['LineString','MultiLineString'],true,false],['all',['match',['get','brunnel'],['bridge','tunnel'],false,true],['==',['get','class'],'motorway']]],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#ffffff','line-width':['interpolate',['exponential',1.4],['zoom'],4,2,6,1.3,20,30]}},
-    {id:'railway',type:'line',source:'openmaptiles','source-layer':'transportation',minzoom:13,filter:['all',['match',['geometry-type'],['LineString','MultiLineString'],true,false],['all',['!',['has','service']],['==',['get','class'],'rail']]],layout:{'line-join':'round'},paint:{'line-color':'#b9bdc0','line-width':['interpolate',['exponential',1.3],['zoom'],16,3,20,7]}},
+    {id:'railway',type:'line',source:'openmaptiles','source-layer':'transportation',minzoom:13,filter:['all',['match',['geometry-type'],['LineString','MultiLineString'],true,false],['all',['!',['has','service']],['==',['get','class'],'rail']]],layout:{'line-join':'round'},paint:{'line-color':'#c8b5b1','line-width':['interpolate',['exponential',1.3],['zoom'],16,3,20,7]}},
     {id:'railway_dashline',type:'line',source:'openmaptiles','source-layer':'transportation',minzoom:13,filter:['all',['match',['geometry-type'],['LineString','MultiLineString'],true,false],['all',['!',['has','service']],['==',['get','class'],'rail']]],layout:{'line-join':'round'},paint:{'line-color':'#ffffff','line-dasharray':[3,3],'line-width':['interpolate',['exponential',1.3],['zoom'],16,2,20,6]}},
-    {id:'boundary',type:'line',source:'openmaptiles','source-layer':'boundary',minzoom:8,filter:['all',['==',['typeof',['get','admin_level']],'number'],['>=',['get','admin_level'],3],['<=',['get','admin_level'],6],['!=',['get','maritime'],1]],paint:{'line-color':'#c2c5c7','line-dasharray':[1,1],'line-width':1}}
+    {id:'boundary',type:'line',source:'openmaptiles','source-layer':'boundary',minzoom:8,filter:['all',['==',['typeof',['get','admin_level']],'number'],['>=',['get','admin_level'],3],['<=',['get','admin_level'],6],['!=',['get','maritime'],1]],paint:{'line-color':'#d8c2be','line-dasharray':[1,1],'line-width':1}}
   ]
 };
 
@@ -394,25 +394,22 @@ function editDirectoryPerson(profile){
 function profileLabel(profile){return profile.origin?.label||t('people.hintEmpty');}
 function profileDistrict(profile){return profile.origin?.district||districtFor(profile.origin?.lat,profile.origin?.lon);}
 
+function clearMapOutput(){
+  results=[];
+  cloudCells=[];
+  selection={kind:'result',index:0};
+  const detail=$('detail');if(detail)detail.hidden=true;
+  cloudLayer?.clearLayers();
+  routeLayer?.clearLayers();
+  pointLayer?.clearLayers();
+}
 function renderEmpty(){
   clearError();
-  $('resultState').hidden=false;
-  $('resultsList').hidden=true;
-  $('resultsList').innerHTML='';
-  $('nres').textContent='';
-  $('detail').hidden=true;
-  const runLabel=esc(t('results.emptyRun'));
-  $('resultState').innerHTML=`<div class="empty-state"><p>${esc(t('results.empty'))}</p><button class="secondary wide-icon" id="emptyRun" type="button" aria-label="${runLabel}" title="${runLabel}" data-tooltip="${runLabel}">${icon('search')}<span class="sr-only">${runLabel}</span></button></div>`;
-  $('emptyRun').onclick=triggerSearch;
+  clearMapOutput();
 }
 function renderSkeleton(){
   clearError();
-  $('resultState').hidden=false;
-  $('resultsList').hidden=true;
-  $('resultsList').innerHTML='';
-  $('nres').textContent='';
-  $('detail').hidden=true;
-  $('resultState').innerHTML=Array.from({length:7},()=>'<div class="skeleton-row"><div class="skeleton"></div><div class="skeleton short"></div></div>').join('');
+  clearMapOutput();
 }
 function setWorking(working){
   const label=working?t('options.searching'):t('options.search');
@@ -826,11 +823,7 @@ function cellPreference(cell){
   const weighted=VECTOR_KEYS.reduce((sum,key)=>sum+vectors[key]*values[key],0);
   return round2(weighted/total*VECTOR_BONUS_MINUTES);
 }
-function cellRankScore(cell){return cell.score-cellPreference(cell);}
-function renderResultCount(){
-  const el=$('nres');if(!el)return;
-  el.textContent=`${t('results.shown',{count:results.length})} ${t('results.areas',{count:lastAreaCount})} ${lastComputeMs}ms`;
-}
+function cellFitScore(cell){return cell.score-cellPreference(cell);}
 function compute(){
   clearError();
   if(!NET){renderEmpty();showError(t('error.loading'));return;}
@@ -847,10 +840,10 @@ function compute(){
   sols=sources.map(s=>solve(s,mask,budget));
   if(sols.some(s=>!s.dist.size)){renderEmpty();showError(t('error.noReach'));return;}
   const grids=sols.map(bestTimes),cells=buildCells(grids,tolerance,budget);
-  const ranked=cells.map(cell=>({cell,rankScore:cellRankScore(cell)})).sort((a,b)=>a.rankScore-b.rankScore||a.cell.score-b.cell.score||a.cell.key.localeCompare(b.cell.key));
-  cloudCells=ranked.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
+  const ordered=cells.map(cell=>({cell,fitScore:cellFitScore(cell)})).sort((a,b)=>a.fitScore-b.fitScore||a.cell.score-b.cell.score||a.cell.key.localeCompare(b.cell.key));
+  cloudCells=ordered.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
   const round1=v=>Math.round(v*10)/10;
-  results=ranked.slice(0,7).map(({cell:c})=>({
+  results=ordered.slice(0,7).map(({cell:c})=>({
     key:c.key,node:c.node,label:c.label,catKey:c.keyCat,district:districtFor(NODES.lat[c.node],NODES.lon[c.node]),
     lat:NODES.lat[c.node],lon:NODES.lon[c.node],cellLat:c.cy*CELL_SIZE+CELL_SIZE/2,cellLon:c.cx*CELL_SIZE+CELL_SIZE/2,
     times:c.times.map(round1),fastest:round1(c.fastest),slowest:round1(c.slowest),gap:round1(c.gap),score:round1(c.score),
@@ -860,42 +853,8 @@ function compute(){
     r.routes=sols.map((s,j)=>describe(s,activePeople[j].origin,r.node));
     r.paths=r.routes.map(x=>x.path);
   });
-  lastAreaCount=cells.length;
-  lastComputeMs=(performance.now()-t0).toFixed(0);
-  renderResultCount();
-  if(!results.length){
-    $('resultState').hidden=false;
-    $('resultState').innerHTML=`<div class="empty-state"><p>${esc(t('results.noFit'))}</p></div>`;
-    $('resultsList').hidden=true;$('resultsList').innerHTML='';$('detail').hidden=true;return;
-  }
-  $('resultState').hidden=true;$('resultsList').hidden=false;
-  renderResults(activePeople);drawOrigins(activePeople);drawCloud(budget);applySelection(activePeople);
-}
-function renderResults(active){
-  const maxT=Math.max(...results.flatMap(r=>r.times),1);
-  $('resultsList').innerHTML=results.map((r,i)=>`<div class="result ${i===0?'active':''}" data-i="${i}" role="option" tabindex="${i===0?0:-1}" aria-selected="${i===0}">
-    <div class="rank">${String(i+1).padStart(2,'0')}</div>
-    <div class="body">
-      <div class="title"><span>${esc(r.label)}</span><span class="score">${esc(t('results.score',{value:num(r.score)}))}</span></div>
-      <div class="bars">${r.times.map((time,j)=>`<div class="barrow"><span class="who" style="${avatarStyle(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>
-        <div class="track"><div class="fill" style="width:${Math.max(2,time/maxT*100)}%;background:${PERSON_COLORS[j%PERSON_COLORS.length]}"></div></div>
-         <span class="val">${esc(minuteText(time))}</span></div>`).join('')}</div>
-         ${betaVectorsEnabled()?`<div class="fit-row"><span>${esc(preferenceText(r.fit))}</span><span class="fit-bars">${VECTOR_KEYS.map(key=>`<i class="fit-bar" title="${esc(t('vector.'+key))}" style="height:${Math.max(3,Math.round(Math.abs(r.vector?.[key]||0)*12))}px"></i>`).join('')}</span></div>`:''}
-
-
-       <div class="result-foot"><span class="meta">${esc(t('results.spread',{value:num(r.gap)}))} ${esc(t('cat.'+r.catKey))}.</span><span class="district">${esc(r.district)}</span></div>
-
-    </div></div>`).join('');
-  document.querySelectorAll('.result').forEach((el,i)=>{
-    el.onclick=()=>selectResult(i,active);
-    el.onkeydown=e=>{
-      if(e.key==='Enter'||e.key===' '){e.preventDefault();selectResult(i,active);}
-      else if(e.key==='ArrowDown'){e.preventDefault();const next=Math.min(results.length-1,i+1);selectResult(next,active);document.querySelectorAll('.result')[next].focus();}
-      else if(e.key==='ArrowUp'){e.preventDefault();const next=Math.max(0,i-1);selectResult(next,active);document.querySelectorAll('.result')[next].focus();}
-      else if(e.key==='Home'){e.preventDefault();selectResult(0,active);document.querySelectorAll('.result')[0].focus();}
-      else if(e.key==='End'){e.preventDefault();const next=results.length-1;selectResult(next,active);document.querySelectorAll('.result')[next].focus();}
-    };
-  });
+  if(!results.length){renderEmpty();showError(t('results.noFit'));return;}
+  drawOrigins(activePeople);drawCloud(budget);applySelection(activePeople);
 }
 function drawOrigins(active=activePeople){
   originLayer.clearLayers();
@@ -1005,8 +964,6 @@ function renderSelection(r,active=activePeople){
   const index=results.findIndex(result=>resultMatches(result,r));
   selected=index;
   $('detail').hidden=false;
-  document.querySelectorAll('.result').forEach((el,j)=>{
-    const on=j===index&&index>=0;el.classList.toggle('active',on);el.setAttribute('aria-selected',String(on));el.tabIndex=on?0:-1;});
   routeLayer.clearLayers();pointLayer.clearLayers();
   let legCount=0;
   r.routes.forEach((route,j)=>{
@@ -1023,7 +980,7 @@ function renderSelection(r,active=activePeople){
   $('detailTitle').textContent=r.label;
   $('detailDistrict').textContent=r.district;
   const preference=betaVectorsEnabled()?` ${preferenceText(r.fit)}`:'';
-  $('detailSub').textContent=`${t('results.score',{value:num(r.score)})} ${t('results.spread',{value:num(r.gap)})} ${t('results.longest',{value:num(r.slowest)})}${preference}`;
+  $('detailSub').textContent=`${t('results.spread',{value:num(r.gap)})} ${t('results.longest',{value:num(r.slowest)})}${preference}`;
   $('steps').innerHTML=legCount?r.routes.map((route,j)=>`<div class="step">
     <span class="dot" style="${avatarStyle(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>
     <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(leg=>`<span class="leg route-${leg.mode}">${esc(legLabel(leg))}</span>`).join('')}</span><span class="muted">${esc(minuteText(r.times[j]))}</span></span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t('results.noRoutes'))}</span></span></div>`;
@@ -1065,9 +1022,8 @@ function rerender(){
   directory.forEach(p=>{p.district=districtFor(p.origin.lat,p.origin.lon);});
   results.forEach(r=>{r.district=districtFor(r.lat,r.lon);});
   updateSettingsLabels();
-  renderResultCount();
   renderCards();
-  if(results.length){renderResults(activePeople);drawOrigins(activePeople);drawCloud(settings.budget);applySelection(activePeople);}
+  if(results.length){drawOrigins(activePeople);drawCloud(settings.budget);applySelection(activePeople);}
   else renderEmpty();
   renderDirectoryList();
 }

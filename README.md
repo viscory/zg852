@@ -1,6 +1,6 @@
 # zg852
 
-Client-side Hong Kong fair meeting-point finder. Pick two or more start places, set a travel budget, and get ranked places with segmented walking, rail, and bus routes. No account, no backend, no API keys.
+Client-side Hong Kong fair meeting-point finder. Pick two or more start places, set a travel budget, and see fair areas on the map with segmented walking, rail, and bus routes. No account, no backend, no API keys.
 
 Site: https://zg852.pages.dev/
 
