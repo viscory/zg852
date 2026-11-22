@@ -5,9 +5,9 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'public');
-const runtimeFiles = ['index.html', 'styles.css', 'app.js', 'sw.js', 'preview-noindex.js', 'privacy.html', 'terms.html', 'credits.html', 'sitemap.xml'];
+const runtimeFiles = ['index.html', 'styles.css', 'app.js', 'sw.js', 'preview-noindex.js', 'privacy.html', 'terms.html', 'credits.html', 'sitemap.xml', 'llms.txt'];
 const runtimeDirs = ['vendor', 'data', 'i18n'];
-const binaryFiles = ['favicon.ico', 'og-image.png'];
+const binaryFiles = ['favicon.ico', 'favicon.svg', 'og-image.png'];
 const rootTextFiles = ['CNAME', 'robots.txt', '_redirects', 'LICENSE', 'README.md', 'PRIVACY.md', 'TERMS.md', 'CREDITS.md', 'THIRD_PARTY_NOTICES.md'];
 const excludedDirs = [join(root, 'data', 'raw')];
 
@@ -51,6 +51,12 @@ const headers = `/*
 
 /og-image.png
   Cache-Control: public, max-age=86400
+
+/favicon.svg
+  Cache-Control: public, max-age=86400
+
+/llms.txt
+  Cache-Control: public, max-age=3600
 
 /vendor/*
   Cache-Control: public, max-age=31536000, immutable

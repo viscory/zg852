@@ -2,7 +2,7 @@
 
 Effective 22 November 2026.
 
-zg852 runs in your browser. It has no account system and no application backend.
+擇角 (Zak Geok) runs in your browser. It has no account system and no application backend.
 
 ## What stays on your device
 
@@ -16,7 +16,7 @@ The app stores these values in browser `localStorage`:
 
 Share links put the current scenario in the URL fragment. Anyone who receives the link can see that scenario. Do not put sensitive information into people names or start places if you plan to share.
 
-Use the reset control in the app, or clear site data in your browser, to remove stored values.
+Clear site data in your browser to remove stored values.
 
 ## External requests
 
@@ -26,7 +26,7 @@ The app makes these third-party requests from your browser:
 - `tiles.openfreemap.org` for vector map tiles.
 - Font glyph or sprite files are not requested. Icons are bundled locally.
 
-These providers may see your IP address and standard request metadata and may keep logs under their own policies. zg852 does not receive those logs.
+These providers may see your IP address and standard request metadata and may keep logs under their own policies. 擇角 (Zak Geok) does not receive those logs.
 
 The app does not use analytics, advertising, cookies, or tracking pixels.
 

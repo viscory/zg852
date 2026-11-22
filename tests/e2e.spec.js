@@ -59,6 +59,15 @@ async function clickableHeatCell(page) {
   return point;
 }
 
+async function sharedState(page, url) {
+  return page.evaluate(value => {
+    const raw = value.split('#s=')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = raw + '='.repeat((4 - raw.length % 4) % 4);
+    const json = new TextDecoder().decode(Uint8Array.from(atob(padded), byte => byte.charCodeAt(0)));
+    return JSON.parse(json);
+  }, url);
+}
+
 test.beforeEach(async ({ page }) => {
   await page.route('**/sw.js', route => route.abort());
   await page.route('**/basemaps.cartocdn.com/**', route => route.abort());
@@ -86,6 +95,38 @@ test('map renders a keyless vector canvas with no API-key errors', async ({ page
   await expect(page.locator('body')).not.toContainText('API KEY');
   expect(blocked).toEqual([]);
   expect(raster).toEqual([]);
+});
+
+test('brand, meaning text and MTR-facing labels use the Zak Geok identity', async ({ page }) => {
+  const en = await catalog(page, 'en');
+  await expect(page.locator('.brand .logo')).toHaveText('ZG');
+  await expect(page.locator('h1')).toHaveText('擇角 Zak Geok');
+  await expect(page.locator('h1')).toHaveText(en['app.title']);
+  await expect(page.locator('.brand .meaning')).toBeVisible();
+  await expect(page.locator('.brand .meaning')).toHaveText(en['app.meaning']);
+  await expect(page.locator('.brand .meaning')).toContainText('choose a corner');
+  await expect(page.locator('.chip[data-mode="rail"]')).toHaveAttribute('aria-label', 'MTR');
+  await expect(page.locator('.route-key [data-i18n="map.railKey"]')).toHaveText('MTR');
+  await expect(page.locator('#tolerance')).toHaveAttribute('min', '0.05');
+  await expect(page.locator('label[for="tolerance"]')).toHaveText('Travel time disparity tolerance');
+});
+
+test('robots, llms, sitemap and build headers expose the llms.txt endpoint', async ({ page }) => {
+  const robots = await page.request.get('/robots.txt');
+  expect(robots.ok()).toBeTruthy();
+  expect(await robots.text()).toContain('/llms.txt');
+
+  const llms = await page.request.get('/llms.txt');
+  expect(llms.ok()).toBeTruthy();
+  expect(await llms.text()).toContain('Zak Geok');
+
+  const sitemap = await page.request.get('/sitemap.xml');
+  expect(sitemap.ok()).toBeTruthy();
+  expect(await sitemap.text()).toContain('/llms.txt');
+
+  const build = await page.request.get('/scripts/build-pages.mjs');
+  expect(build.ok()).toBeTruthy();
+  expect(await build.text()).toContain('/llms.txt');
 });
 
 test('production module wiring avoids inline importmaps and CSP exceptions', async ({ page }) => {
@@ -133,15 +174,21 @@ test('defaults load and a two-person search draws fair map areas', async ({ page
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await expect(page.locator('.result-row.selected')).toHaveCount(1);
-  await expect(page.locator('.result-row').first()).toContainText('MTR HK$');
-  await expect(page.locator('.result-row').first()).toContainText('Bus HK$');
+  await expect(page.locator('.result-row').first().locator('.fare.total').first()).toContainText('Fare HK$');
+  await expect(page.locator('.result-row').first()).not.toContainText('MTR HK$');
+  await expect(page.locator('.result-row').first()).not.toContainText('Bus HK$');
   await expect(page.locator('#detail')).toBeVisible();
   await expect(page.locator('#detailTitle')).not.toBeEmpty();
   await expect(page.locator('#detailDistrict')).not.toBeEmpty();
   await expect(page.locator('#steps .step')).toHaveCount(2);
   await expect(page.locator('.step').first()).toContainText('Person A');
-  await expect(page.locator('.step').first()).toContainText('MTR HK$');
-  await expect(page.locator('.step').first()).toContainText('Bus HK$');
+  await expect(page.locator('.step').first().locator('.fare.total')).toContainText('Fare HK$');
+  await expect(page.locator('.step').first()).not.toContainText('MTR HK$');
+  await expect(page.locator('.step').first()).not.toContainText('Bus HK$');
+  await expect(page.locator('.ride-leg .ride-text').first()).toContainText('MTR');
+  await expect(page.locator('.ride-leg .ride-text').first()).not.toContainText('MTR MTR');
+  await expect(page.locator('.ride-leg .ride-text').first()).toContainText('stops');
+  await expect(page.locator('.ride-leg .ride-text').first()).toContainText('min');
   await expect(page.locator('#steps .dot').first()).toHaveText('PA');
   await expect(page.locator('#steps .dot').nth(1)).toHaveText('PB');
   await expect.poll(() => page.locator('path.route-line.route-person-0').count()).toBeGreaterThan(0);
@@ -165,8 +212,8 @@ test('selected map area shows district subtitles and segmented routes', async ({
   await expect.poll(() => page.locator('path.route-line').count()).toBeGreaterThan(0);
   await expect.poll(() => page.locator('path.route-line.route-walk').count()).toBeGreaterThan(0);
   await expect.poll(() => page.locator('path.route-line.route-bus').count()).toBeGreaterThan(0);
-  await expect.poll(() => page.locator('#steps .leg.route-walk').count()).toBeGreaterThan(0);
-  await expect.poll(() => page.locator('#steps .leg.route-bus').count()).toBeGreaterThan(0);
+  await expect.poll(() => page.locator('#steps .walk-leg.route-walk').count()).toBeGreaterThan(0);
+  await expect.poll(() => page.locator('#steps .ride-leg.route-bus').count()).toBeGreaterThan(0);
 });
 
 test('clicking a red area selects that map area', async ({ page }) => {
@@ -273,7 +320,7 @@ test('people and results stay left, controls stay right, and the map fills the m
   await expect(page.locator('.side-right #go')).toBeVisible();
   await expect(page.locator('.side-right #tolerance')).toBeVisible();
   await expect(page.locator('.side-right #budget')).toBeVisible();
-  await expect(page.locator('.side-right #reset')).toBeVisible();
+  await expect(page.locator('.side-right #reset')).toHaveCount(0);
   await expect(page.locator('.side-right #detail')).toBeHidden();
   await expect(headerLibrary(page)).toBeVisible();
   await expect(page.locator('.main #map')).toBeVisible();
@@ -354,7 +401,7 @@ test('named people, Photon addresses, tolerance cloud and budget work', async ({
   await expect(page.locator('#goLabel')).toHaveText('Find fair areas');
 });
 
-test('settings, people, library and locale persist, and reset restores defaults', async ({ page }) => {
+test('settings, people, library and locale persist, and clearing storage restores defaults', async ({ page }) => {
   await page.locator('.card').nth(0).locator('.name-input').fill('Alex');
   await page.locator('.chip[data-mode="bus"]').click();
   await setRange(page, '#tolerance', '0.25');
@@ -387,8 +434,10 @@ test('settings, people, library and locale persist, and reset restores defaults'
 
   await page.locator('#locale').selectOption('en');
   await expect.poll(() => page.locator('html').getAttribute('lang')).toBe('en');
-  await page.locator('#reset').click();
-  await page.waitForLoadState('domcontentloaded');
+
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await expect(page.locator('#netstatus')).toHaveText('network ready');
   await expect(page.locator('.card')).toHaveCount(2);
   await expect(page.locator('.name-input').first()).toHaveValue('Person A');
   await expect(page.locator('#tolerance')).toHaveValue('0.1');
@@ -424,6 +473,16 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
+  for (const key of ['app.meaning', 'people.focusTime', 'people.focusCost', 'options.tolerance', 'route.rideLeg', 'route.stopCount_other', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.close']) {
+    expect(Object.keys(catalogues[0])).toContain(key);
+  }
+  expect(catalogues[0]['app.title']).toBe('擇角 Zak Geok');
+  expect(catalogues[0]['options.rail']).toBe('MTR');
+  expect(catalogues[0]['mode.rail']).toBe('MTR');
+  expect(catalogues[0]['map.railKey']).toBe('MTR');
+  expect(catalogues[0]['options.tolerance']).toBe('Travel time disparity tolerance');
+  expect(catalogues[0]['results.fareTotal']).toBe('Fare {value}');
+  expect(catalogues[0]['results.noFitMtr']).toContain('MTR');
   for (const entries of catalogues) {
     expect(Object.keys(entries).sort()).toEqual(expected);
     for (const value of Object.values(entries)) {
@@ -443,12 +502,36 @@ test('rejects an unset origin with an inline error and no map output', async ({ 
 });
 
 test('tight tolerance and budget produce no map areas', async ({ page }) => {
-  await setRange(page, '#tolerance', '0');
+  await setRange(page, '#tolerance', '0.05');
   await setRange(page, '#budget', '15');
   await page.locator('#go').click();
   await expect(page.locator('path.heat-cell')).toHaveCount(0);
   await expect(page.locator('#detail')).toBeHidden();
   await expect(page.locator('#error')).toHaveText('No areas fit this tolerance and budget. Increase either setting.');
+});
+
+test('MTR-only search still finds fair areas with default settings', async ({ page }) => {
+  await expect(page.locator('.card')).toHaveCount(2);
+  await expect(page.locator('.chip[data-mode="rail"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#tolerance')).toHaveValue('0.1');
+  await expect(page.locator('#budget')).toHaveValue('60');
+  await page.locator('.chip[data-mode="bus"]').click();
+  await expect(page.locator('.chip[data-mode="bus"]')).toHaveAttribute('aria-pressed', 'false');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('#error')).toBeHidden();
+  await expect(page.locator('.result-row').first().locator('.fare.total').first()).toContainText('Fare HK$');
+});
+
+test('MTR-only no-fit message names the disabled mode', async ({ page }) => {
+  await page.locator('.chip[data-mode="bus"]').click();
+  await setRange(page, '#tolerance', '0.05');
+  await setRange(page, '#budget', '15');
+  await page.locator('#go').click();
+  await expect(page.locator('path.heat-cell')).toHaveCount(0);
+  await expect(page.locator('#error')).toBeVisible();
+  await expect(page.locator('#error')).toContainText('MTR');
 });
 
 test('map pin fallback saves a coordinate origin', async ({ page }) => {
@@ -499,11 +582,12 @@ test('design system avoids banned decoration and labels every control', async ({
   await expect(page.locator('.locale')).toHaveAttribute('data-tooltip', 'Language');
   await expect(page.locator('.locale .icon-globe')).toBeVisible();
   await expect(page.locator('#locale')).toHaveAttribute('aria-label', 'Language');
-  for (const selector of ['#add', '#library', '#go', '#recenter', '#share', '#reset']) {
+  for (const selector of ['#add', '#library', '#go', '#recenter', '#share']) {
     await expect(page.locator(`${selector} .icon`)).toBeVisible();
     await expect(page.locator(selector)).toHaveAttribute('data-tooltip', /.+/);
     await expect(page.locator(selector)).toHaveAttribute('aria-label', /.+/);
   }
+  await expect(page.locator('#reset')).toHaveCount(0);
   for (const mode of ['rail', 'bus']) {
     const chip = page.locator(`.chip[data-mode="${mode}"]`);
     await expect(chip.locator('.icon')).toBeVisible();
@@ -520,7 +604,13 @@ test('design system avoids banned decoration and labels every control', async ({
   await page.locator('#library').click();
   const actionText = await page.locator('.directory-actions button').evaluateAll(els => els.map(el => el.textContent.trim()));
   expect(actionText.every(text => text === '')).toBe(true);
-  await expect(page.locator('.directory-actions button .icon').first()).toBeVisible();
+  const actions = page.locator('.directory-row').first().locator('.directory-actions button');
+  for (const [index, className] of ['icon-add', 'icon-edit', 'icon-trash-2'].entries()) {
+    await expect(actions.nth(index).locator(`.${className}`)).toBeVisible();
+  }
+  const masks = await actions.evaluateAll(buttons => buttons.map(button => getComputedStyle(button.querySelector('.icon')).maskImage));
+  expect(masks.length).toBeGreaterThan(0);
+  expect(masks.every(mask => mask && mask !== 'none')).toBe(true);
   const audit = await page.evaluate(() => {
     const scope = [...document.querySelectorAll('header *, .side *, .legend *, .overlay *, dialog *')];
     const style = el => getComputedStyle(el);
@@ -548,7 +638,7 @@ test('beta interest vectors default off and recompute the map with labelled pref
   await expect(page.locator('#legendVectorKey')).toBeHidden();
   await Promise.all([
     page.waitForResponse(response => response.url().includes('poi-index.json')),
-    page.locator('#betaVectors').check(),
+    page.locator('label.beta-toggle').click(),
   ]);
   await expect(page.locator('#vectorSection')).toBeVisible();
   await expect(page.locator('#legendVectorKey')).toBeVisible();
@@ -584,7 +674,7 @@ test('beta interest vectors default off and recompute the map with labelled pref
   await expect(page.locator('#vec-food-val')).toHaveText('Avoid 3');
   await expect.poll(() => page.evaluate(() => localStorage.getItem('hkfair.v2.settings'))).toContain('"food":-3');
 
-  await page.locator('#betaVectors').uncheck();
+  await page.locator('label.beta-toggle').click();
   await expect(page.locator('#vectorSection')).toBeHidden();
   await expect(page.locator('#legendVectorKey')).toBeHidden();
   await expect.poll(() => page.locator('#detailSub').textContent()).not.toContain('preference');
@@ -602,6 +692,27 @@ test('heat cells reveal delayed interest tooltips and open a breakdown', async (
   await expect(page.locator('#detailTitle')).not.toBeEmpty();
 });
 
+test('per-person focus toggle persists through storage, reload and routes', async ({ page }) => {
+  const card = page.locator('.card').first();
+  await expect(card.locator('.focus-toggle')).toBeVisible();
+  await expect(card.locator('.focus-option[data-focus="time"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(card.locator('.focus-option[data-focus="cost"]')).toHaveAttribute('aria-pressed', 'false');
+  await card.locator('.focus-option[data-focus="cost"]').click();
+  await expect(card.locator('.focus-option[data-focus="cost"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(card.locator('.focus-option[data-focus="time"]')).toHaveAttribute('aria-pressed', 'false');
+
+  const stored = await page.evaluate(() => localStorage.getItem('hkfair.v2.people'));
+  expect(stored).toMatch(/"focus"\s*:\s*"cost"/);
+
+  await page.reload();
+  await expect(page.locator('#netstatus')).toHaveText('network ready');
+  await expect(page.locator('.card').first().locator('.focus-option[data-focus="cost"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+  await expect.poll(() => page.locator('.ride-leg .ride-text').count()).toBeGreaterThan(0);
+  await expect(page.locator('.ride-leg .ride-text').first()).toContainText('MTR');
+});
+
 test('share links restore the current scenario', async ({ page }) => {
   await page.evaluate(() => {
     window.__copied = '';
@@ -611,15 +722,49 @@ test('share links restore the current scenario', async ({ page }) => {
     });
   });
   await page.locator('.card').first().locator('.name-input').fill('Alex');
+  await page.locator('.card').first().locator('.focus-option[data-focus="cost"]').click();
   await setRange(page, '#budget', '75');
   await page.locator('#go').click();
   await page.locator('#share').click();
   await expect(page.locator('#share')).toHaveAttribute('data-tooltip', 'Share link copied');
   const sharedUrl = await page.evaluate(() => window.__copied);
   expect(sharedUrl).toContain('#s=');
+  const state = await sharedState(page, sharedUrl);
+  expect(state.people[0].name).toBe('Alex');
+  expect(state.people[0].focus).toBe('cost');
   await page.goto(sharedUrl);
+  await expect(page.locator('#netstatus')).toHaveText('network ready');
   await expect(page.locator('.name-input').first()).toHaveValue('Alex');
   await expect(page.locator('#budget')).toHaveValue('75');
+  await expect(page.locator('.card').first().locator('.focus-option[data-focus="cost"]')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('legal buttons open the dialog with loaded documents and direct pages still work', async ({ page }) => {
+  const documents = [
+    { key: 'privacy', title: 'Privacy', body: 'What stays on your device' },
+    { key: 'terms', title: 'Terms', body: 'Informational service' },
+    { key: 'credits', title: 'Credits', body: 'Transit data' },
+  ];
+  for (const document of documents) {
+    await page.locator(`[data-legal="${document.key}"]`).click();
+    await expect(page.locator('#legalDialog')).toBeVisible();
+    await expect(page.locator('#legalTitle')).toHaveText(document.title);
+    await expect(page.locator('#legalBody')).toContainText(document.body);
+    await expect(page.locator('#legalBody nav')).toHaveCount(0);
+    await page.locator('#legalDone').click();
+    await expect(page.locator('#legalDialog')).toBeHidden();
+  }
+
+  await page.locator('[data-legal="privacy"]').click();
+  await expect(page.locator('#legalBody')).toContainText('What stays on your device');
+  await page.locator('#legalClose').click();
+  await expect(page.locator('#legalDialog')).toBeHidden();
+
+  for (const document of documents) {
+    const response = await page.request.get(`/${document.key}.html`);
+    expect(response.ok()).toBeTruthy();
+    expect(await response.text()).toContain(document.body);
+  }
 });
 
 test('mobile layout puts the map above the panel and keeps the legend visible', async ({ page }) => {

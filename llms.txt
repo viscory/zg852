@@ -1,0 +1,23 @@
+# 擇角 (Zak Geok)
+
+> Fair Hong Kong meet-up points by travel time and cost.
+
+Canonical: https://zg852.pages.dev/
+
+## Purpose
+
+Compare travel time and cost from each person's start place to find a meeting point that is fair for everyone.
+
+## Features
+
+- MTR, bus and walking routes
+- Per-person time and cost focus
+- Runs in the browser: no account, no backend, no API keys
+
+## Links
+
+- Privacy: https://zg852.pages.dev/privacy.html
+- Terms: https://zg852.pages.dev/terms.html
+- Credits: https://zg852.pages.dev/credits.html
+- Sitemap: https://zg852.pages.dev/sitemap.xml
+- Robots: https://zg852.pages.dev/robots.txt

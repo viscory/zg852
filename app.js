@@ -60,7 +60,7 @@ let lastAreaCount=0,lastComputeMs='0';
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const ICONS={globe:'globe',up:'arrow-up',down:'arrow-down',pin:'map-pin',centre:'scan',save:'bookmark-plus',remove:'trash-2',add:'plus',library:'users',search:'search',reset:'rotate-ccw',edit:'pencil',close:'x',rail:'train-front',bus:'bus',share:'share'};
+const ICONS={globe:'globe',up:'arrow-up',down:'arrow-down',pin:'map-pin',centre:'scan',save:'bookmark-plus',remove:'trash-2',add:'add',library:'library',search:'search',reset:'reset',edit:'edit',close:'close',rail:'rail',bus:'bus',share:'share',food:'food',drinks:'drinks',activities:'activities',culture:'culture',landmark:'landmark',outdoors:'outdoors',shopping:'shopping'};
 const icon=name=>`<span class="icon icon-${ICONS[name]}" aria-hidden="true"></span>`;
 const personColor=i=>PERSON_COLORS[i%PERSON_COLORS.length];
 const initialsFor=name=>{const parts=String(name||'').trim().split(/\s+/).filter(Boolean);return (parts.length?parts.slice(0,2).map(part=>part[0]).join(''):'?').toUpperCase();};
@@ -102,6 +102,7 @@ function round1(value){return Math.round(value*10)/10;}
 function round2(value){return Math.round(value*100)/100;}
 const RAIL_FARE_BANDS=[[2,4.9],[5,6.5],[9,8.2],[14,10.6],[20,13.2],[30,16.8],[Infinity,20.5]];
 const BUS_FARE_BANDS=[[4,5.5],[8,7.2],[15,9.6],[25,13.2],[Infinity,17.7]];
+const FARE_INTERCHANGE_WALK_MINUTES=15;
 function bandFare(km,bands){return bands.find(([limit])=>km<=limit)[1];}
 function legDistanceKm(leg){
   let metres=0;
@@ -112,25 +113,30 @@ function legDistanceKm(leg){
   return metres/1000;
 }
 function routeFares(route){
-  let rail=0,bus=0;
+  let rail=0,bus=0,railKm=0;
+  const flushRail=()=>{if(railKm>0){rail+=bandFare(railKm,RAIL_FARE_BANDS);railKm=0;}};
   for(const leg of route.legs){
-    if(leg.mode==='walk')continue;
+    if(leg.mode==='walk'){
+      if(leg.minutes>FARE_INTERCHANGE_WALK_MINUTES)flushRail();
+      continue;
+    }
     const km=legDistanceKm(leg);
-    if(leg.mode==='rail')rail+=bandFare(km,RAIL_FARE_BANDS);
-    else bus+=bandFare(km,BUS_FARE_BANDS);
+    if(leg.mode==='rail')railKm+=km;
+    else{flushRail();bus+=bandFare(km,BUS_FARE_BANDS);}
   }
+  flushRail();
   return{rail:round1(rail),bus:round1(bus),total:round1(rail+bus)};
 }
 function prepareRoutes(result,active=activePeople){
-  result.routes=sols.map((solution,j)=>describe(solution,active[j].origin,result.node));
+  result.routes=sols.map((solution,j)=>describe(solution,active[j].origin,result.node,active[j].focus));
   result.routes.forEach(route=>{route.fares=routeFares(route);});
   result.paths=result.routes.map(route=>route.path);
   return result;
 }
 function money(value){return `HK$${num(value)}`;}
 function fareMarkup(route){
-  const fares=route?.fares||{rail:0,bus:0};
-  return `<span class="person-fares"><span class="fare rail">${esc(t('results.fareMtr',{value:money(fares.rail)}))}</span><span class="fare bus">${esc(t('results.fareBus',{value:money(fares.bus)}))}</span></span>`;
+  const fares=route?.fares||{total:0};
+  return `<span class="person-fares"><span class="fare total">${esc(t('results.fareTotal',{value:money(fares.total)}))}</span></span>`;
 }
 
 function t(key,vars={}){
@@ -267,7 +273,7 @@ function applySettingsToDom(){
 }
 function readSettingsFromDom(){
   settings.modes=[...document.querySelectorAll('.chip[aria-pressed="true"]')].map(c=>c.dataset.mode);
-  settings.tolerance=Number($('tolerance').value);
+  settings.tolerance=clamp(Number($('tolerance').value),0.05,0.5,0.1);
   settings.budget=Number($('budget').value);
   settings.beta={vectors:$('betaVectors').checked};
   const vectors=normalizeVectors(settings.vectors);
@@ -279,7 +285,7 @@ function readSettingsFromDom(){
   scheduleRecompute();
 }
 function save(){
-  localStorage.setItem(KEY.people,JSON.stringify(people.map(p=>({id:p.id,name:p.name,origin:p.origin,directoryId:p.directoryId||null}))));
+  localStorage.setItem(KEY.people,JSON.stringify(people.map(p=>({id:p.id,name:p.name,origin:p.origin,directoryId:p.directoryId||null,focus:p.focus==='cost'?'cost':'time'}))));
   localStorage.setItem(KEY.settings,JSON.stringify(settings));
   localStorage.setItem(KEY.locale,locale);
   updateSaveSummary();
@@ -297,12 +303,12 @@ function normalizePerson(raw,i){
   const validNode=origin&&origin.kind==='node'&&Number.isInteger(origin.node)&&origin.node>=0&&NODES&&origin.node<NODES.names.length;
   const validCoords=origin&&origin.kind==='coords'&&isNum(origin.lat)&&isNum(origin.lon);
   if(!validNode&&!validCoords)return null;
-  return{id:raw.id||`p${i+1}`,name:raw.name||defaultName(i),origin,directoryId:raw.directoryId||null};
+  return{id:raw.id||`p${i+1}`,name:raw.name||defaultName(i),origin,directoryId:raw.directoryId||null,focus:raw.focus==='cost'?'cost':'time'};
 }
 function defaultPeople(){
   return ['Tsuen Wan','North Point'].map((name,i)=>{
     const node=findExact(name);
-    return{id:`p${i+1}`,name:defaultName(i),origin:node==null?null:{kind:'node',node,label:NODES.names[node],lat:NODES.lat[node],lon:NODES.lon[node],district:districtFor(NODES.lat[node],NODES.lon[node])}};
+    return{id:`p${i+1}`,name:defaultName(i),focus:'time',origin:node==null?null:{kind:'node',node,label:NODES.names[node],lat:NODES.lat[node],lon:NODES.lon[node],district:districtFor(NODES.lat[node],NODES.lon[node])}};
   }).filter(p=>p.origin);
 }
 function decodeBase64Url(value){
@@ -336,7 +342,7 @@ async function shareScenario(){
   const selectedState=selection?.kind==='cell'
     ?{kind:'cell',key:selection.key,node:selection.node,lat:selection.lat,lon:selection.lon}
     :{kind:'result',index:selected>=0?selected:0};
-  const state={v:1,people:people.map(p=>({id:p.id,name:p.name,origin:p.origin})),settings:clone(settings),locale,selected:selectedState};
+  const state={v:1,people:people.map(p=>({id:p.id,name:p.name,origin:p.origin,focus:p.focus==='cost'?'cost':'time'})),settings:clone(settings),locale,selected:selectedState};
   const url=`${location.origin}${location.pathname}${location.search}#s=${encodeBase64Url(state)}`;
   const button=$('share');
   try{await copyText(url);flashTooltip(button,t('share.copied'));}
@@ -356,7 +362,7 @@ function applySharedState(){
   if(sharedPeople.length<2)return false;
   people=sharedPeople;
   const modes=Array.isArray(state.settings?.modes)?state.settings.modes.filter(m=>m==='rail'||m==='bus'):['rail','bus'];
-  settings={modes:modes.length?modes:['rail','bus'],tolerance:clamp(Number(state.settings?.tolerance),0,0.5,0.1),budget:clamp(Number(state.settings?.budget),15,180,60),vectors:migrateVectors(state.settings?.vectors),beta:{vectors:!!state.settings?.beta?.vectors}};
+  settings={modes:modes.length?modes:['rail','bus'],tolerance:clamp(Number(state.settings?.tolerance),0.05,0.5,0.1),budget:clamp(Number(state.settings?.budget),15,180,60),vectors:migrateVectors(state.settings?.vectors),beta:{vectors:!!state.settings?.beta?.vectors}};
   if(LOCALES.includes(state.locale))locale=state.locale;
   sharedSelection=state.selected&&typeof state.selected==='object'?state.selected:null;
   seq=Math.max(1,...people.map(p=>Number(String(p.id).replace(/\D/g,''))||0))+1;
@@ -373,7 +379,7 @@ function restoreState(){
   if(!loaded||people.length<2){
     try{
       const raw=JSON.parse(localStorage.getItem(KEY.oldLoc));
-      if(Array.isArray(raw)&&raw.length>=2){people=raw.map((l,i)=>({id:`p${i+1}`,name:defaultName(i),origin:l.i!=null&&NODES&&l.i<NODES.names.length?{kind:'node',node:l.i,label:l.name,lat:l.lat,lon:l.lon}:null})).filter(p=>p.origin);loaded=true;}
+      if(Array.isArray(raw)&&raw.length>=2){people=raw.map((l,i)=>({id:`p${i+1}`,name:defaultName(i),focus:'time',origin:l.i!=null&&NODES&&l.i<NODES.names.length?{kind:'node',node:l.i,label:l.name,lat:l.lat,lon:l.lon}:null})).filter(p=>p.origin);loaded=true;}
     }catch(e){}
   }
   if(people.length<2)people=defaultPeople();
@@ -383,25 +389,25 @@ function restoreState(){
   if(!stored||typeof stored!=='object')stored={};
   let modes=Array.isArray(stored.modes)?stored.modes:null;
   if(!modes){try{const m=JSON.parse(localStorage.getItem(KEY.oldModes));if(Array.isArray(m))modes=m;}catch(e){}}
-  settings={modes:modes||['rail','bus'],tolerance:clamp(Number(stored.tolerance),0,0.5,0.1),budget:clamp(Number(stored.budget),15,180,60),vectors:migrateVectors(stored.vectors),beta:{vectors:!!stored.beta?.vectors}};
+  settings={modes:modes||['rail','bus'],tolerance:clamp(Number(stored.tolerance),0.05,0.5,0.1),budget:clamp(Number(stored.budget),15,180,60),vectors:migrateVectors(stored.vectors),beta:{vectors:!!stored.beta?.vectors}};
   applySettingsToDom();
   save();
 }
 function restoreDirectory(){
   try{
     const raw=JSON.parse(localStorage.getItem(KEY.directory));
-    if(Array.isArray(raw))directory=raw.filter(p=>p&&p.origin).map(p=>({id:p.id||`d${Date.now()}`,name:p.name||defaultName(0),origin:p.origin,updated:p.updated||Date.now()}));
+    if(Array.isArray(raw))directory=raw.filter(p=>p&&p.origin).map(p=>({id:p.id||`d${Date.now()}`,name:p.name||defaultName(0),origin:p.origin,focus:p.focus==='cost'?'cost':'time',updated:p.updated||Date.now()}));
   }catch(e){}
   if(!directory.length)directory=people.map(profileFromPerson);
   saveDirectory();
 }
 function profileFromPerson(person){
-  return{id:person.directoryId||`d${directorySeq++}`,name:person.name||defaultName(0),origin:clone(person.origin),updated:Date.now()};
+  return{id:person.directoryId||`d${directorySeq++}`,name:person.name||defaultName(0),origin:clone(person.origin),focus:person.focus==='cost'?'cost':'time',updated:Date.now()};
 }
 function savePersonToDirectory(person){
   if(!person.origin){showError(t('people.hintEmpty'));return;}
   const existing=directory.find(d=>d.id===person.directoryId)||directory.find(d=>d.name===person.name&&d.origin?.label===person.origin.label);
-  if(existing){existing.name=person.name;existing.origin=clone(person.origin);existing.updated=Date.now();person.directoryId=existing.id;}
+  if(existing){existing.name=person.name;existing.origin=clone(person.origin);existing.focus=person.focus==='cost'?'cost':'time';existing.updated=Date.now();person.directoryId=existing.id;}
   else{const profile=profileFromPerson(person);directory.push(profile);person.directoryId=profile.id;}
   saveDirectory();save();renderDirectoryList();flashSaved(person.id);
 }
@@ -418,13 +424,13 @@ function deleteDirectoryPerson(id){
 }
 function addDirectoryPerson(profile){
   if(people.length>=8||!profile)return;
-  people.push({id:`p${seq++}`,name:profile.name,origin:clone(profile.origin),directoryId:profile.id});
+  people.push({id:`p${seq++}`,name:profile.name,origin:clone(profile.origin),directoryId:profile.id,focus:profile.focus==='cost'?'cost':'time'});
   renderCards();save();
 }
 function editDirectoryPerson(profile){
   let person=people.find(p=>p.directoryId===profile.id);
   if(!person&&people.length<8){addDirectoryPerson(profile);person=people[people.length-1];}
-  if(person){person.name=profile.name;person.origin=clone(profile.origin);}
+  if(person){person.name=profile.name;person.origin=clone(profile.origin);person.focus=profile.focus==='cost'?'cost':'time';}
   renderCards();save();
 }
 function profileLabel(profile){return profile.origin?.label||t('people.hintEmpty');}
@@ -661,6 +667,11 @@ function makeCard(person){
     <button class="icon-button move up" type="button" aria-label="${upLabel}" title="${upLabel}" data-tooltip="${upLabel}" ${idx===0?'disabled':''}>${icon('up')}</button>
     <button class="icon-button move down" type="button" aria-label="${downLabel}" title="${downLabel}" data-tooltip="${downLabel}" ${idx===people.length-1?'disabled':''}>${icon('down')}</button>
   </div>
+  <div class="focus-toggle" role="group" aria-label="${esc(t('people.focusLabel'))}">
+    <span class="focus-label">${esc(t('people.focusLabel'))}</span>
+    <button class="focus-option" type="button" data-focus="time" aria-pressed="${person.focus!=='cost'}">${esc(t('people.focusTime'))}</button>
+    <button class="focus-option" type="button" data-focus="cost" aria-pressed="${person.focus==='cost'}">${esc(t('people.focusCost'))}</button>
+  </div>
   <div class="suggestions" id="suggest-${id}" role="listbox" hidden></div>`;
   $('cards').appendChild(card);
   const nameInput=card.querySelector('#name-'+CSS.escape(id));
@@ -689,6 +700,14 @@ function makeCard(person){
   card.querySelector('.move.up').onclick=()=>movePerson(id,-1);
   card.querySelector('.move.down').onclick=()=>movePerson(id,1);
   card.querySelector('.pin').onclick=()=>startPinMode(id,hint,input,sug);
+  const focusToggle=card.querySelector('.focus-toggle');
+  focusToggle.querySelectorAll('.focus-option').forEach(option=>{
+    option.onclick=()=>{
+      person.focus=option.dataset.focus;
+      focusToggle.querySelectorAll('.focus-option').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.focus===person.focus)));
+      save();scheduleRecompute();
+    };
+  });
   refreshMeta();
 }
 function movePerson(id,delta){
@@ -776,12 +795,40 @@ function renderDirectoryList(){
     if(e.key==='ArrowUp'){e.preventDefault();rows[Math.max(0,i-1)].focus();}
   };
 }
-function openDirectory(){
-  lastDialogFocus=document.activeElement;pendingDelete=null;
-  renderDirectoryList();
-  const dialog=$('peopleDialog');
+function openDialog(dialog,focusTarget){
+  if(!dialog)return;
+  lastDialogFocus=document.activeElement;
   if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
-  $('directorySearch').focus();
+  if(focusTarget)focusTarget.focus();
+}
+function closeDialog(dialog){
+  if(!dialog)return;
+  if(typeof dialog.close==='function')dialog.close();else{dialog.removeAttribute('open');lastDialogFocus?.focus?.();}
+}
+function openDirectory(){
+  pendingDelete=null;
+  renderDirectoryList();
+  openDialog($('peopleDialog'),$('directorySearch'));
+}
+async function openLegal(kind){
+  if(!['privacy','terms','credits'].includes(kind))return;
+  const dialog=$('legalDialog'),title=$('legalTitle'),body=$('legalBody');
+  if(!dialog)return;
+  if(title)title.textContent=t(`legal.${kind}`);
+  if(body)body.textContent=t('legal.loading');
+  openDialog(dialog);
+  try{
+    const response=await fetch(`${kind}.html`);
+    if(!response.ok)throw new Error(`${kind} ${response.status}`);
+    const doc=new DOMParser().parseFromString(await response.text(),'text/html');
+    const main=doc.querySelector('main');
+    if(!main)throw new Error('missing main');
+    main.querySelectorAll('nav').forEach(nav=>nav.remove());
+    if(body)body.innerHTML=main.innerHTML;
+  }catch(err){
+    console.error(err);
+    if(body)body.textContent=t('legal.failed');
+  }
 }
 
 function solve(sources,mask,maxTime=180){
@@ -810,49 +857,105 @@ function bestTimes(sol){
   for(const[k,d]of sol.dist){const node=Math.floor(k/sol.stride);if(d<best[node])best[node]=d;}
   return best;
 }
-function sourcesFor(origin,budget){
-  if(!origin)return[];
-  if(origin.kind==='node'&&NODES&&origin.node>=0&&origin.node<NODES.names.length)return[{node:origin.node,minutes:0}];
-  if(!isNum(origin.lat)||!isNum(origin.lon))return[];
+function sourceNodeIndices(){
+  const modes=settings.modes||[],rail=modes.includes('rail'),bus=modes.includes('bus');
+  if(rail&&!bus){const out=[];for(let i=0;i<NODES.names.length;i++)if(NODES.kind[i]===1||NODES.kind[i]===2||NODES.kind[i]===3)out.push(i);return out;}
+  if(bus&&!rail){const out=[];for(let i=0;i<NODES.names.length;i++)if(NODES.kind[i]===4)out.push(i);return out;}
+  return surface;
+}
+function nodeCompatible(kind){
+  const modes=settings.modes||[];
+  if(modes.length!==1)return true;
+  return modes[0]==='rail'?(kind===1||kind===2||kind===3):kind===4;
+}
+function nearestSources(lat,lon,budget,indices,allowFallback=true){
   const near=[];
-  for(const idx of surface)near.push([haversine(origin.lat,origin.lon,NODES.lat[idx],NODES.lon[idx]),idx]);
+  for(const idx of indices)near.push([haversine(lat,lon,NODES.lat[idx],NODES.lon[idx]),idx]);
   near.sort((a,b)=>a[0]-b[0]);
   const within=near.filter(([d])=>d<=ACCESS_RADIUS_M).slice(0,MAX_ACCESS_NODES);
-  const use=within.length?within:near.slice(0,3);
+  const use=within.length?within:(allowFallback?near.slice(0,3):[]);
   return use.map(([d,idx])=>({node:idx,minutes:walkMinutes(d)})).filter(s=>s.minutes<=budget);
+}
+function sourcesFor(origin,budget){
+  if(!origin||!NODES)return[];
+  const indices=sourceNodeIndices();
+  if(origin.kind==='node'&&Number.isInteger(origin.node)&&origin.node>=0&&origin.node<NODES.names.length){
+    if(nodeCompatible(NODES.kind[origin.node]))return[{node:origin.node,minutes:0}];
+    if((settings.modes||[]).length!==1)return[{node:origin.node,minutes:0}];
+    return nearestSources(NODES.lat[origin.node],NODES.lon[origin.node],budget,indices,false).slice(0,1);
+  }
+  if(!isNum(origin.lat)||!isNum(origin.lon))return[];
+  return nearestSources(origin.lat,origin.lon,budget,indices,true);
 }
 function dedupePath(path){
   return path.filter((p,i)=>i===0||Math.abs(p[0]-path[i-1][0])>1e-7||Math.abs(p[1]-path[i-1][1])>1e-7);
 }
-function describe(sol,origin,target){
-  let bestK=sol.start,bestD=Infinity;
-  for(let l=-1;l<NET.lines.length;l++){const k=sol.key(target,l),d=sol.dist.get(k);if(d!==undefined&&d<bestD){bestD=d;bestK=k;}}
-  if(bestD===Infinity)return{text:t('route.unreachable'),legs:[],path:[[origin.lat,origin.lon]]};
-  const chain=[];let k=bestK;
-  while(k!==undefined&&k!==sol.start&&chain.length<4000){chain.push(k);k=sol.prev.get(k);}
-  chain.reverse();
-  const legs=[];let current=null,lastCoord=[origin.lat,origin.lon];
-  const close=()=>{if(current&&(current.minutes>0.05||current.coords.length>1))legs.push(current);current=null;};
-  chain.forEach((st,i)=>{
-    const node=Math.floor(st/sol.stride),line=(st%sol.stride)-1;
-    const pst=i===0?sol.start:chain[i-1];
-    const priorDistance=pst===sol.start?0:(sol.dist.get(pst)??0);
-    const stepT=(sol.dist.get(st)??0)-priorDistance;
-    const coord=[NODES.lat[node],NODES.lon[node]];
-    if(line<0){
-      if(!current||current.mode!=='walk'){close();current={mode:'walk',line:'',minutes:0,coords:[lastCoord],to:NODES.names[node]};}
-      current.minutes+=stepT;current.coords.push(coord);current.to=NODES.names[node];
-    }else{
-      const mode=NET.lines[line].c===0?'rail':'bus',label=NET.lines[line].l;
-      if(!current||current.mode!==mode||current.line!==label){close();current={mode,line:label,minutes:0,coords:[lastCoord],to:NODES.names[node]};}
-      current.minutes+=stepT;current.coords.push(coord);current.to=NODES.names[node];
-    }
-    lastCoord=coord;
-  });
-  close();
-  const text=legs.map(leg=>t('route.leg',{mode:t('mode.'+leg.mode),line:leg.line,time:minuteText(leg.minutes)}).replace(/\s+/g,' ').trim()).join(' -> ')||t('route.already');
+function stopName(name){
+  const value=String(name||'');
+  const platform=value.indexOf(' · Platform ');
+  if(platform>=0)return value.slice(0,platform);
+  const exit=value.indexOf(' · Exit (');
+  if(exit>=0)return value.slice(0,exit);
+  return value;
+}
+function walkLegText(leg){return t('route.walkLeg',{time:minuteText(leg.minutes)}).replace(/\s+/g,' ').trim();}
+function rideLegText(leg){
+  const stops=tp('route.stopCount',leg.stopCount||0);
+  const line=leg.mode==='rail'?leg.line.replace(/^MTR\s+/i,''):leg.line;
+  return t('route.rideLeg',{mode:t('mode.'+leg.mode),line,from:leg.from,to:leg.to,stops,time:minuteText(leg.minutes)}).replace(/\s+/g,' ').trim();
+}
+function reconstructChain(sol,k){
+  const chain=[];let cur=k;
+  while(cur!==undefined&&cur!==sol.start&&chain.length<4000){chain.push(cur);cur=sol.prev.get(cur);}
+  return chain.reverse();
+}
+function describe(sol,origin,target,focus='time'){
+  const candidates=[];
+  for(let l=-1;l<NET.lines.length;l++){
+    const k=sol.key(target,l),d=sol.dist.get(k);
+    if(d===undefined)continue;
+    const legs=[],chain=reconstructChain(sol,k);
+    let current=null,lastCoord=[origin.lat,origin.lon];
+    const close=()=>{
+      if(current){
+        current.coords=dedupePath(current.coords);
+        if(current.minutes>0.05||current.coords.length>1){current.text=legLabel(current);legs.push(current);}
+      }
+      current=null;
+    };
+    chain.forEach((st,i)=>{
+      const node=Math.floor(st/sol.stride),line=(st%sol.stride)-1;
+      const pst=i===0?sol.start:chain[i-1];
+      const priorDistance=pst===sol.start?0:(sol.dist.get(pst)??0);
+      const stepT=(sol.dist.get(st)??0)-priorDistance;
+      const coord=[NODES.lat[node],NODES.lon[node]],rawName=NODES.names[node];
+      if(line<0){
+        const name=stopName(rawName);
+        if(!current||current.mode!=='walk'){
+          close();
+          current={mode:'walk',line:'',minutes:0,coords:[lastCoord],from:name,to:name,fromNode:node,toNode:node,stopCount:0};
+        }
+        current.minutes+=stepT;current.coords.push(coord);current.to=name;current.toNode=node;
+      }else{
+        const mode=NET.lines[line].c===0?'rail':'bus',label=NET.lines[line].l,name=mode==='rail'?stopName(rawName):rawName;
+        if(!current||current.mode!==mode||current.line!==label){
+          close();
+          current={mode,line:label,minutes:stepT,coords:[coord,coord],from:name,to:name,fromNode:node,toNode:node,stopCount:0};
+        }else{
+          current.minutes+=stepT;current.coords.push(coord);current.to=name;current.toNode=node;current.stopCount++;
+        }
+      }
+      lastCoord=coord;
+    });
+    close();
+    candidates.push({d,legs,total:routeFares({legs}).total});
+  }
+  if(!candidates.length)return{text:t('route.unreachable'),legs:[],path:[[origin.lat,origin.lon]]};
+  candidates.sort((a,b)=>focus==='cost'?a.total-b.total||a.d-b.d:a.d-b.d||a.total-b.total);
+  const best=candidates[0],legs=best.legs;
+  const text=legs.map(leg=>leg.text).join(' -> ')||t('route.already');
   const path=dedupePath(legs.flatMap(leg=>leg.coords));
-  return{text,legs,path};
+  return{text,legs,path,fares:routeFares({legs})};
 }
 function buildCells(grids,tolerance,budget){
   const cells=new Map();
@@ -900,7 +1003,7 @@ function compute(){
   if(activePeople.length<2){renderEmpty();showError(t('error.needTwo'));return;}
   const mask=settings.modes.reduce((m,mode)=>m|(1<<(mode==='rail'?0:1)),0);
   if(!mask){renderEmpty();showError(t('error.noMode'));return;}
-  const tolerance=Number($('tolerance').value),budget=Number($('budget').value);
+  const tolerance=clamp(Number($('tolerance').value),0.05,0.5,0.1),budget=Number($('budget').value);
   settings.tolerance=tolerance;settings.budget=budget;save();
   const sources=activePeople.map(p=>sourcesFor(p.origin,budget));
   if(sources.some(s=>!s.length)){renderEmpty();showError(t('error.noNearby'));return;}
@@ -918,7 +1021,12 @@ function compute(){
     fit:cellPreference(c),vector:cellVector(c),count:cellCount(c),
   }));
   results.forEach(r=>prepareRoutes(r,activePeople));
-  if(!results.length){renderEmpty();showError(t('results.noFit'));return;}
+  if(!results.length){
+    renderEmpty();
+    const mode=settings.modes.length===1?settings.modes[0]:null;
+    showError(t(mode==='rail'?'results.noFitMtr':mode==='bus'?'results.noFitBus':'results.noFit'));
+    return;
+  }
   renderResults(activePeople);
   drawOrigins(activePeople);drawCloud(budget);applySelection(activePeople);
 }
@@ -982,7 +1090,7 @@ function hideTooltip(){
   tooltipTimer=null;hoverCell=null;
   const tooltip=$('mapTooltip');if(tooltip)tooltip.hidden=true;
 }
-function legLabel(leg){return t('route.leg',{mode:t('mode.'+leg.mode),line:leg.line,time:minuteText(leg.minutes)}).replace(/\s+/g,' ').trim();}
+function legLabel(leg){return leg.mode==='walk'?walkLegText(leg):rideLegText(leg);}
 function resultMatches(result,sel){
   if(!result||!sel)return false;
   return result.key===sel.key||(Number.isFinite(sel.node)&&result.node===sel.node)||
@@ -1049,7 +1157,7 @@ function renderSelection(r,active=activePeople){
   $('detailSub').textContent=`${t('results.spread',{value:num(r.gap)})} ${t('results.longest',{value:num(r.slowest)})}${preference}`;
   $('steps').innerHTML=legCount?r.routes.map((route,j)=>`<div class="step">
     <span class="dot ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>
-    <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(leg=>`<span class="leg route-${leg.mode}">${esc(legLabel(leg))}</span>`).join('')}</span><span class="muted">${esc(minuteText(r.times[j]))}</span>${fareMarkup(route)}</span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t('results.noRoutes'))}</span></span></div>`;
+    <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(leg=>`<span class="${leg.mode==='walk'?'walk-leg':'ride-leg'} route-${leg.mode}"><span class="ride-text">${esc(leg.text||legLabel(leg))}</span></span>`).join('')}</span><span class="muted">${esc(minuteText(r.times[j]))}</span>${fareMarkup(route)}</span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t('results.noRoutes'))}</span></span></div>`;
   const pts=r.paths.flat().concat(active.map(p=>[p.origin.lat,p.origin.lon]));
   if(pts.length)map.fitBounds(pts,{padding:[60,60],maxZoom:14});
 }
@@ -1123,11 +1231,15 @@ async function init(){
   loadNetwork().catch(err=>{console.error(err);showError(t('error.timetableFailed',{message:err.message}));});
 }
 
-$('add').onclick=()=>{if(people.length<8){people.push({id:`p${seq++}`,name:defaultName(people.length),origin:null});renderCards();save();}};
+$('add').onclick=()=>{if(people.length<8){people.push({id:`p${seq++}`,name:defaultName(people.length),origin:null,focus:'time'});renderCards();save();}};
 $('library').onclick=openDirectory;
-$('libraryClose').onclick=()=>$('peopleDialog').close();
+$('libraryClose').onclick=()=>closeDialog($('peopleDialog'));
 $('directorySearch').oninput=renderDirectoryList;
 $('peopleDialog').addEventListener('close',()=>{pendingDelete=null;lastDialogFocus?.focus?.();});
+$('legalDialog')?.addEventListener('close',()=>{lastDialogFocus?.focus?.();});
+$('legalClose')?.addEventListener('click',()=>closeDialog($('legalDialog')));
+$('legalDone')?.addEventListener('click',()=>closeDialog($('legalDialog')));
+document.querySelectorAll('.legal-button[data-legal]').forEach(button=>{button.onclick=()=>openLegal(button.dataset.legal);});
 document.querySelectorAll('.chip').forEach(chip=>chip.onclick=()=>{chip.setAttribute('aria-pressed',String(chip.getAttribute('aria-pressed')!=='true'));clearError();readSettingsFromDom();});
 $('tolerance').oninput=readSettingsFromDom;
 $('budget').oninput=readSettingsFromDom;
@@ -1145,7 +1257,6 @@ $('emptyRun').onclick=triggerSearch;
 $('recenter').onclick=recenterMap;
 $('share').onclick=shareScenario;
 $('cancelPin').onclick=clearPinMode;
-$('reset').onclick=()=>{[...Object.values(KEY)].forEach(k=>localStorage.removeItem(k));location.reload();};
 document.addEventListener('click',e=>{document.querySelectorAll('.suggestions').forEach(s=>{if(!s.hidden&&!s.contains(e.target)){s.hidden=true;const input=s.parentElement.querySelector('.start-input');input?.setAttribute('aria-expanded','false');}});});
 document.addEventListener('keydown',e=>{
   if(pinTarget&&e.key==='Escape'){

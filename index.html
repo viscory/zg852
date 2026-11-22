@@ -3,20 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>zg852 - Hong Kong fair meeting points</title>
-<meta name="description" content="Find a fair meeting point in Hong Kong. Browser-side transit routing, no account, no API keys.">
+<title>擇角 Zak Geok - fair Hong Kong meeting points</title>
+<meta name="description" content="Find fair Hong Kong meeting points with 擇角 Zak Geok. Browser-side transit routing, no account, no API keys.">
 <meta name="theme-color" content="#c8102e">
 <link rel="canonical" href="https://zg852.pages.dev/">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.ico" sizes="any">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="zg852">
-<meta property="og:title" content="zg852 - Hong Kong fair meeting points">
-<meta property="og:description" content="Find a fair meeting point in Hong Kong. Browser-side transit routing, no account, no API keys.">
+<meta property="og:site_name" content="擇角 Zak Geok">
+<meta property="og:title" content="擇角 Zak Geok - fair Hong Kong meeting points">
+<meta property="og:description" content="Find fair Hong Kong meeting points with 擇角 Zak Geok. Browser-side transit routing, no account, no API keys.">
 <meta property="og:url" content="https://zg852.pages.dev/">
 <meta property="og:image" content="https://zg852.pages.dev/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="zg852 - Hong Kong fair meeting points">
-<meta name="twitter:description" content="Find a fair meeting point in Hong Kong. Browser-side transit routing, no account, no API keys.">
+<meta name="twitter:title" content="擇角 Zak Geok - fair Hong Kong meeting points">
+<meta name="twitter:description" content="Find fair Hong Kong meeting points with 擇角 Zak Geok. Browser-side transit routing, no account, no API keys.">
 <meta name="twitter:image" content="https://zg852.pages.dev/og-image.png">
 <link rel="stylesheet" href="vendor/leaflet.css">
 <link rel="stylesheet" href="vendor/maplibre-gl.css">
@@ -26,10 +27,11 @@
 <body>
 <header>
   <div class="brand">
-    <div class="logo" aria-hidden="true">港</div>
+    <div class="logo" aria-hidden="true">ZG</div>
     <div>
-      <h1 data-i18n="app.title">zg852</h1>
+      <h1 data-i18n="app.title">擇角 Zak Geok</h1>
       <p class="sub" data-i18n="app.subtitle">Find a fair meeting point in Hong Kong</p>
+      <p class="meaning" data-i18n="app.meaning">Cantonese zaak6 goek3, choose a corner. Find a meeting point that is fair for everyone.</p>
     </div>
   </div>
   <div class="header-end">
@@ -102,7 +104,7 @@
       <div class="route-key">
         <span data-i18n="map.routeKey">Route key</span>
         <span class="key-line route-walk"></span><span data-i18n="map.walkKey">Walk</span>
-        <span class="key-line route-rail"></span><span data-i18n="map.railKey">Rail</span>
+        <span class="key-line route-rail"></span><span data-i18n="map.railKey">MTR</span>
         <span class="key-line route-bus"></span><span data-i18n="map.busKey">Bus</span>
       </div>
       <div class="vector-key" id="legendVectorKey" hidden><span class="icon icon-landmark" aria-hidden="true"></span><span data-i18n="map.vectorKey">Interests: prefer includes, avoid discounts</span></div>
@@ -116,22 +118,22 @@
       <p class="district-line" id="detailDistrict"></p>
       <p class="sub" id="detailSub" data-i18n="map.areaHint">Tap a red area to see routes.</p>
       <div class="steps" id="steps" aria-label="Routes" data-i18n-aria-label="results.routes"></div>
-      <p class="note fare-note" data-i18n="results.fareNote">Adult Octopus fare estimates. Check the operator for exact fares.</p>
+      <p class="note fare-note" data-i18n="results.fareNote">Total adult Octopus fare estimate. Check the operator for exact fares.</p>
     </section>
     <div class="section-title options-title" data-i18n="options.title">Options</div>
     <div class="chips" role="group" aria-label="Transport modes" data-i18n-aria-label="options.modes">
-      <button class="chip" type="button" aria-pressed="true" data-mode="rail" data-i18n-tooltip="options.rail" data-i18n-aria-label="options.rail" aria-label="MTR / rail" title="MTR / rail" data-tooltip="MTR / rail">
-        <span class="icon icon-rail" aria-hidden="true"></span><span class="sr-only" data-i18n="options.rail">MTR / rail</span>
+      <button class="chip" type="button" aria-pressed="true" data-mode="rail" data-i18n-tooltip="options.rail" data-i18n-aria-label="options.rail" aria-label="MTR" title="MTR" data-tooltip="MTR">
+        <span class="icon icon-rail" aria-hidden="true"></span><span class="sr-only" data-i18n="options.rail">MTR</span>
       </button>
       <button class="chip" type="button" aria-pressed="true" data-mode="bus" data-i18n-tooltip="options.bus" data-i18n-aria-label="options.bus" aria-label="Bus / minibus" title="Bus / minibus" data-tooltip="Bus / minibus">
         <span class="icon icon-bus" aria-hidden="true"></span><span class="sr-only" data-i18n="options.bus">Bus / minibus</span>
       </button>
     </div>
     <div class="slider-row">
-      <label for="tolerance" data-i18n="options.tolerance">Travel tolerance</label>
+      <label for="tolerance" data-i18n="options.tolerance">Travel time disparity tolerance</label>
       <span class="value" id="tolval">10%</span>
     </div>
-    <input type="range" id="tolerance" min="0" max="0.5" step="0.05" value="0.1">
+    <input type="range" id="tolerance" min="0.05" max="0.5" step="0.05" value="0.1">
     <div class="slider-row ends"><span data-i18n="options.toleranceNear">Near equal</span><span data-i18n="options.toleranceFlexible">More flexible</span></div>
     <div class="slider-row slider-gap">
       <label for="budget" data-i18n="options.budget">Travel budget for everyone</label>
@@ -174,16 +176,12 @@
       </div>
     </section>
     <p class="save-summary" id="saveSummary"></p>
-    <p class="note"><span data-i18n="note.attribution">Routing runs in this browser. Place search uses keyless Photon and the map uses OpenFreeMap vector tiles from OpenStreetMap data. Your people and settings stay on this device.</span>
-      <button class="icon-button" id="reset" type="button" data-i18n-tooltip="options.reset" data-i18n-aria-label="options.reset" aria-label="Reset saved people" title="Reset saved people" data-tooltip="Reset saved people">
-        <span class="icon icon-reset" aria-hidden="true"></span>
-      </button>
-    </p>
+    <p class="note"><span data-i18n="note.attribution">Routing runs in this browser. Place search uses keyless Photon and the map uses OpenFreeMap vector tiles from OpenStreetMap data. Your people and settings stay on this device.</span></p>
     <p class="note credit-note">Inspired by <a href="https://fairpin.ph/" target="_blank" rel="noopener noreferrer">FairPin PH</a>. I have not used their service.</p>
     <nav class="legal-links" aria-label="Legal and project information">
-      <a href="privacy.html">Privacy</a>
-      <a href="terms.html">Terms</a>
-      <a href="credits.html">Credits</a>
+      <button class="legal-button" type="button" data-legal="privacy" data-i18n="legal.privacy">Privacy</button>
+      <button class="legal-button" type="button" data-legal="terms" data-i18n="legal.terms">Terms</button>
+      <button class="legal-button" type="button" data-legal="credits" data-i18n="legal.credits">Credits</button>
     </nav>
   </aside>
 </div>
@@ -197,6 +195,18 @@
   <label class="label" for="directorySearch" data-i18n="people.librarySearch">Search saved people</label>
   <input id="directorySearch" type="text" placeholder="Search saved people" data-i18n-placeholder="people.librarySearch">
   <div class="directory-list" id="directoryList" role="list"></div>
+</dialog>
+<dialog class="dialog legal-dialog" id="legalDialog" aria-labelledby="legalTitle">
+  <div class="dialog-head">
+    <h2 id="legalTitle"></h2>
+    <button class="icon-button" id="legalClose" type="button" aria-label="Close" data-i18n-aria-label="legal.close" data-i18n-tooltip="legal.close" title="Close" data-tooltip="Close">
+      <span class="icon icon-close" aria-hidden="true"></span>
+    </button>
+  </div>
+  <div class="legal-body" id="legalBody"></div>
+  <div class="dialog-actions">
+    <button class="go secondary" id="legalDone" type="button" data-i18n="legal.close">Close</button>
+  </div>
 </dialog>
 <script type="module" src="app.js"></script>
 </body>
