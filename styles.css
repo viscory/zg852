@@ -70,6 +70,14 @@ header{height:67px;display:flex;align-items:center;justify-content:space-between
 .card{position:relative;border:1px solid var(--border);border-radius:var(--r-lg);padding:12px;margin-bottom:8px;background:var(--surface)}
 .card-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .avatar{width:28px;height:28px;border:1px solid;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:-.02em;flex:none}
+.person-0{--person:#F97316;color:#F97316;border-color:#F97316;background:#F9731622}
+.person-1{--person:#0E7490;color:#0E7490;border-color:#0E7490;background:#0E749022}
+.person-2{--person:#7C3AED;color:#7C3AED;border-color:#7C3AED;background:#7C3AED22}
+.person-3{--person:#B45309;color:#B45309;border-color:#B45309;background:#B4530922}
+.person-4{--person:#0F766E;color:#0F766E;border-color:#0F766E;background:#0F766E22}
+.person-5{--person:#BE185D;color:#BE185D;border-color:#BE185D;background:#BE185D22}
+.person-6{--person:#0891B2;color:#0891B2;border-color:#0891B2;background:#0891B222}
+.person-7{--person:#4D7C0F;color:#4D7C0F;border-color:#4D7C0F;background:#4D7C0F22}
 .field{display:grid;gap:4px;flex:1;min-width:0}
 .label{font-size:12px;color:var(--muted)}
 input[type=text]{width:100%;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg);color:var(--text);padding:8px 12px;font-size:14px}
@@ -181,6 +189,7 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .steps{display:grid;gap:8px}
 .step{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--border);border-radius:var(--r-md);padding:8px;font-size:12px}
 .step .dot{width:26px;height:26px;border:1px solid var(--border);border-radius:var(--r-sm);display:grid;place-items:center;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:-.02em;flex:none}
+.step .dot.person-0,.step .dot.person-1,.step .dot.person-2,.step .dot.person-3,.step .dot.person-4,.step .dot.person-5,.step .dot.person-6,.step .dot.person-7{border-color:currentColor}
 .step .txt{display:grid;gap:4px;color:var(--text);min-width:0}
 .step .muted{color:var(--muted)}
 .legs{display:flex;flex-wrap:wrap;gap:4px}

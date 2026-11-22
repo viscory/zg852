@@ -60,7 +60,7 @@ const ICONS={globe:'globe',up:'arrow-up',down:'arrow-down',pin:'map-pin',centre:
 const icon=name=>`<span class="icon icon-${ICONS[name]}" aria-hidden="true"></span>`;
 const personColor=i=>PERSON_COLORS[i%PERSON_COLORS.length];
 const initialsFor=name=>{const parts=String(name||'').trim().split(/\s+/).filter(Boolean);return (parts.length?parts.slice(0,2).map(part=>part[0]).join(''):'?').toUpperCase();};
-const avatarStyle=i=>`--person:${personColor(i)};color:${personColor(i)};border-color:${personColor(i)};background:${personColor(i)}22`;
+const avatarClass=i=>`person-${i%PERSON_COLORS.length}`;
 const clamp=(v,lo,hi,fallback)=>Number.isFinite(v)?Math.min(hi,Math.max(lo,v)):fallback;
 const isNum=v=>typeof v==='number'&&Number.isFinite(v);
 const clone=v=>JSON.parse(JSON.stringify(v));
@@ -547,7 +547,7 @@ function renderSuggestions(sug,entries,person,input,failed=false){
   items.forEach((place,i)=>{
     const d=document.createElement('div');d.className='suggestion';d.id=`${sug.id}-option-${i}`;
     d.setAttribute('role','option');d.setAttribute('aria-selected','false');d.tabIndex=-1;
-    d.innerHTML=`<span class="avatar" style="${avatarStyle(i)}">${esc(initialsFor(place.label))}</span><span class="place-main">${esc(place.label)}</span><span class="tag">${esc(t('tag.'+place.tagKey))}</span>${place.count>1?`<span class="tag">${esc(tp('place.stops',place.count))}</span>`:''}<span class="district">${esc(place.district||districtFor(place.lat,place.lon))}</span>`;
+    d.innerHTML=`<span class="avatar ${avatarClass(i)}">${esc(initialsFor(place.label))}</span><span class="place-main">${esc(place.label)}</span><span class="tag">${esc(t('tag.'+place.tagKey))}</span>${place.count>1?`<span class="tag">${esc(tp('place.stops',place.count))}</span>`:''}<span class="district">${esc(place.district||districtFor(place.lat,place.lon))}</span>`;
     const choose=()=>setOrigin(person,place,sug.parentElement.querySelector('.hint'),input,sug);
     d.onclick=choose;
     sug.appendChild(d);
@@ -571,7 +571,7 @@ function makeCard(person){
   const upLabel=esc(t('people.moveUp',{name:displayName(person,idx)})),downLabel=esc(t('people.moveDown',{name:displayName(person,idx)}));
   const card=document.createElement('div');card.className='card';card.dataset.id=id;
   card.innerHTML=`<div class="card-head">
-    <span class="avatar" style="${avatarStyle(idx)}">${esc(initialsFor(person.name))}</span>
+    <span class="avatar ${avatarClass(idx)}">${esc(initialsFor(person.name))}</span>
     <div class="field">
       <label class="label" for="name-${id}">${esc(t('people.name',{letter}))}</label>
       <input class="name-input" id="name-${id}" type="text" placeholder="${esc(t('people.name',{letter}))}" value="${esc(person.name)}">
@@ -642,7 +642,7 @@ function refreshMeta(){
   document.querySelectorAll('.card').forEach(card=>{
     const person=people.find(p=>p.id===card.dataset.id);if(!person)return;
     const idx=people.indexOf(person),letter=LETTERS[idx%8];
-    const avatar=card.querySelector('.avatar');if(avatar){avatar.textContent=initialsFor(person.name);avatar.style.cssText=avatarStyle(idx);}
+    const avatar=card.querySelector('.avatar');if(avatar){avatar.textContent=initialsFor(person.name);avatar.className=`avatar ${avatarClass(idx)}`;}
     const nameLabel=card.querySelector('label[for^="name-"]');if(nameLabel)nameLabel.textContent=t('people.name',{letter});
     const nameInput=card.querySelector('.name-input');if(nameInput)nameInput.placeholder=t('people.name',{letter});
     const startInput=card.querySelector('.start-input');if(startInput)startInput.placeholder=t('people.startPlaceholder');
@@ -668,7 +668,7 @@ function startPinMode(id,hint,input,sug){
   $('map').classList.add('pinning');
   const banner=$('pinBanner'),avatar=$('pinAvatar'),label=$('pinLabel');
   avatar.textContent=initialsFor(displayName(people[idx],idx));
-  avatar.style.cssText=avatarStyle(idx);
+  avatar.className=`avatar ${avatarClass(idx)}`;
   label.textContent=t('map.pinActive',{name:displayName(people[idx],idx)});
   banner.hidden=false;
   if(sug){sug.hidden=true;input?.setAttribute('aria-expanded','false');}
@@ -903,7 +903,8 @@ function scheduleCellTooltip(cell,event){
     if(enabled){
       const values=cellVector(cell),counts=cellCount(cell),max=Math.max(...VECTOR_KEYS.map(key=>values[key]),1);
       const places=cellTopNames(cell);
-      tooltip.innerHTML=`<b>${esc(t('map.cellTitle'))} · ${esc(preferenceText(cellPreference(cell)))}</b>${VECTOR_KEYS.map(key=>`<span class="tooltip-vector"><span>${esc(t('vector.'+key))}</span><span class="tooltip-track"><i class="tooltip-fill" style="width:${Math.max(2,Math.round(values[key]/max*100))}%"></i></span><span>${esc(num(counts[key]))}</span></span>`).join('')}${places.length?`<span class="tooltip-places">${esc(places.join(' · '))}</span>`:''}`;
+      tooltip.innerHTML=`<b>${esc(t('map.cellTitle'))} · ${esc(preferenceText(cellPreference(cell)))}</b>${VECTOR_KEYS.map(key=>`<span class="tooltip-vector"><span>${esc(t('vector.'+key))}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${Math.max(2,Math.round(values[key]/max*100))}"></i></span><span>${esc(num(counts[key]))}</span></span>`).join('')}${places.length?`<span class="tooltip-places">${esc(places.join(' · '))}</span>`:''}`;
+      tooltip.querySelectorAll('.tooltip-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
     }else{
       tooltip.innerHTML=`<b>${esc(t('map.areaTitle'))} · ${esc(t('results.longest',{value:num(cell.slowest)}))}</b>`;
     }
@@ -982,7 +983,7 @@ function renderSelection(r,active=activePeople){
   const preference=betaVectorsEnabled()?` ${preferenceText(r.fit)}`:'';
   $('detailSub').textContent=`${t('results.spread',{value:num(r.gap)})} ${t('results.longest',{value:num(r.slowest)})}${preference}`;
   $('steps').innerHTML=legCount?r.routes.map((route,j)=>`<div class="step">
-    <span class="dot" style="${avatarStyle(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>
+    <span class="dot ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>
     <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(leg=>`<span class="leg route-${leg.mode}">${esc(legLabel(leg))}</span>`).join('')}</span><span class="muted">${esc(minuteText(r.times[j]))}</span></span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t('results.noRoutes'))}</span></span></div>`;
   const pts=r.paths.flat().concat(active.map(p=>[p.origin.lat,p.origin.lon]));
   if(pts.length)map.fitBounds(pts,{padding:[60,60],maxZoom:14});

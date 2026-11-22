@@ -97,6 +97,8 @@ test('production module wiring avoids inline importmaps and CSP exceptions', asy
   expect(index).toContain('<script type="module" src="app.js"></script>');
   expect(app).toContain("import * as L from './vendor/leaflet-src.esm.js';");
   expect(app).toContain("import { maplibreGL } from './vendor/leaflet-maplibre-gl.mjs';");
+  expect(app).not.toContain('style="');
+  expect(app).not.toContain('.style.cssText');
   expect(wrapper).toContain('from "./leaflet-src.esm.js"');
   expect(wrapper).toContain('from "./maplibre-gl.mjs"');
   expect(build).toContain("script-src 'self'");
