@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>zg852 - Hong Kong fair meeting points</title>
+<meta name="description" content="Find a fair meeting point in Hong Kong. Browser-side transit routing, no account, no API keys.">
+<meta name="theme-color" content="#0f1418">
+<link rel="canonical" href="https://zg852.pages.dev/">
+<link rel="icon" href="favicon.ico" sizes="any">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="zg852">
+<meta property="og:title" content="zg852 - Hong Kong fair meeting points">
+<meta property="og:description" content="Find a fair meeting point in Hong Kong. Browser-side transit routing, no account, no API keys.">
+<meta property="og:url" content="https://zg852.pages.dev/">
+<meta property="og:image" content="https://zg852.pages.dev/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="zg852 - Hong Kong fair meeting points">
+<meta name="twitter:description" content="Find a fair meeting point in Hong Kong. Browser-side transit routing, no account, no API keys.">
+<meta name="twitter:image" content="https://zg852.pages.dev/og-image.png">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="vendor/maplibre-gl.css">
+<link rel="stylesheet" href="styles.css">
+<script src="preview-noindex.js"></script>
+<script type="importmap">
+{"imports":{"leaflet":"./vendor/leaflet-src.esm.js","maplibre-gl":"./vendor/maplibre-gl.mjs"}}
+</script>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo" aria-hidden="true">z</div>
+    <div>
+      <h1 data-i18n="app.title">zg852</h1>
+      <p class="sub" data-i18n="app.subtitle">Find a fair meeting point in Hong Kong</p>
+    </div>
+  </div>
+  <div class="header-end">
+    <p class="status"><span data-i18n="header.status">Browser-side routing. Timetable:</span> <b id="netstatus">loading</b> <span data-i18n="header.saved">Saved on this device.</span></p>
+    <div class="header-actions">
+      <button class="icon-button" id="library" type="button" data-i18n-tooltip="people.library" data-i18n-aria-label="people.library" aria-label="Saved people" title="Saved people" data-tooltip="Saved people">
+        <span class="icon icon-library" aria-hidden="true"></span>
+      </button>
+      <label class="locale" for="locale" data-i18n-tooltip="locale.label" title="Language" data-tooltip="Language">
+        <span class="sr-only" data-i18n="locale.label">Language</span>
+        <span class="icon icon-globe" aria-hidden="true"></span>
+        <select id="locale" data-i18n-aria-label="locale.label" aria-label="Language">
+          <option value="en">English</option>
+          <option value="zh-Hant">繁體中文</option>
+          <option value="zh-Hans">简体中文</option>
+          <option value="ja">日本語</option>
+          <option value="ko">한국어</option>
+          <option value="hi">हिन्दी</option>
+          <option value="ur">اردو</option>
+          <option value="fil">Filipino</option>
+          <option value="id">Bahasa Indonesia</option>
+          <option value="fr">Français</option>
+          <option value="th">ไทย</option>
+          <option value="vi">Tiếng Việt</option>
+          <option value="ne">नेपाली</option>
+          <option value="es">Español</option>
+          <option value="de">Deutsch</option>
+        </select>
+      </label>
+    </div>
+  </div>
+</header>
+<div class="layout">
+  <aside class="side side-left">
+    <section class="results" id="resultsWrap" aria-live="polite">
+      <div class="sec-title"><span data-i18n="results.title">Ranked places</span><span class="count" id="nres"></span></div>
+      <div id="resultState">
+        <div class="empty-state">
+          <p data-i18n="results.empty">Name your people, choose start places, then run the search to see fair areas.</p>
+          <button class="secondary" id="emptyRun" type="button" data-i18n="results.emptyRun">Find fair areas</button>
+        </div>
+      </div>
+      <div id="resultsList" role="listbox" aria-label="Ranked places" data-i18n-aria-label="results.title" hidden></div>
+    </section>
+  </aside>
+  <main class="main">
+    <div id="map" aria-label="Map of fair areas and routes" data-i18n-aria-label="map.aria"></div>
+    <div class="pin-banner" id="pinBanner" hidden>
+      <span class="avatar" id="pinAvatar" aria-hidden="true"></span>
+      <span id="pinLabel"></span>
+      <button class="icon-button" id="cancelPin" type="button" data-i18n-tooltip="map.cancelPin" data-i18n-aria-label="map.cancelPin" aria-label="Cancel pin mode" title="Cancel pin mode" data-tooltip="Cancel pin mode">
+        <span class="icon icon-close" aria-hidden="true"></span>
+      </button>
+    </div>
+    <div class="map-tooltip" id="mapTooltip" role="tooltip" hidden></div>
+    <div class="legend">
+      <div class="legend-head"><span class="icon icon-scan" aria-hidden="true"></span><span data-i18n="map.legend">Map key</span></div>
+      <div class="cloud-key"><span class="swatch h6"></span><span class="swatch h5"></span><span class="swatch h4"></span><span class="swatch h3"></span><span class="swatch h2"></span><span class="swatch h1"></span> <span data-i18n="map.fairArea">Fair area, darker means closer to the budget</span></div>
+      <div class="route-key">
+        <span data-i18n="map.routeKey">Route key</span>
+        <span class="key-line route-walk"></span><span data-i18n="map.walkKey">Walk</span>
+        <span class="key-line route-rail"></span><span data-i18n="map.railKey">Rail</span>
+        <span class="key-line route-bus"></span><span data-i18n="map.busKey">Bus</span>
+      </div>
+      <div class="vector-key" id="legendVectorKey" hidden><span class="icon icon-landmark" aria-hidden="true"></span><span data-i18n="map.vectorKey">Interests: prefer raises rank, avoid lowers rank</span></div>
+      <div class="pin-key"><span class="icon icon-map-pin" aria-hidden="true"></span><span data-i18n="map.pinKey">Pin: tap pin, then tap map</span></div>
+      <div class="recenter-key"><span class="icon icon-scan" aria-hidden="true"></span><span data-i18n="map.recenterKey">Recenter fits results; starts stay put</span></div>
+    </div>
+    <section class="overlay" id="detail" hidden aria-live="polite">
+      <h2 id="detailTitle" data-i18n="results.selectTitle">Select a result</h2>
+      <p class="district-line" id="detailDistrict"></p>
+      <p class="sub" id="detailSub" data-i18n="results.selectPrompt">Choose a place from the list to see routes.</p>
+      <div class="steps" id="steps" aria-label="Routes" data-i18n-aria-label="results.routes"></div>
+    </section>
+  </main>
+  <aside class="side side-right">
+    <div class="sec-title">
+      <span data-i18n="people.title">People and start places</span>
+      <span class="side-actions">
+        <span class="count"><span id="count">2</span> <span data-i18n="people.count">people</span></span>
+      </span>
+    </div>
+    <div id="cards"></div>
+    <button class="add wide-icon" id="add" type="button" data-i18n-tooltip="people.add" data-i18n-aria-label="people.add" aria-label="Add another person" title="Add another person" data-tooltip="Add another person">
+      <span class="icon icon-add" aria-hidden="true"></span><span class="sr-only" data-i18n="people.add">Add another person</span>
+    </button>
+    <div class="section-title beta-title" data-i18n="beta.title">Beta features</div>
+    <label class="beta-toggle" for="betaVectors">
+      <input type="checkbox" id="betaVectors" data-i18n-aria-label="beta.vectors">
+      <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+      <span class="toggle-label" data-i18n="beta.vectors">Interest preferences</span>
+    </label>
+    <p class="note beta-note" data-i18n="beta.note">Experimental. Preferences can raise or lower ranked places.</p>
+    <div class="vector-section" id="vectorSection" hidden>
+      <div class="section-title vector-title" data-i18n="options.interests">Nearby interests</div>
+      <p class="note vector-help" data-i18n="options.interestsHelp">Places are ranked mainly by travel time. Preferences can raise or lower a place in the ranking. Off adds no preference.</p>
+      <div class="vector-grid">
+        <div class="vector-row"><span class="icon icon-food" aria-hidden="true"></span><label for="vec-food" data-i18n="vector.food">Food</label><input type="range" id="vec-food" data-vector="food" min="-3" max="3" step="1" value="0"><span class="value" id="vec-food-val" data-i18n="vector.off">Off</span></div>
+        <div class="vector-row"><span class="icon icon-drinks" aria-hidden="true"></span><label for="vec-drinks" data-i18n="vector.drinks">Drinks</label><input type="range" id="vec-drinks" data-vector="drinks" min="-3" max="3" step="1" value="0"><span class="value" id="vec-drinks-val" data-i18n="vector.off">Off</span></div>
+        <div class="vector-row"><span class="icon icon-activities" aria-hidden="true"></span><label for="vec-activities" data-i18n="vector.activities">Activities</label><input type="range" id="vec-activities" data-vector="activities" min="-3" max="3" step="1" value="0"><span class="value" id="vec-activities-val" data-i18n="vector.off">Off</span></div>
+        <div class="vector-row"><span class="icon icon-culture" aria-hidden="true"></span><label for="vec-culture" data-i18n="vector.culture">Culture</label><input type="range" id="vec-culture" data-vector="culture" min="-3" max="3" step="1" value="0"><span class="value" id="vec-culture-val" data-i18n="vector.off">Off</span></div>
+        <div class="vector-row"><span class="icon icon-outdoors" aria-hidden="true"></span><label for="vec-outdoors" data-i18n="vector.outdoors">Outdoors</label><input type="range" id="vec-outdoors" data-vector="outdoors" min="-3" max="3" step="1" value="0"><span class="value" id="vec-outdoors-val" data-i18n="vector.off">Off</span></div>
+        <div class="vector-row"><span class="icon icon-shopping" aria-hidden="true"></span><label for="vec-shopping" data-i18n="vector.shopping">Shopping</label><input type="range" id="vec-shopping" data-vector="shopping" min="-3" max="3" step="1" value="0"><span class="value" id="vec-shopping-val" data-i18n="vector.off">Off</span></div>
+      </div>
+      <div class="slider-row ends vector-ends"><span data-i18n="vector.avoidStrong">Strong avoid</span><span data-i18n="vector.off">Off</span><span data-i18n="vector.preferStrong">Strong prefer</span></div>
+    </div>
+    <div class="options-divider"></div>
+    <div class="section-title" data-i18n="options.title">Options</div>
+    <div class="chips" role="group" aria-label="Transport modes" data-i18n-aria-label="options.modes">
+      <button class="chip" type="button" aria-pressed="true" data-mode="rail" data-i18n-tooltip="options.rail" data-i18n-aria-label="options.rail" aria-label="MTR / rail" title="MTR / rail" data-tooltip="MTR / rail">
+        <span class="icon icon-rail" aria-hidden="true"></span><span class="sr-only" data-i18n="options.rail">MTR / rail</span>
+      </button>
+      <button class="chip" type="button" aria-pressed="true" data-mode="bus" data-i18n-tooltip="options.bus" data-i18n-aria-label="options.bus" aria-label="Bus / minibus" title="Bus / minibus" data-tooltip="Bus / minibus">
+        <span class="icon icon-bus" aria-hidden="true"></span><span class="sr-only" data-i18n="options.bus">Bus / minibus</span>
+      </button>
+    </div>
+    <div class="slider-row">
+      <label for="tolerance" data-i18n="options.tolerance">Travel tolerance</label>
+      <span class="value" id="tolval">10%</span>
+    </div>
+    <input type="range" id="tolerance" min="0" max="0.5" step="0.05" value="0.1">
+    <div class="slider-row ends"><span data-i18n="options.toleranceNear">Near equal</span><span data-i18n="options.toleranceFlexible">More flexible</span></div>
+    <div class="slider-row slider-gap">
+      <label for="budget" data-i18n="options.budget">Travel budget for everyone</label>
+      <span class="value" id="budgetval">60 min</span>
+    </div>
+    <input type="range" id="budget" min="15" max="180" step="5" value="60">
+    <div class="slider-row ends"><span>15 min</span><span>180 min</span></div>
+    <button class="go" id="go" type="button" data-i18n-tooltip="options.search" data-i18n-aria-label="options.search" aria-label="Find fair areas" title="Find fair areas" data-tooltip="Find fair areas">
+      <span class="icon icon-search" aria-hidden="true"></span><span class="sr-only" id="goLabel" data-i18n="options.search">Find fair areas</span>
+    </button>
+    <div class="utility-actions">
+      <button class="icon-button" id="recenter" type="button" data-i18n-tooltip="map.recenter" data-i18n-aria-label="map.recenter" aria-label="Recenter map" title="Recenter map" data-tooltip="Recenter map">
+        <span class="icon icon-scan" aria-hidden="true"></span>
+      </button>
+      <button class="icon-button" id="share" type="button" data-i18n-tooltip="share.title" data-i18n-aria-label="share.title" aria-label="Share scenario" title="Share scenario" data-tooltip="Share scenario">
+        <span class="icon icon-share" aria-hidden="true"></span>
+      </button>
+    </div>
+    <div class="error" id="error" role="alert" hidden></div>
+    <p class="save-summary" id="saveSummary"></p>
+    <p class="note"><span data-i18n="note.attribution">Routing runs in this browser. Place search uses keyless Photon and the map uses OpenFreeMap vector tiles from OpenStreetMap data. Your people and settings stay on this device.</span>
+      <button class="icon-button" id="reset" type="button" data-i18n-tooltip="options.reset" data-i18n-aria-label="options.reset" aria-label="Reset saved people" title="Reset saved people" data-tooltip="Reset saved people">
+        <span class="icon icon-reset" aria-hidden="true"></span>
+      </button>
+    </p>
+    <p class="note credit-note">Inspired by <a href="https://fairpin.ph/" target="_blank" rel="noopener noreferrer">FairPin PH</a>. I have not used their service.</p>
+    <nav class="legal-links" aria-label="Legal and project information">
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="credits.html">Credits</a>
+    </nav>
+  </aside>
+</div>
+<dialog class="dialog" id="peopleDialog" aria-labelledby="libraryTitle">
+  <div class="dialog-head">
+    <h2 id="libraryTitle" data-i18n="people.libraryTitle">Saved people</h2>
+    <button class="icon-button" id="libraryClose" type="button" aria-label="Close" data-i18n-aria-label="people.libraryClose" data-i18n-tooltip="people.libraryClose" title="Close" data-tooltip="Close">
+      <span class="icon icon-close" aria-hidden="true"></span>
+    </button>
+  </div>
+  <label class="label" for="directorySearch" data-i18n="people.librarySearch">Search saved people</label>
+  <input id="directorySearch" type="text" placeholder="Search saved people" data-i18n-placeholder="people.librarySearch">
+  <div class="directory-list" id="directoryList" role="list"></div>
+</dialog>
+<script type="module" src="app.js"></script>
+</body>
+</html>

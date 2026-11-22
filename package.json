@@ -1,0 +1,27 @@
+{
+  "name": "zg852",
+  "version": "1.0.0",
+  "description": "Client-side Hong Kong fair meeting-point finder",
+  "main": "app.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:e2e": "playwright test",
+    "build": "node scripts/build-pages.mjs",
+    "pages:dev": "wrangler pages dev public",
+    "pages:deploy": "npm run build && wrangler pages deploy public"
+  },
+  "keywords": ["hong-kong", "meeting-point", "transit", "client-side"],
+  "author": "viscory",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "lucide-static": "^1.77.0",
+    "wrangler": "^4.166.0"
+  },
+  "dependencies": {
+    "@maplibre/maplibre-gl-leaflet": "^0.1.4",
+    "leaflet": "^1.9.4",
+    "maplibre-gl": "^6.19.0"
+  }
+}
