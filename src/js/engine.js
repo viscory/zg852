@@ -4,7 +4,7 @@ import { $,clamp } from './util.js';
 import { t,applyStaticText } from './i18n.js';
 import { districtFor,loadNetwork } from './data.js';
 import { cellFitScore } from './vectors.js';
-import { sourcesFor,solve,bestTimes,walkTimes,walkBudget,buildCells,prepareRoutes,cellToResult } from './routing.js';
+import { sourcesFor,solve,bestTimes,fareTimes,walkTimes,walkBudget,buildCells,prepareRoutes,cellToResult } from './routing.js';
 import { save } from './state.js';
 import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,renderCards,setWorking } from './ui.js';
 import { drawOrigins,drawCloud,applySelection,applyMapLabels } from './map.js';
@@ -28,20 +28,27 @@ export function compute(){
     const sources=store.activePeople.map(p=>sourcesFor(p.origin,TRAVEL_BUDGET_MINUTES));
     if(sources.some(s=>!s.length)){renderEmpty();showError(t('error.noNearby'));return;}
     store.sols=sources.map(s=>solve(s,mask,TRAVEL_BUDGET_MINUTES));
+    store.fareSols=sources.map(s=>solve(s,mask,TRAVEL_BUDGET_MINUTES,'fare'));
   }
-  if(store.sols.some(s=>!s.dist.size)){renderEmpty();showError(t('error.noReach'));return;}
-  const grids=store.sols.map(bestTimes),walkGrids=store.sols.map(walkTimes);
+  if(store.sols.some(s=>!s.dist.size)||store.fareSols.some(s=>!s.dist.size)){renderEmpty();showError(t('error.noReach'));return;}
+  const metric=store.settings.fairnessMetric==='fare'?'fare':'time';
+  const grids=store.sols.map(bestTimes),walkGrids=store.sols.map(walkTimes),fareGrids=store.fareSols.map(fareTimes);
   // Walk budgets only re-weight the cached solutions; Dijkstra and solveKey stay untouched.
   const effectiveGrids=grids.map((grid,i)=>{
     const limit=walkBudget(store.activePeople[i]),out=new Float64Array(grid.length);
     for(let idx=0;idx<grid.length;idx++){const walk=walkGrids[i][idx];out[idx]=isFinite(walk)&&walk<=limit?walk:grid[idx];}
     return out;
   });
-  const cells=buildCells(effectiveGrids,tolerance,TRAVEL_BUDGET_MINUTES);
+  const effectiveFareGrids=fareGrids.map((grid,i)=>{
+    const limit=walkBudget(store.activePeople[i]),out=new Float64Array(grid.length);
+    for(let idx=0;idx<grid.length;idx++){const walk=walkGrids[i][idx];out[idx]=isFinite(walk)&&walk<=limit?0:grid[idx];}
+    return out;
+  });
+  const cells=buildCells(effectiveGrids,tolerance,TRAVEL_BUDGET_MINUTES,metric,effectiveFareGrids);
   const ordered=cells.map(cell=>({cell,fitScore:cellFitScore(cell)})).sort((a,b)=>a.fitScore-b.fitScore||a.cell.score-b.cell.score||a.cell.key.localeCompare(b.cell.key));
   store.cloudCells=ordered.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
   store.results=ordered.slice(0,7).map(({cell:c})=>cellToResult(c));
-  store.results.forEach(r=>prepareRoutes(r,store.activePeople));
+  store.results.forEach(r=>prepareRoutes(r,store.activePeople,metric));
   if(!store.results.length){
     renderEmpty();
     const mode=store.settings.modes.length===1?store.settings.modes[0]:null;

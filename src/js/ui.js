@@ -1,12 +1,12 @@
 import { LETTERS,VECTOR_KEYS } from './config.js';
 import { store } from './store.js';
 import { $,esc,clamp,icon,initialsFor,avatarClass,clone } from './util.js';
-import { t,tp,num,minuteText } from './i18n.js';
+import { t,tp,num,intNum,minuteText } from './i18n.js';
 import { normalizeVectors,vectorLabel,betaVectorsEnabled } from './vectors.js';
 import { searchPlaces,districtFor } from './data.js';
 import { dedupePlaces,photonSearch } from './search.js';
-import { fareMarkup } from './routing.js';
-import { displayName,save,saveDirectory,profileFromPerson,profileLabel,profileDistrict,normFocus } from './state.js';
+import { fareMarkup,money } from './routing.js';
+import { displayName,save,saveDirectory,profileFromPerson,profileLabel,profileDistrict } from './state.js';
 import { scheduleRecompute } from './engine.js';
 import { hideTooltip,clearMapOutput,selectResult } from './map.js';
 
@@ -45,6 +45,8 @@ export function updateSaveSummary(){
 }
 export function updateSettingsLabels(){
   $('tolval').textContent=`${Math.round(store.settings.tolerance*100)}%`;
+  const fairness=store.settings.fairnessMetric==='fare'?'fare':'time';
+  document.querySelectorAll('.fairness-option').forEach(option=>option.setAttribute('aria-pressed',String(option.dataset.fairness===fairness)));
   store.settings.vectors=normalizeVectors(store.settings.vectors);
   VECTOR_KEYS.forEach(key=>{const label=$(`vec-${key}-val`);if(label)label.textContent=vectorLabel(store.settings.vectors[key]);});
 }
@@ -57,6 +59,14 @@ export function applyBetaFeatures(){
 }
 export function applySettingsToDom(){
   document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',String(store.settings.modes.includes(c.dataset.mode))));
+  document.querySelectorAll('.fairness-option').forEach(option=>{
+    option.setAttribute('aria-pressed',String(option.dataset.fairness===(store.settings.fairnessMetric==='fare'?'fare':'time')));
+    option.onclick=()=>{
+      option.parentElement.querySelectorAll('.fairness-option').forEach(button=>button.setAttribute('aria-pressed',String(button===option)));
+      clearError();
+      readSettingsFromDom();
+    };
+  });
   $('tolerance').value=store.settings.tolerance;
   store.settings.vectors=normalizeVectors(store.settings.vectors);
   document.querySelectorAll('[data-vector]').forEach(input=>{input.value=store.settings.vectors[input.dataset.vector];});
@@ -65,6 +75,8 @@ export function applySettingsToDom(){
 }
 export function readSettingsFromDom(){
   store.settings.modes=[...document.querySelectorAll('.chip[aria-pressed="true"]')].map(c=>c.dataset.mode);
+  const fairness=document.querySelector('.fairness-option[aria-pressed="true"]')?.dataset.fairness;
+  store.settings.fairnessMetric=fairness==='fare'?'fare':'time';
   store.settings.tolerance=clamp(Number($('tolerance').value),0.05,0.5,0.1);
   const vectors=normalizeVectors(store.settings.vectors);
   document.querySelectorAll('[data-vector]').forEach(input=>{vectors[input.dataset.vector]=Number(input.value);});
@@ -88,9 +100,10 @@ export function renderResults(active=store.activePeople){
   state.hidden=true;
   if(emptyRun)emptyRun.hidden=true;
   count.textContent=t('results.areas',{count:store.results.length});
+  const fareMetric=store.settings.fairnessMetric==='fare';
   list.innerHTML=store.results.map((r,i)=>`<button class="result-row" type="button" data-index="${i}" aria-label="${esc(`${t('results.selectTitle')}: ${r.label}`)}">
     <span class="result-head"><b>${esc(r.label)}</b><span class="tag">${esc(t('cat.'+r.catKey))}</span><span class="district">${esc(r.district)}</span></span>
-    <span class="result-times"><span>${esc(t('results.spread',{value:num(r.gap)}))}</span><span>${esc(t('results.longest',{value:num(r.slowest)}))}</span></span>
+    <span class="result-times"><span>${esc(fareMetric?t('results.fareSpread',{value:money(r.gap)}):t('results.spread',{value:intNum(r.gap)}))}</span><span>${esc(fareMetric?t('results.fareLongest',{value:money(r.slowest)}):t('results.longest',{value:intNum(r.slowest)}))}</span></span>
     <span class="result-people">${r.routes.map((route,j)=>`<span class="result-person"><span class="avatar ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span><span class="person-name">${esc(displayName(active[j],j))}</span>${fareMarkup(route)}</span>`).join('')}</span>
   </button>`).join('');
   list.querySelectorAll('.result-row').forEach(row=>{row.onclick=()=>selectResult(Number(row.dataset.index),active,true);});
@@ -182,11 +195,6 @@ export function makeCard(person){
       <button class="icon-button pin" type="button" aria-label="${pinLabel}" title="${pinLabel}" data-tooltip="${pinLabel}">${icon('pin')}</button>
     </div>
   </div>
-  <div class="focus-toggle" role="group" aria-label="${esc(t('people.focusLabel'))}">
-    <span class="focus-label">${esc(t('people.focusLabel'))}</span>
-    <button class="focus-option" type="button" data-focus="time" aria-pressed="${person.focus!=='cost'}">${esc(t('people.focusTime'))}</button>
-    <button class="focus-option" type="button" data-focus="cost" aria-pressed="${person.focus==='cost'}">${esc(t('people.focusCost'))}</button>
-  </div>
   <div class="walk-row slider-row">
     <label for="walk-${id}">${esc(t('people.walkTolerance'))}</label>
     <span class="value" id="walk-${id}-val">${esc(minuteText(person.walkMinutes))}</span>
@@ -219,14 +227,6 @@ export function makeCard(person){
   card.querySelector('.save-person').onclick=()=>savePersonToDirectory(person);
   card.querySelector('.remove').onclick=()=>{store.people=store.people.filter(p=>p.id!==id);commitPeople();};
   card.querySelector('.pin').onclick=()=>startPinMode(id,input,sug);
-  const focusToggle=card.querySelector('.focus-toggle');
-  focusToggle.querySelectorAll('.focus-option').forEach(option=>{
-    option.onclick=()=>{
-      person.focus=option.dataset.focus;
-      focusToggle.querySelectorAll('.focus-option').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.focus===person.focus)));
-      save();scheduleRecompute();
-    };
-  });
   const walk=card.querySelector('[data-walk]'),walkValue=card.querySelector('.walk-row .value');
   walk.oninput=()=>{
     person.walkMinutes=clamp(Number(walk.value),0,60,20);
@@ -287,7 +287,7 @@ export function setPinOrigin(id,lat,lon){
 export function savePersonToDirectory(person){
   if(!person.origin){showError(t('people.hintEmpty'));return;}
   const existing=store.directory.find(d=>d.id===person.directoryId)||store.directory.find(d=>d.name===person.name&&d.origin?.label===person.origin.label);
-  if(existing){existing.name=person.name;existing.origin=clone(person.origin);existing.focus=normFocus(person.focus);existing.walkMinutes=clamp(Number(person.walkMinutes),0,60,20);existing.updated=Date.now();person.directoryId=existing.id;}
+  if(existing){existing.name=person.name;existing.origin=clone(person.origin);existing.walkMinutes=clamp(Number(person.walkMinutes),0,60,20);existing.updated=Date.now();person.directoryId=existing.id;}
   else{const profile=profileFromPerson(person);store.directory.push(profile);person.directoryId=profile.id;}
   saveDirectory();save();renderDirectoryList();flashSaved(person.id);
 }
@@ -302,13 +302,13 @@ export function deleteDirectoryPerson(id){
 }
 export function addDirectoryPerson(profile){
   if(store.people.length>=8||!profile)return;
-  store.people.push({id:`p${store.seq++}`,name:profile.name,origin:clone(profile.origin),directoryId:profile.id,focus:normFocus(profile.focus),walkMinutes:clamp(Number(profile.walkMinutes),0,60,20)});
+  store.people.push({id:`p${store.seq++}`,name:profile.name,origin:clone(profile.origin),directoryId:profile.id,walkMinutes:clamp(Number(profile.walkMinutes),0,60,20)});
   commitPeople();
 }
 export function editDirectoryPerson(profile){
   let person=store.people.find(p=>p.directoryId===profile.id);
   if(!person&&store.people.length<8){addDirectoryPerson(profile);person=store.people[store.people.length-1];}
-  if(person){person.name=profile.name;person.origin=clone(profile.origin);person.focus=normFocus(profile.focus);person.walkMinutes=clamp(Number(profile.walkMinutes),0,60,20);}
+  if(person){person.name=profile.name;person.origin=clone(profile.origin);person.walkMinutes=clamp(Number(profile.walkMinutes),0,60,20);}
   commitPeople();
 }
 export function renderDirectoryList(){

@@ -31,7 +31,7 @@ async function init(){
   loadNetwork().catch(err=>{console.error(err);showError(t('error.timetableFailed',{message:err.message}));});
 }
 
-$('add').onclick=()=>{if(store.people.length<8){store.people.push({id:`p${store.seq++}`,name:defaultName(store.people.length),origin:null,focus:'time',walkMinutes:20});commitPeople();}};
+$('add').onclick=()=>{if(store.people.length<8){store.people.push({id:`p${store.seq++}`,name:defaultName(store.people.length),origin:null,walkMinutes:20});commitPeople();}};
 $('library').onclick=openDirectory;
 $('libraryClose').onclick=()=>closeDialog($('peopleDialog'));
 $('directorySearch').oninput=renderDirectoryList;

@@ -5,6 +5,7 @@ import csv
 import json
 import math
 import os
+import re
 import statistics
 import zipfile
 from bisect import bisect_left, bisect_right
@@ -258,9 +259,12 @@ def main():
                 }
 
         route_cat = {}
+        route_long_name = {}
         for row in read_table(zf, "routes.txt"):
             agency = row["agency_id"]
-            route_cat[row["route_id"]] = "rail" if agency == "MTRR" else "ferry" if agency == "FERRY" else "lightRail" if agency == "LR" else "bus"
+            route_id = row["route_id"]
+            route_cat[route_id] = "rail" if agency == "MTRR" else "ferry" if agency == "FERRY" else "lightRail" if agency == "LR" else "bus"
+            route_long_name[route_id] = row["route_long_name"] or ""
 
         trip_route = {}
         trip_shape = {}
@@ -268,15 +272,19 @@ def main():
             trip_route[row["trip_id"]] = row["route_id"]
             trip_shape[row["trip_id"]] = row["shape_id"] or ""
 
-        headways = defaultdict(list)
+        # One duration-weighted average headway per trip over the service day:
+        # sum(headway_minutes * window_duration_minutes) / sum(window_duration_minutes).
+        # Each trip therefore contributes a single wait, not repeated samples.
+        headways = defaultdict(lambda: [0.0, 0.0])  # trip_id -> [weighted sum, total minutes]
         for row in read_table(zf, "frequencies.txt"):
             start = to_minutes(row["start_time"])
             end = to_minutes(row["end_time"])
             headway = int(row["headway_secs"]) / 60
-            if headway <= 0:
+            if headway <= 0 or start is None or end is None or end <= start:
                 continue
-            weight = 3 if (start is not None and end is not None and start <= 600 <= end) else 1
-            headways[row["trip_id"]].extend([headway] * weight)
+            duration = end - start
+            headways[row["trip_id"]][0] += headway * duration
+            headways[row["trip_id"]][1] += duration
 
         trip_pattern = {}
         for row in read_table(zf, "stop_times.txt"):
@@ -314,8 +322,12 @@ def main():
                 previous = pattern_shape_distances.get(key)
                 if previous is None or sum(d is None for d in candidate) < sum(d is None for d in previous):
                     pattern_shape_distances[key] = candidate
-            waits = headways.get(tid, [])
-            wait = min(statistics.median(waits), MAX_WAIT_MIN) / 2 if waits else 7.5
+            weighted = headways.get(tid)
+            if weighted and weighted[1] > 0:
+                average_headway = weighted[0] / weighted[1]
+                wait = min(average_headway, MAX_WAIT_MIN) / 2
+            else:
+                wait = 7.5
             pattern_waits[route].append((pattern, wait))
             for i in range(len(node_seq) - 1):
                 dt = times[i + 1] - times[i]
@@ -427,7 +439,7 @@ def main():
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(graph, fh, separators=(",", ":"), ensure_ascii=False)
 
-    export_client(nodes, lines, walk, line_geometry)
+    export_client(nodes, lines, walk, line_geometry, route_long_name)
 
     print(f"nodes={len(nodes)} platforms={sum(map(len, station_platforms.values()))} "
           f"exits={sum(map(len, station_exits.values()))} lines={len(lines)} "
@@ -477,7 +489,13 @@ def line_label(line_id):
     return route
 
 
-def export_client(nodes, lines, walk, line_geometry):
+def display_name(route_long_name, fallback):
+    """Human-readable line name: long name without a trailing parenthetical."""
+    name = re.sub(r"\s*\([^()]*\)\s*$", "", (route_long_name or "").strip()).strip()
+    return name or fallback
+
+
+def export_client(nodes, lines, walk, line_geometry, route_long_name):
     order = list(nodes.keys())
     index = {nid: i for i, nid in enumerate(order)}
     kinds = {"station": 1, "platform": 2, "exit": 3, "bus": 4, "stop": 5}
@@ -490,8 +508,10 @@ def export_client(nodes, lines, walk, line_geometry):
     }
     line_data = []
     for lid, line in lines.items():
+        label = line_label(lid)
         line_data.append({
-            "l": line_label(lid),
+            "l": label,
+            "n": display_name(route_long_name.get(lid.split("#")[0], ""), label),
             "c": CAT_CODE[line["cat"]],
             "w": line["wait"],
             "s": [index[n] for n in line["stops"]],

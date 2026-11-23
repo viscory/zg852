@@ -2,9 +2,19 @@
 
 This file records visual critiques of 就腳. The newest critique is first. Change `src/styles.css` so the page matches the newest sizes. Keep one size scale on `:root`.
 
+## 2026-11-23 Whole minutes, wait-aware rides and trip fairness
+
+Every minute value in the app is a whole number. Result spreads, longest times, per-person times, walk legs, and ride legs all use rounded minutes; no decimal point appears beside `min`. The ride time on a leg includes the average headway wait for that line, so it reflects the time someone actually spends waiting and riding rather than the in-vehicle time alone.
+
+MTR ride chips and leg labels use the full line name, such as `Tsuen Wan Line` or `Kwun Tong Line`. Three-letter codes such as `MTR TWL` do not appear in the interface. The graph can still carry short internal line codes; they are expanded for display.
+
+The time-versus-cost choice is now one trip-level fairness metric in the options panel (`Time` or `Fare`), not a toggle on each person card. It is saved with the rest of the settings and travels in share links. In fare mode, the result spread and longest value are money amounts, using the same fare estimates shown in the route steps.
+
+The two-column layout, the people/detail swap, and the per-person walk tolerance are unchanged.
+
 ## 2026-11-23 Person walk tolerance and sidebar faces
 
-Each person card has a walk-tolerance row directly below the travel-priority toggle. It uses the same `.slider-row` type scale as the options tolerance: a 12px muted label, a tabular mono value, and a full-width range input with the shared 8px top margin shortened to 4px inside cards. The control stays inside the 8px card padding, runs 0–60 minutes in 5-minute steps, and defaults to 20 minutes. Its value uses the localised minute unit, like every other time in the app. No origin-hint line remains on the cards.
+Each person card has a walk-tolerance row directly below the start place field. It uses the same `.slider-row` type scale as the options tolerance: a 12px muted label, a tabular mono value, and a full-width range input with the shared 8px top margin shortened to 4px inside cards. The control stays inside the 8px card padding, runs 0–60 minutes in 5-minute steps, and defaults to 20 minutes. Its value uses the localised minute unit, like every other time in the app. No origin-hint line remains on the cards.
 
 The left sidebar swaps between the people list and the selected route. The `.sec-title` keeps the swap icon button at the right edge and shows the people count only on the people face. The detail face holds the meeting-area card plus a small dashed hint using `map.areaHint`, which hides as soon as a route is selected. The right sidebar keeps a sticky options panel at the top with a solid background, a thin bottom border, and a soft shadow, so fair-area results scroll underneath it. The results heading and count sit with the results list, and the save summary and footer stay at the bottom.
 
@@ -35,7 +45,7 @@ The icons and boxes are too large. A 44px field and a 44px icon button fill the 
 The compact scale is:
 
 - `--icon` is 12px. Header icon buttons use that size. Card action icons, chip icons, and the search icon are 14px. Legend key icons stay 12px.
-- `--field` is 36px. Text inputs, icon buttons, the locale control, focus options, the search button, directory action buttons, and the map zoom and recenter controls use this height.
+- `--field` is 36px. Text inputs, icon buttons, the locale control, fairness options, the search button, directory action buttons, and the map zoom and recenter controls use this height.
 - `--header` is 52px. The logo is 28px. The title is 17px on a wide screen and 16px below 900px.
 - A person avatar is 24px. A card has 8px padding. A category chip is 32px tall. The full-width add control uses `--field`.
 - Body text stays 14px. The inline note icon button stays 24px.

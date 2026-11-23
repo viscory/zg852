@@ -8,13 +8,13 @@ Effective 22 November 2026.
 
 The app stores these values in browser `localStorage`:
 
-- `hkfair.v2.people`: current people — names, start places, travel priority, and per-person walk tolerance
-- `hkfair.v2.settings`: modes, tolerance, and beta preferences
+- `hkfair.v2.people`: current people — names, start places, and per-person walk tolerance
+- `hkfair.v2.settings`: modes, tolerance, the trip fairness metric (`time` or `fare`), and beta preferences
 - `hkfair.v2.directory`: saved people library, including each saved walk tolerance
 - `hkfair.v2.geocache`: recent place-search results
 - `hkfair.v2.locale`: selected language
 
-Share links put the current scenario in the URL fragment. Anyone who receives the link can see that scenario. Do not put sensitive information into people names or start places if you plan to share.
+Share links put the current scenario in the URL fragment, including the trip fairness metric from settings. Walk tolerance stays with each person. Anyone who receives the link can see that scenario. Do not put sensitive information into people names or start places if you plan to share.
 
 Clear site data in your browser to remove stored values.
 

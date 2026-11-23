@@ -61,8 +61,8 @@ export function routeFares(route){
   return{rail:round1(rail),bus:round1(bus),total:round1(rail+bus)};
 }
 export const walkBudget=person=>clamp(person?.walkMinutes,0,WALK_TOLERANCE_MAX,WALK_TOLERANCE_DEFAULT);
-export function prepareRoutes(result,active=store.activePeople){
-  result.routes=store.sols.map((solution,j)=>describe(solution,active[j].origin,result.node,active[j].focus,walkBudget(active[j])));
+export function prepareRoutes(result,active=store.activePeople,metric='time'){
+  result.routes=store.sols.map((solution,j)=>describe(solution,active[j].origin,result.node,metric,walkBudget(active[j])));
   result.paths=result.routes.map(route=>route.path);
   return result;
 }
@@ -86,28 +86,51 @@ export class MinHeap{
     return[d,k];}
 }
 
-export function solve(sources,mask,maxTime=180){
+export function solve(sources,mask,maxTime=180,mode='time'){
+  // In fare mode `dist` holds accumulated boarding fares instead of minutes;
+  // a parallel arrival map keeps the same time budget on the same state graph.
+  const fareMode=mode==='fare';
   const stride=store.NET.lines.length+1,key=(node,line)=>node*stride+(line+1),start=-1;
-  const dist=new Map(),prev=new Map(),heap=new MinHeap();
+  const dist=new Map(),prev=new Map(),heap=new MinHeap(),arrival=new Map();
   sources.forEach(({node,minutes})=>{
     const k=key(node,-1);
-    if(minutes<=maxTime&&minutes<(dist.get(k)??Infinity)){dist.set(k,minutes);prev.set(k,start);heap.push(minutes,k);}
+    if(minutes<=maxTime&&minutes<(dist.get(k)??Infinity)){dist.set(k,minutes);arrival.set(k,minutes);prev.set(k,start);heap.push(minutes,k);}
   });
-  const relax=(k,d,from)=>{if(d>=(dist.get(k)??Infinity)||d>maxTime)return;dist.set(k,d);prev.set(k,from);heap.push(d,k);};
+  const relax=(k,cost,from,time)=>{
+    if(fareMode){
+      if(time>maxTime+1e-9)return;
+      const known=dist.get(k)??Infinity,knownTime=arrival.get(k)??Infinity;
+      if(cost>known||(cost===known&&time>=knownTime))return;
+      dist.set(k,cost);arrival.set(k,time);prev.set(k,from);heap.push(cost,k);
+    }else if(cost<(dist.get(k)??Infinity)&&cost<=maxTime){
+      dist.set(k,cost);prev.set(k,from);heap.push(cost,k);
+    }
+  };
   while(heap.size){
-    const[d,k]=heap.pop();if(d>(dist.get(k)??Infinity)||d>maxTime)continue;
+    const[d,k]=heap.pop();
+    if(d>(dist.get(k)??Infinity)||(!fareMode&&d>maxTime))continue;
+    const time=fareMode?arrival.get(k):d;
+    if(fareMode&&(time===undefined||time>maxTime+1e-9))continue;
     const node=Math.floor(k/stride),line=(k%stride)-1;
     if(line<0){
-      for(const[to,time]of store.walkAdj[node])relax(key(to,-1),d+time,k);
-      for(const li of store.nodeLines[node])if(mask&(1<<store.NET.lines[li].c))relax(key(node,li),d+store.NET.lines[li].w,k);
+      for(const[to,step]of store.walkAdj[node])relax(key(to,-1),fareMode?d:d+step,k,fareMode?time:undefined);
+      for(const li of store.nodeLines[node])if(mask&(1<<store.NET.lines[li].c)){
+        const info=store.NET.lines[li],wait=isNum(info.w)?info.w:0,fare=isNum(info.f)?info.f:0;
+        relax(key(node,li),fareMode?d+fare:d+wait,k,fareMode?time+wait:undefined);
+      }
     }else{
-      relax(key(node,-1),d,k);
-      for(const[li,to,time]of store.rideAdj[node])if(li===line)relax(key(to,li),d+time,k);
+      relax(key(node,-1),d,k,fareMode?time:undefined);
+      for(const[li,to,step]of store.rideAdj[node])if(li===line)relax(key(to,li),fareMode?d:d+step,k,fareMode?time+step:undefined);
     }
   }
   return{dist,prev,stride,key,start};
 }
 export function bestTimes(sol){
+  const best=new Float64Array(store.NODES.names.length).fill(Infinity);
+  for(const[k,d]of sol.dist){const node=Math.floor(k/sol.stride);if(d<best[node])best[node]=d;}
+  return best;
+}
+export function fareTimes(sol){
   const best=new Float64Array(store.NODES.names.length).fill(Infinity);
   for(const[k,d]of sol.dist){const node=Math.floor(k/sol.stride);if(d<best[node])best[node]=d;}
   return best;
@@ -161,7 +184,7 @@ export function stopName(name){
 export function walkLegText(leg){return t('route.walkLeg',{time:minuteText(leg.minutes)}).replace(/\s+/g,' ').trim();}
 export function rideLegText(leg){
   const stops=tp('route.stopCount',leg.stopCount||0);
-  const line=leg.mode==='rail'?leg.line.replace(/^MTR\s+/i,''):leg.line;
+  const line=leg.mode==='rail'?(leg.lineName||String(leg.line).replace(/^MTR\s+/i,'')):leg.line;
   return t('route.rideLeg',{mode:t('mode.'+leg.mode),line,from:leg.from,to:leg.to,stops,time:minuteText(leg.minutes)}).replace(/\s+/g,' ').trim();
 }
 export function legLabel(leg){return leg.mode==='walk'?walkLegText(leg):rideLegText(leg);}
@@ -170,7 +193,7 @@ export function reconstructChain(sol,k){
   while(cur!==undefined&&cur!==sol.start&&chain.length<4000){chain.push(cur);cur=sol.prev.get(cur);}
   return chain.reverse();
 }
-export function describe(sol,origin,target,focus='time',walkMinutes=WALK_TOLERANCE_DEFAULT){
+export function describe(sol,origin,target,metric='time',walkMinutes=WALK_TOLERANCE_DEFAULT){
   const walkLimit=clamp(walkMinutes,0,WALK_TOLERANCE_MAX,WALK_TOLERANCE_DEFAULT),candidates=[];
   for(let l=-1;l<store.NET.lines.length;l++){
     const k=sol.key(target,l),d=sol.dist.get(k);
@@ -198,10 +221,12 @@ export function describe(sol,origin,target,focus='time',walkMinutes=WALK_TOLERAN
         }
         current.minutes+=stepT;current.coords.push(coord);current.to=name;current.toNode=node;
       }else{
-        const mode=rideMode(store.NET.lines[line].c),label=store.NET.lines[line].l,name=mode==='rail'||mode==='lightRail'?stopName(rawName):rawName;
+        const info=store.NET.lines[line],mode=rideMode(info.c),label=info.l,name=mode==='rail'||mode==='lightRail'?stopName(rawName):rawName;
         if(!current||current.mode!==mode||current.line!==label){
           close();
-          current={mode,line:label,minutes:stepT,coords:[coord,coord],from:name,to:name,fromNode:node,toNode:node,stopCount:0};
+          // The first ride-state stepT already contains the boarding wait from
+          // solve() (dist(line state) - dist(walk state) = line.w), so do not add it again.
+          current={mode,line:label,lineName:info.n||info.l,minutes:stepT,coords:[coord,coord],from:name,to:name,fromNode:node,toNode:node,stopCount:0};
         }else{
           current.minutes+=stepT;
           const fromNode=pst===sol.start?null:Math.floor(pst/sol.stride);
@@ -227,35 +252,42 @@ export function describe(sol,origin,target,focus='time',walkMinutes=WALK_TOLERAN
   }
   if(!candidates.length)return{text:t('route.unreachable'),legs:[],path:[[origin.lat,origin.lon]],fares:{rail:0,bus:0,total:0}};
   const walk=candidates.find(c=>c.line===-1&&c.d<=walkLimit);
-  if(!walk)candidates.sort((a,b)=>focus==='cost'?a.total-b.total||a.d-b.d:a.d-b.d||a.total-b.total);
+  if(!walk)candidates.sort((a,b)=>metric==='fare'?a.total-b.total||a.d-b.d:a.d-b.d||a.total-b.total);
   const best=walk||candidates[0],legs=best.legs;
   const text=legs.map(leg=>leg.text).join(' -> ')||t('route.already');
   const path=dedupePath(legs.flatMap(leg=>leg.coords));
   return{text,legs,path,fares:best.fares};
 }
-export function buildCells(grids,tolerance,budget){
-  const cells=new Map();
+export function buildCells(grids,tolerance,budget,metric='time',fareGrids=null){
+  const cells=new Map(),useFare=metric==='fare'&&!!fareGrids;
   for(const idx of store.surface){
     const times=grids.map(g=>g[idx]);
     if(times.some(v=>!isFinite(v)))continue;
-    const fastest=Math.min(...times),slowest=Math.max(...times),station=store.NODES.kind[idx]===1;
-    const overBand=station?slowest-fastest>Math.max(fastest*tolerance,8):slowest>Math.max(fastest,5)*(1+tolerance);
-    if(slowest>budget||overBand)continue;
+    // Time grids always decide whether a node is reachable within the budget.
+    if(Math.max(...times)>budget)continue;
+    const fares=fareGrids?fareGrids.map(g=>g[idx]):null;
+    if(useFare&&fares.some(v=>!isFinite(v)))continue;
+    const values=useFare?fares:times;
+    const fastest=Math.min(...values),slowest=Math.max(...values),gap=slowest-fastest,station=store.NODES.kind[idx]===1;
+    const overBand=station?gap>Math.max(fastest*tolerance,8):slowest>Math.max(fastest,5)*(1+tolerance);
+    if(overBand)continue;
     const cy=Math.floor(store.NODES.lat[idx]/CELL_SIZE),cx=Math.floor(store.NODES.lon[idx]/CELL_SIZE),cellKey=`${cy},${cx}`;
-    const score=slowest+(slowest-fastest),priority=nodePriority(store.NODES.kind[idx]);
+    const score=slowest+gap,priority=nodePriority(store.NODES.kind[idx]);
     let cell=cells.get(cellKey);
-    if(!cell){cells.set(cellKey,{key:cellKey,cy,cx,node:idx,label:store.NODES.names[idx],priority,keyCat:catKey(priority),times,fastest,slowest,gap:slowest-fastest,score});continue;}
+    if(!cell){cells.set(cellKey,{key:cellKey,cy,cx,node:idx,label:store.NODES.names[idx],priority,keyCat:catKey(priority),times,fares,fastest,slowest,gap,score});continue;}
     if(priority<cell.priority){cell.label=store.NODES.names[idx];cell.priority=priority;cell.keyCat=catKey(priority);}
-    if(score<cell.score||score===cell.score&&slowest-fastest<cell.gap){cell.node=idx;cell.times=times;cell.fastest=fastest;cell.slowest=slowest;cell.gap=slowest-fastest;cell.score=score;}
+    if(score<cell.score||score===cell.score&&gap<cell.gap){cell.node=idx;cell.times=times;cell.fares=fares;cell.fastest=fastest;cell.slowest=slowest;cell.gap=gap;cell.score=score;}
   }
   return[...cells.values()].sort((a,b)=>a.score-b.score||a.gap-b.gap||a.key.localeCompare(b.key));
 }
 export function cellToResult(cell){
   const lat=store.NODES.lat[cell.node],lon=store.NODES.lon[cell.node],round=v=>Math.round(v*10)/10;
+  const fares=cell.fares||cell.times.map(()=>0);
   return{
     key:cell.key,node:cell.node,label:cell.label,catKey:cell.keyCat,district:districtFor(lat,lon),lat,lon,
     cellLat:cell.cy*CELL_SIZE+CELL_SIZE/2,cellLon:cell.cx*CELL_SIZE+CELL_SIZE/2,
-    times:cell.times.map(round),fastest:round(cell.fastest),slowest:round(cell.slowest),gap:round(cell.gap),score:round(cell.score),
+    times:cell.times.map(round),fares:fares.map(v=>isFinite(v)?round(v):0),
+    fastest:round(cell.fastest),slowest:round(cell.slowest),gap:round(cell.gap),score:round(cell.score),
     fit:cellPreference(cell),vector:cellVector(cell),count:cellCount(cell),
   };
 }

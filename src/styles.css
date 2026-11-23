@@ -150,9 +150,11 @@ input[type=text]:focus-visible{outline:2px solid var(--accent);outline-offset:1p
 .fare.bus{border-style:dashed;border-color:var(--accent-hover)}
 .fare.total{border-color:var(--accent);font-weight:600}
 .focus-toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
-.focus-label{grid-column:1/-1;font-size:11px;color:var(--muted)}
 .focus-option{min-height:var(--field);border:1px solid var(--border);border-radius:var(--r-md);background:transparent;color:var(--muted);font-size:11px;font-weight:600}
 .focus-option[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:var(--danger-bg)}
+.fairness-section{margin:0 0 12px}
+.fairness-toggle{margin-top:6px}
+.fairness-help{margin:6px 0 0;max-width:none}
 .walk-row{margin-top:8px}
 .card input[type=range]{margin:4px 0 0}
 .slider-gap{margin-top:12px}

@@ -1,7 +1,9 @@
+import { RAIL_FARE_BANDS,BUS_FARE_BANDS } from './config.js';
 import { store } from './store.js';
-import { isNum,haversine } from './util.js';
+import { isNum,haversine,round1 } from './util.js';
 import { t } from './i18n.js';
 import { betaVectorsEnabled } from './vectors.js';
+import { bandFare,aelFare,rideMode } from './routing.js';
 
 export function nodePriority(kind){return kind===1?0:kind===3?1:kind===4?2:3;}
 export function catKey(priority){return priority===0?'station':priority===1?'exit':'bus';}
@@ -12,9 +14,40 @@ export async function loadNodes(){
   for(let i=0;i<store.NODES.names.length;i++)if(store.NODES.kind[i]===1||store.NODES.kind[i]===3||store.NODES.kind[i]===4)store.surface.push(i);
   store.lowerNames=store.NODES.names.map(name=>String(name).toLowerCase());
 }
+function segmentKm(points){
+  let metres=0;
+  for(let i=1;i<points.length;i++){
+    const a=points[i-1],b=points[i];
+    if(Array.isArray(a)&&Array.isArray(b)&&isNum(a[0])&&isNum(a[1])&&isNum(b[0])&&isNum(b[1]))metres+=haversine(a[0],a[1],b[0],b[1]);
+  }
+  return metres/1000;
+}
+// A per-line fare used only by the fare fairness grid; route narration still
+// uses routeFares() so its estimates follow the real interchange rules.
+export function estimateLineFare(line){
+  const stops=Array.isArray(line?.s)?line.s:[];
+  if(String(line?.l||'').startsWith('MTR AEL')){
+    const first=stops[0],last=stops[stops.length-1];
+    return round1(aelFare(store.NODES?.names?.[first],store.NODES?.names?.[last]));
+  }
+  let km=0;
+  if(Array.isArray(line?.g)&&line.g.length){
+    for(const segment of line.g)if(Array.isArray(segment))km+=segmentKm(segment);
+  }else{
+    for(let i=1;i<stops.length;i++){
+      const a=stops[i-1],b=stops[i];
+      if(!store.NODES||!isNum(a)||!isNum(b))continue;
+      km+=haversine(store.NODES.lat[a],store.NODES.lon[a],store.NODES.lat[b],store.NODES.lon[b])/1000;
+    }
+  }
+  if(!isNum(km)||km<0)km=0;
+  const mode=rideMode(line?.c);
+  return round1(bandFare(km,mode==='rail'||mode==='lightRail'?RAIL_FARE_BANDS:BUS_FARE_BANDS));
+}
 export async function loadNetwork(){
   if(store.NET)return store.NET;
   store.NET=await fetch('data/network.json').then(r=>r.json());
+  for(const line of store.NET.lines)line.f=estimateLineFare(line);
   const n=store.NODES.names.length;
   store.walkAdj=Array.from({length:n},()=>[]);
   store.rideAdj=Array.from({length:n},()=>[]);

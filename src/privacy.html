@@ -27,8 +27,8 @@
 <p>Effective 22 November 2026.</p>
 <p>就腳 runs in your browser. It has no account system and no application backend.</p>
 <h2>What stays on your device</h2>
-<p>The app stores current people, settings, saved profiles, locale, and a small geocoder cache in browser <code>localStorage</code>. Keys begin with <code>hkfair.v2.</code>. A saved person includes a name, start place, travel priority, and per-person walk tolerance.</p>
-<p>Share links put the current scenario in the URL fragment. Anyone who receives the link can see that scenario. Do not put sensitive information into people names or start places if you plan to share.</p>
+<p>The app stores current people, settings, saved profiles, locale, and a small geocoder cache in browser <code>localStorage</code>. Keys begin with <code>hkfair.v2.</code>. A saved person includes a name, start place, and per-person walk tolerance. Settings include the trip fairness metric (<code>time</code> or <code>fare</code>), which applies to the whole trip rather than to one person.</p>
+<p>Share links put the current scenario in the URL fragment, including the trip fairness metric from settings. Walk tolerance stays with each person. Anyone who receives the link can see that scenario. Do not put sensitive information into people names or start places if you plan to share.</p>
 <p>Clear site data in your browser to remove stored values.</p>
 <h2>External requests</h2>
 <p>The app sends place-search queries to <a href="https://photon.komoot.io/" target="_blank" rel="noopener noreferrer">Photon</a> and requests vector map tiles from <a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>. Those providers may see your IP address and request metadata under their own policies. 就腳 does not receive those logs.</p>

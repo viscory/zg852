@@ -133,6 +133,14 @@
           <span class="icon icon-bus" aria-hidden="true"></span><span class="sr-only" data-i18n="options.bus">Bus / minibus</span>
         </button>
       </div>
+      <div class="fairness-section">
+        <div class="slider-row"><label class="fairness-label" data-i18n="options.fairnessLabel">Fairness metric</label></div>
+        <div class="focus-toggle fairness-toggle" role="group" aria-label="Fairness metric" data-i18n-aria-label="options.fairnessLabel">
+          <button class="focus-option fairness-option" type="button" data-fairness="time" aria-pressed="true" data-i18n="options.fairnessTime">Time</button>
+          <button class="focus-option fairness-option" type="button" data-fairness="fare" aria-pressed="false" data-i18n="options.fairnessFare">Fare</button>
+        </div>
+        <p class="note fairness-help" data-i18n="options.fairnessHelp">Choose whether the tolerance compares travel time or fare.</p>
+      </div>
       <div class="slider-row">
         <label for="tolerance" data-i18n="options.tolerance">Travel time disparity tolerance</label>
         <span class="value" id="tolval">10%</span>

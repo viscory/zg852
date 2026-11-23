@@ -5,7 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,VECTOR_KEYS } from './config.js';
 import { store } from './store.js';
 import { $,esc,clamp,isNum,icon,initialsFor,avatarClass } from './util.js';
-import { t,num,minuteText } from './i18n.js';
+import { t,num,intNum,minuteText } from './i18n.js';
 import { betaVectorsEnabled,preferenceText,cellVector,cellCount,cellTopNames,cellPreference } from './vectors.js';
 import { prepareRoutes,legLabel,fareMarkup,money,cellToResult } from './routing.js';
 import { displayName } from './state.js';
@@ -151,7 +151,7 @@ export function scheduleCellTooltip(cell,event){
       tooltip.innerHTML=`<b>${esc(t('map.cellTitle'))} · ${esc(preferenceText(cellPreference(cell)))}</b>${VECTOR_KEYS.map(key=>`<span class="tooltip-vector"><span>${esc(t('vector.'+key))}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${Math.max(2,Math.round(values[key]/max*100))}"></i></span><span>${esc(num(counts[key]))}</span></span>`).join('')}${places.length?`<span class="tooltip-places">${esc(places.join(' · '))}</span>`:''}`;
       tooltip.querySelectorAll('.tooltip-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
     }else{
-      tooltip.innerHTML=`<b>${esc(t('map.areaTitle'))} · ${esc(t('results.longest',{value:num(cell.slowest)}))}</b>`;
+      tooltip.innerHTML=`<b>${esc(t('map.areaTitle'))} · ${esc(t('results.longest',{value:intNum(cell.slowest)}))}</b>`;
     }
     tooltip.hidden=false;
   },700);
@@ -167,7 +167,7 @@ export function resultMatches(result,sel){
     (Number.isFinite(sel.lat)&&Number.isFinite(sel.lon)&&Math.abs(result.lat-sel.lat)<1e-5&&Math.abs(result.lon-sel.lon)<1e-5);
 }
 export function buildResultFromCell(cell,active=store.activePeople){
-  return prepareRoutes(cellToResult(cell),active);
+  return prepareRoutes(cellToResult(cell),active,store.settings.fairnessMetric);
 }
 export function selectCell(cell){
   hideTooltip();
@@ -198,7 +198,9 @@ export function applySelection(active=store.activePeople){
 }
 function legChip(leg){
   if(leg.mode==='walk')return `<span class="walk-leg route-walk"><span class="ride-text">${esc(leg.text||legLabel(leg))}</span></span>`;
-  const rail=leg.mode==='rail',modeLabel=rail?`MTR ${String(leg.line).replace(/^MTR\s+/i,'')}`:`Bus ${leg.line}`;
+  const rail=leg.mode==='rail';
+  const label=leg.lineName||String(leg.line).replace(/^MTR\s+/i,'');
+  const modeLabel=rail?label:`Bus ${leg.line}`;
   const fare=leg.fare?`<span class="fare">${esc(t('results.fareTotal',{value:money(leg.fare)}))}</span>`:'';
   return `<span class="ride-leg route-${leg.mode}"><span class="leg-mode"><span class="icon icon-${rail?'rail':'bus'}" aria-hidden="true"></span>${esc(modeLabel)}</span><span class="leg-stops"><span class="leg-board">${esc(t('route.getOn',{place:leg.from}))}</span><span class="leg-alight">${esc(t('route.getOff',{place:leg.to}))}</span></span><span class="leg-meta"><span class="leg-time">${esc(minuteText(leg.minutes))}</span>${fare}</span></span>`;
 }
@@ -224,7 +226,10 @@ export function renderSelection(r,active=store.activePeople){
   $('detailTitle').textContent=r.label;
   $('detailDistrict').textContent=r.district;
   const preference=betaVectorsEnabled()?` ${preferenceText(r.fit)}`:'';
-  $('detailSub').textContent=`${t('results.spread',{value:num(r.gap)})} ${t('results.longest',{value:num(r.slowest)})}${preference}`;
+  const fareMetric=store.settings.fairnessMetric==='fare';
+  const spread=fareMetric?t('results.fareSpread',{value:money(r.gap)}):t('results.spread',{value:intNum(r.gap)});
+  const longest=fareMetric?t('results.fareLongest',{value:money(r.slowest)}):t('results.longest',{value:intNum(r.slowest)});
+  $('detailSub').textContent=`${spread} ${longest}${preference}`;
   const already=r.times.every(value=>value<=0.5);
   $('steps').innerHTML=legCount?r.routes.map((route,j)=>`<div class="step">
     <span class="dot ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>

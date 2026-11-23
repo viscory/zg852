@@ -78,17 +78,17 @@ test('production header copy is exact and no raw i18n keys leak into the UI', as
   await expect(page.locator('[data-legal="process"]')).toHaveText('Process');
   await expect(page.locator('#budget')).toHaveCount(0);
   await expect(page.locator('#shareStatus')).toBeAttached();
-  await expect(page.locator('.focus-option[data-focus="time"]').first()).toHaveText('Time');
-  await expect(page.locator('.focus-option[data-focus="cost"]').first()).toHaveText('Cost');
+  await expect(page.locator('.fairness-option[data-fairness="time"]').first()).toHaveText('Time');
+  await expect(page.locator('.fairness-option[data-fairness="fare"]').first()).toHaveText('Fare');
   expect(await page.locator('body').innerText()).not.toMatch(RAW_KEY);
 });
 
-test('production focus controls and fare output are visible', async ({ page }) => {
+test('production fairness controls and fare output are visible', async ({ page }) => {
   await setup(page);
   await expect(page.locator('.card')).toHaveCount(2);
-  await expect(page.locator('.focus-label').first()).toBeVisible();
-  await expect(page.locator('.focus-option[data-focus="time"]').first()).toBeVisible();
-  await expect(page.locator('.focus-option[data-focus="cost"]').first()).toBeVisible();
+  await expect(page.locator('.fairness-label').first()).toBeVisible();
+  await expect(page.locator('.fairness-option[data-fairness="time"]').first()).toBeVisible();
+  await expect(page.locator('.fairness-option[data-fairness="fare"]').first()).toBeVisible();
 
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
@@ -111,7 +111,7 @@ test('stale cached catalogs cannot resurrect raw i18n keys', async ({ page }) =>
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('h1')).toHaveText('就腳 zau6 goek3');
-  await expect(page.locator('.focus-option[data-focus="time"]').first()).toHaveText('Time');
+  await expect(page.locator('.fairness-option[data-fairness="time"]').first()).toHaveText('Time');
   await expect(page.locator('[data-legal="privacy"]')).toHaveText('Privacy');
   expect(await page.locator('body').innerText()).not.toMatch(RAW_KEY);
 });

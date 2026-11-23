@@ -214,13 +214,24 @@ test('defaults load and a two-person search draws fair map areas', async ({ page
   await expect(page.locator('.step').first().locator('.fare.total')).toContainText('Fare HK$');
   await expect(page.locator('.step').first()).not.toContainText('MTR HK$');
   await expect(page.locator('.step').first()).not.toContainText('Bus HK$');
-  await expect(page.locator('.ride-leg .leg-mode').first()).toContainText('MTR');
-  await expect(page.locator('.ride-leg .leg-mode').first()).toContainText(/MTR\s*\S+/);
-  await expect(page.locator('.ride-leg .leg-mode').first()).not.toContainText('MTR MTR');
+  await expect(page.locator('.ride-leg .leg-mode').first()).not.toBeEmpty();
+  await expect(page.locator('.ride-leg .leg-mode').first()).not.toContainText(/MTR\s+[A-Z]{3}\b/);
   await expect(page.locator('.ride-leg .leg-board').first()).toContainText('Get on:');
   await expect(page.locator('.ride-leg .leg-alight').first()).toContainText('Get off:');
   await expect(page.locator('.ride-leg .leg-meta').first()).toContainText('min');
   await expect(page.locator('.ride-leg .leg-meta').first()).toContainText('Fare HK$');
+  const minuteTexts = await page.locator('.result-times span, .leg-time').allInnerTexts();
+  expect(minuteTexts.length).toBeGreaterThan(0);
+  for (const text of minuteTexts) {
+    expect(text).toMatch(/\b\d+\s+min\b/);
+    expect(text).not.toMatch(/\d+\.\d+\s+min/);
+  }
+  const railChips = await page.locator('.ride-leg.route-rail .leg-mode').allInnerTexts();
+  expect(railChips.length).toBeGreaterThan(0);
+  expect(railChips.some(chip => /[A-Z][a-z]+\s+(?:[A-Z][a-z]+\s+)?(?:Line|Express)\b/.test(chip))).toBeTruthy();
+  for (const chip of railChips) {
+    expect(chip).not.toMatch(/MTR\s+[A-Z]{3}\b/);
+  }
   await expect(page.locator('#steps .dot').first()).toHaveText('PA');
   await expect(page.locator('#steps .dot').nth(1)).toHaveText('PB');
   await expect.poll(() => page.locator('path.route-line.route-person-0').count()).toBeGreaterThan(0);
@@ -582,10 +593,12 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
-  for (const key of ['app.subtitle', 'people.focusTime', 'people.focusCost', 'options.tolerance', 'route.rideLeg', 'route.getOn', 'route.getOff', 'route.stopCount_other', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
+  for (const key of ['app.subtitle', 'options.fairnessLabel', 'options.fairnessTime', 'options.fairnessFare', 'options.fairnessHelp', 'options.tolerance', 'route.rideLeg', 'route.getOn', 'route.getOff', 'route.stopCount_other', 'results.fareTotal', 'results.fareSpread', 'results.fareLongest', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
-  expect(Object.keys(catalogues[0])).not.toContain('app.meaning');
+  for (const key of ['app.meaning', 'people.focusLabel', 'people.focusTime', 'people.focusCost']) {
+    expect(Object.keys(catalogues[0])).not.toContain(key);
+  }
   expect(catalogues[0]['app.title']).toBe('就腳 zau6 goek3');
   expect(catalogues[0]['app.subtitle']).toBe('Find the most convenient meeting point for everyone');
   expect(catalogues[0]['options.rail']).toBe('MTR');
@@ -818,29 +831,44 @@ test('heat cells reveal delayed interest tooltips and open a breakdown', async (
   await expect(page.locator('#detailTitle')).not.toBeEmpty();
 });
 
-test('per-person focus toggle persists through storage, reload and routes', async ({ page }) => {
-  const card = page.locator('.card').first();
-  await expect(card.locator('.focus-toggle')).toBeVisible();
-  await expect(card.locator('.focus-option[data-focus="time"]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(card.locator('.focus-option[data-focus="cost"]')).toHaveAttribute('aria-pressed', 'false');
-  await card.locator('.focus-option[data-focus="cost"]').click();
-  await expect(card.locator('.focus-option[data-focus="cost"]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(card.locator('.focus-option[data-focus="time"]')).toHaveAttribute('aria-pressed', 'false');
+test('trip fairness metric persists through storage, reload and routes', async ({ page }) => {
+  const time = page.locator('.fairness-option[data-fairness="time"]');
+  const fare = page.locator('.fairness-option[data-fairness="fare"]');
+  await expect(time).toHaveAttribute('aria-pressed', 'true');
+  await expect(fare).toHaveAttribute('aria-pressed', 'false');
+  await fare.click();
+  await expect(fare).toHaveAttribute('aria-pressed', 'true');
+  await expect(time).toHaveAttribute('aria-pressed', 'false');
 
-  const stored = await page.evaluate(() => localStorage.getItem('hkfair.v2.people'));
-  expect(stored).toMatch(/"focus"\s*:\s*"cost"/);
+  const stored = await page.evaluate(() => localStorage.getItem('hkfair.v2.settings'));
+  expect(stored).toContain('"fairnessMetric":"fare"');
 
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
-  await expect(page.locator('.card').first().locator('.focus-option[data-focus="cost"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.fairness-option[data-fairness="fare"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.fairness-option[data-fairness="time"]')).toHaveAttribute('aria-pressed', 'false');
+
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
-  await expect.poll(() => page.locator('.ride-leg .leg-mode').count()).toBeGreaterThan(0);
-  await expect(page.locator('.ride-leg .leg-mode').first()).toContainText('MTR');
-  await expect(page.locator('.ride-leg .leg-mode').first()).not.toContainText('MTR MTR');
+  await expect.poll(() => page.locator('.ride-leg.route-rail').count()).toBeGreaterThan(0);
   await expect(page.locator('.ride-leg .leg-board').first()).toContainText('Get on:');
   await expect(page.locator('.ride-leg .leg-alight').first()).toContainText('Get off:');
-  await expect(page.locator('.ride-leg .leg-meta').first()).toContainText('Fare HK$');
+  // A contiguous rail group books its fare on the last rail leg, so check any
+  // leg rather than assuming the first one carries the fare.
+  const legMetas = await page.locator('.ride-leg .leg-meta').allInnerTexts();
+  expect(legMetas.some(text => text.includes('Fare HK$'))).toBeTruthy();
+  const railChips = await page.locator('.ride-leg.route-rail .leg-mode').allInnerTexts();
+  expect(railChips.length).toBeGreaterThan(0);
+  expect(railChips.some(chip => /[A-Z][a-z]+\s+(?:[A-Z][a-z]+\s+)?(?:Line|Express)\b/.test(chip))).toBeTruthy();
+  for (const chip of railChips) {
+    expect(chip).not.toMatch(/MTR\s+[A-Z]{3}\b/);
+  }
+  const legTimes = await page.locator('.leg-time').allInnerTexts();
+  expect(legTimes.length).toBeGreaterThan(0);
+  for (const text of legTimes) {
+    expect(text).toMatch(/\b\d+\s+min\b/);
+    expect(text).not.toMatch(/\d+\.\d+\s+min/);
+  }
 });
 
 test('per-person walk tolerance defaults to 20 and persists through reload', async ({ page }) => {
@@ -872,7 +900,7 @@ test('share links restore the current scenario', async ({ page }) => {
     });
   });
   await page.locator('.card').first().locator('.name-input').fill('Alex');
-  await page.locator('.card').first().locator('.focus-option[data-focus="cost"]').click();
+  await page.locator('.fairness-option[data-fairness="fare"]').click();
   await page.locator('.card').first().locator('[data-walk]').evaluate(el => {
     el.value = '10';
     el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -887,12 +915,13 @@ test('share links restore the current scenario', async ({ page }) => {
   expect(sharedUrl).toContain('#s=');
   const state = await sharedState(page, sharedUrl);
   expect(state.people[0].name).toBe('Alex');
-  expect(state.people[0].focus).toBe('cost');
+  expect(state.people[0]).not.toHaveProperty('focus');
   expect(state.people[0].walkMinutes).toBe(10);
+  expect(state.settings.fairnessMetric).toBe('fare');
   await page.goto(sharedUrl);
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('.name-input').first()).toHaveValue('Alex');
-  await expect(page.locator('.card').first().locator('.focus-option[data-focus="cost"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.fairness-option[data-fairness="fare"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.card').first().locator('[data-walk]')).toHaveValue('10');
 });
 
@@ -999,13 +1028,14 @@ test('identical station starts say the person is already there', async ({ page }
   await expect(page.locator('#steps')).toContainText('Already there');
 });
 
-test('MTR-only Central to Kowloon Tong names a rail line', async ({ page }) => {
+test('MTR-only Central to Kowloon Tong names the full rail line', async ({ page }) => {
   await pickStation(page, 0, 'Central');
   await pickStation(page, 1, 'Kowloon Tong');
   await page.locator('.chip[data-mode="bus"]').click();
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
-  await expect(page.locator('#steps')).toContainText(/MTR (TWL|KTL)/);
+  await expect(page.locator('#steps')).toContainText(/Tsuen Wan Line|Kwun Tong Line/);
+  await expect(page.locator('#steps')).not.toContainText(/MTR\s+(TWL|KTL)\b/);
   await expect(page.locator('#error')).toBeHidden();
 });
 

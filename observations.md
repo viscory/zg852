@@ -1,3 +1,34 @@
+## 2026-11-23T13:43:50Z
+
+- Committed the full change set as `f7d97d0` ("feat: add wait-aware times, full MTR names, and trip fairness metric", 42 files) and pushed to `origin/main`; the i18n pre-commit hook ran and passed. Working tree is clean.
+
+## 2026-11-23T13:43:18Z
+
+- Completed integration of the timing/i18n/fairness change set: all five subagent outputs merged, double-counted boarding wait removed from describe(), rideLegText() now honours full line names, dead normFocus alias removed, and map hover routes follow the global fairness metric.
+- Fixed two brittle test assertions that contradicted the new behaviour: rail chips must show full line names (not "MTR"), and a contiguous rail group books its fare on the last rail leg, so fare assertions check any leg rather than the first.
+- Verification clean: `npm run lint` (including i18n key parity across 15 catalogs), `npm test` 60/60 passed against built public/, and `git diff --check`. Ready to commit and push.
+
+## 2026-11-23T13:38:43Z
+
+- Tests/docs subagent completed: focus tests became trip-fairness tests, catalog expectations gained the new keys, docs/process/privacy describe the new timing and fairness model.
+- Routing/state subagent completed the global fairness setting, fare-grid solve, wait-aware leg construction, full-line-name propagation, and fare grid engine flow. Its self-audit found that solve() already includes boarding wait in the first ride-state stepT, so a follow-up was dispatched to remove a duplicate addition in describe().
+- i18n subagent completed with corrected fare strings that no longer hardcode HK$, 150 keys in all 15 catalogs, intNum()/whole-minute formatting, and an i18n pre-commit hook; `npm run i18n:check` passes.
+- Integration fixes applied: added `.fairness-label` to the options markup for the production smoke selector, and made map hover routes pass `store.settings.fairnessMetric` into prepareRoutes().
+
+## 2026-11-23T13:37:48Z
+
+- UI subagent completed: added the global fairness control in the sticky options panel, removed per-person focus UI/state copies, made results/detail metric-aware with whole-minute values, and switched MTR chips to full line names. Its diff preserves the existing swap/reveal and layout behavior.
+- Caught an integration defect before verification: results.fareSpread/results.fareLongest strings included a literal HK$ while the UI passes money() values that already contain HK$. Dispatched a correction to the i18n subagent to keep only the `{value}` placeholder.
+
+## 2026-11-23T13:36:03Z
+
+- Reviewed the completed GTFS subagent diff: duration-weighted average headway now produces per-line boarding waits, route_long_name supplies full MTR display names in a new `n` field while `l` codes remain unchanged, datasets were regenerated, and the service-worker cache is `zg852-v32`.
+
+## 2026-11-23T13:34:17Z
+
+- Began the next change set with five parallel subagents: GTFS duration-weighted headway waits plus full MTR line names and SW cache `v32`; global time/fare fairness metric and fare grids in routing/state; i18n key repair with `intNum()` and an i18n pre-commit hook; UI fairness control, integer minute display, and full line-name chips; and matching test/docs updates.
+- Explicitly preserved the previous requirements: no start hints, i18n raw-key fallback, per-person walk tolerance, sticky rightbar options/results, leftbar route-detail flip, and explicit selection revealing detail.
+
 ## 2026-11-23T13:25:13Z
 
 - Integrated the second change set: removed all start-place hints, added `t()` fallback plus SW cache `zg852-v31`, added per-person `walkMinutes` (default 20, whole-trip walk preference), moved sticky options/results to the rightbar and route detail to the leftbar flip face, and wired map/result selection to reveal that face.
