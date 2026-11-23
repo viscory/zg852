@@ -4,11 +4,12 @@ import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const src = join(root, 'src');
 const out = join(root, 'public');
-const runtimeFiles = ['index.html', 'styles.css', 'app.js', 'sw.js', 'preview-noindex.js', 'privacy.html', 'terms.html', 'credits.html', 'sitemap.xml', 'llms.txt'];
-const runtimeDirs = ['vendor', 'data', 'i18n'];
+const runtimeFiles = ['index.html', 'styles.css', 'app.js', 'sw.js', 'preview-noindex.js', 'privacy.html', 'terms.html', 'credits.html', 'sitemap.xml', 'llms.txt', 'robots.txt'];
+const runtimeDirs = [join(src, 'js'), join(root, 'vendor'), join(root, 'data'), join(root, 'i18n')];
 const binaryFiles = ['favicon.ico', 'favicon.svg', 'og-image.png'];
-const rootTextFiles = ['CNAME', 'robots.txt', '_redirects', 'LICENSE', 'README.md', 'PRIVACY.md', 'TERMS.md', 'CREDITS.md', 'THIRD_PARTY_NOTICES.md'];
+const rootTextFiles = ['CNAME', '_redirects', 'LICENSE', 'README.md', 'PRIVACY.md', 'TERMS.md', 'CREDITS.md', 'THIRD_PARTY_NOTICES.md'];
 const excludedDirs = [join(root, 'data', 'raw')];
 
 const headers = `/*
@@ -32,6 +33,9 @@ const headers = `/*
   Cache-Control: no-cache
 
 /app.js
+  Cache-Control: no-cache
+
+/js/*
   Cache-Control: no-cache
 
 /styles.css
@@ -89,11 +93,12 @@ await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
 
 for (const name of runtimeFiles) {
-  await cp(join(root, name), join(out, name));
+  await cp(join(src, name), join(out, name));
 }
 
-for (const name of runtimeDirs) {
-  await cp(join(root, name), join(out, name), { recursive: true, filter: isIncluded });
+for (const dir of runtimeDirs) {
+  const target = dir === join(src, 'js') ? join(out, 'js') : join(out, dir.split(sep).pop());
+  await cp(dir, target, { recursive: true, filter: isIncluded });
 }
 
 for (const name of rootTextFiles) {
@@ -102,11 +107,11 @@ for (const name of rootTextFiles) {
 }
 
 for (const name of binaryFiles) {
-  const source = join(root, name);
+  const source = join(src, name);
   if (existsSync(source)) await cp(source, join(out, name));
 }
 
-const css = await readFile(join(root, 'styles.css'), 'utf8');
+const css = await readFile(join(root, 'src', 'styles.css'), 'utf8');
 const cssAssets = [...css.matchAll(/url\(\s*['"]?([^'")]+)['"]?\s*\)/g)].map(match => match[1]);
 for (const asset of cssAssets) {
   if (/^(data:|https?:|blob:)/.test(asset)) continue;

@@ -95,7 +95,7 @@ test('stale cached catalogs cannot resurrect raw i18n keys', async ({ page }) =>
   await setup(page, { serviceWorker: true });
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
-    const cache = await caches.open('zg852-v16');
+    const cache = await caches.open('zg852-v17');
     await cache.put('/i18n/en.json', new Response(JSON.stringify({ 'app.title': 'Stale title' }), {
       headers: { 'content-type': 'application/json' },
     }));

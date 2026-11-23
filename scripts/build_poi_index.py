@@ -4,6 +4,7 @@ import datetime
 import io
 import json
 import math
+import os
 import re
 
 import requests
@@ -216,7 +217,7 @@ class Index:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--overture')
-    parser.add_argument('--output', default='data/poi-index.json')
+    parser.add_argument('--output', default=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'poi-index.json'))
     args = parser.parse_args()
     index = Index()
     for dataset, table, category, lat_key, lon_key, name_keys in GOV_SOURCES:

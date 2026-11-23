@@ -9,7 +9,7 @@ import statistics
 import zipfile
 from collections import defaultdict
 
-BASE = os.path.dirname(os.path.abspath(__file__))
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(BASE, "data")
 RAW = os.path.join(DATA, "raw")
 FEED = os.path.join(RAW, "hk-community-gtfs.zip")

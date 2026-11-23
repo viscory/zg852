@@ -131,13 +131,30 @@ test('robots, llms, sitemap and build headers expose the llms.txt endpoint', asy
 
 test('production module wiring avoids inline importmaps and CSP exceptions', async ({ page }) => {
   const index = await page.evaluate(async () => (await (await fetch('index.html')).text()));
-  const app = await page.evaluate(async () => (await (await fetch('app.js')).text()));
+  const sources = await page.evaluate(async () => {
+    const seen = new Map();
+    const queue = ['app.js'];
+    while (queue.length) {
+      const file = queue.shift();
+      if (seen.has(file) || file.startsWith('vendor/')) continue;
+      const text = await (await fetch(file)).text();
+      seen.set(file, text);
+      for (const match of text.matchAll(/(?:from|import)\s+['"](\.[^'"]+\.js)['"]/g)) {
+        const resolved = new URL(match[1], new URL(file, location.href));
+        queue.push(resolved.href.replace(location.origin + '/', ''));
+      }
+    }
+    return [...seen.entries()];
+  });
+  const app = sources.map(([file, text]) => text).join('\n');
+  const mapModule = sources.find(([file, text]) => text.includes('leaflet-src.esm.js'))?.[1];
   const wrapper = await page.evaluate(async () => (await (await fetch('vendor/leaflet-maplibre-gl.mjs')).text()));
   const headers = await page.evaluate(async () => (await (await fetch('_headers')).text()));
+  expect(sources.length).toBeGreaterThan(5);
   expect(index).not.toContain('importmap');
   expect(index).toContain('<script type="module" src="app.js"></script>');
-  expect(app).toContain("import * as L from './vendor/leaflet-src.esm.js';");
-  expect(app).toContain("import { maplibreGL } from './vendor/leaflet-maplibre-gl.mjs';");
+  expect(mapModule).toContain("import * as L from '../vendor/leaflet-src.esm.js';");
+  expect(mapModule).toContain("import { maplibreGL } from '../vendor/leaflet-maplibre-gl.mjs';");
   expect(app).not.toContain('style="');
   expect(app).not.toContain('.style.cssText');
   expect(wrapper).toContain('from "./leaflet-src.esm.js"');
@@ -147,7 +164,7 @@ test('production module wiring avoids inline importmaps and CSP exceptions', asy
 });
 
 test('clean basemap adds keyless place labels without raster tiles', async ({ page }) => {
-  const source = await page.evaluate(async () => (await (await fetch('app.js')).text()));
+  const source = await page.evaluate(async () => (await (await fetch('js/map.js')).text()));
   expect(source).not.toContain('tile.openstreetmap.org');
   expect(source).toContain("type:'symbol'");
   expect(source).toContain("glyphs:'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf'");
