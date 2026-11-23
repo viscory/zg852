@@ -1,3 +1,26 @@
+## 2026-11-23T01:33:00Z
+
+- Executed the security fixes from the audit, user said "execute".
+- Corrected the audit: a strict Content-Security-Policy already ships. `scripts/finalize.mjs` writes `public/_headers` with `script-src 'self'`, so the crafted-link payload could not run script on the live deploy. The code fixes stay primary.
+- `normalizePerson` (`src/js/state.js`) now always generates the person id (`p${i+1}`) and rejects coordinate origins outside `HK_BBOX`. This closes the unescaped `id` injection in the `makeCard` template.
+- `HK_BBOX` in `src/js/config.js` is now a numeric array; `HK_BBOX_STR` serves the Photon `bbox` parameter in `src/js/search.js`.
+- `src/js/map.js` wraps both `bindTooltip` strings in the existing `esc()`. Leaflet treats string tooltip content as HTML.
+- Bumped the service-worker cache to `zg852-v19` for the changed bundle. `finalize.mjs` patch strings were unaffected.
+- `tests/production-smoke.spec.js` now reads the cache name from `static/sw.js` and passes it into `page.evaluate` as an argument, so future version bumps do not rebreak the test.
+- Verified against the built `public/` output with a crafted `#s=` link carrying `<img src=x onerror=...>` in both `id` and `name`: zero `onerror` attributes, no raw `<img` tag in cards or tooltip, tooltip shows the payload as text, no script executed.
+- Full Playwright suite green: 43 passed. Changes left uncommitted.
+
+## 2026-11-23T01:31:00Z
+
+- Ran a poteto-mode security audit of the whole app; read all `src/` modules, `sw.js`, and `wrangler.toml`.
+- Confirmed the app has no backend and no mutations. All network calls are GETs: Photon place search, OpenFreeMap tiles, same-origin data and i18n files.
+- Found one real attack class: the shared `#s=` URL state is attacker controlled. Two fields reach HTML unescaped.
+  - `person.id` is kept from the hash in `normalizePerson` and injected unescaped into the `makeCard` template (`ui.js` `id="name-${id}"` and similar).
+  - `person.name` reaches Leaflet `bindTooltip` as HTML at `map.js:89` and `map.js:192`; Leaflet treats string tooltip content as HTML.
+- Fixes chosen: stop trusting `raw.id` in `normalizePerson` (always generate), and wrap tooltip strings with the existing `esc()`.
+- Lower priority: `openLegal` assigns fetched HTML to `body.innerHTML` (first-party static files only); no Content-Security-Policy is set; shared origin lat/lon only pass `isNum`, with no bounds check.
+- Verified healthy paths: Photon query uses `URLSearchParams`; all other user text renders through `esc()`; localStorage restore paths clamp and whitelist; `sw.js` serves same-origin GETs only; legal page kind is whitelisted.
+
 ## 2026-11-23T01:32:00Z
 
 - Executed the audit plan: deleted the dead `/vendor/lucide/` service-worker branch and the stale `vendor/**` eslint ignore.

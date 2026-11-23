@@ -1,4 +1,4 @@
-import { LOCALES,KEY,LETTERS } from './config.js';
+import { LOCALES,KEY,LETTERS,HK_BBOX } from './config.js';
 import { store } from './store.js';
 import { isNum,clamp,clone,decodeBase64Url,encodeBase64Url,$ } from './util.js';
 import { t } from './i18n.js';
@@ -21,9 +21,9 @@ export function normalizePerson(raw,i){
   if(!raw)return null;
   const origin=raw.origin||null;
   const validNode=origin&&origin.kind==='node'&&Number.isInteger(origin.node)&&origin.node>=0&&store.NODES&&origin.node<store.NODES.names.length;
-  const validCoords=origin&&origin.kind==='coords'&&isNum(origin.lat)&&isNum(origin.lon);
+  const validCoords=origin&&origin.kind==='coords'&&isNum(origin.lat)&&isNum(origin.lon)&&origin.lat>=HK_BBOX[1]&&origin.lat<=HK_BBOX[3]&&origin.lon>=HK_BBOX[0]&&origin.lon<=HK_BBOX[2];
   if(!validNode&&!validCoords)return null;
-  return{id:raw.id||`p${i+1}`,name:raw.name||defaultName(i),origin,directoryId:raw.directoryId||null,focus:normFocus(raw.focus)};
+  return{id:`p${i+1}`,name:raw.name||defaultName(i),origin,directoryId:raw.directoryId||null,focus:normFocus(raw.focus)};
 }
 export function defaultPeople(){
   return ['Tsuen Wan','North Point'].map((name,i)=>{

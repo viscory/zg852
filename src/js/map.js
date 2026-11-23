@@ -86,7 +86,7 @@ export function drawOrigins(active=store.activePeople){
   active.forEach((p,j)=>{
     if(!isNum(p.origin?.lat)||!isNum(p.origin?.lon))return;
     L.circleMarker([p.origin.lat,p.origin.lon],{pane:'pointPane',radius:10,color:PERSON_COLORS[j%PERSON_COLORS.length],weight:2,fillColor:PERSON_COLORS[j%PERSON_COLORS.length],fillOpacity:.2})
-      .bindTooltip(displayName(p,store.people.indexOf(p)),{direction:'top'}).addTo(originLayer);
+      .bindTooltip(esc(displayName(p,store.people.indexOf(p))),{direction:'top'}).addTo(originLayer);
   });
 }
 export function recenterMap(){
@@ -189,7 +189,7 @@ export function renderSelection(r,active=store.activePeople){
       legCount++;
       const dash=leg.mode==='walk'?'1 6':leg.mode==='bus'?'8 5':null;
       L.polyline(leg.coords,{pane:'routePane',color:PERSON_COLORS[j%PERSON_COLORS.length],weight:leg.mode==='walk'?2:4,opacity:leg.mode==='walk'?.7:1,dashArray:dash,className:`route-line route-${leg.mode} route-person-${j}`})
-        .bindTooltip(`${displayName(active[j],j)}: ${legLabel(leg)}`).addTo(routeLayer);
+        .bindTooltip(esc(`${displayName(active[j],j)}: ${legLabel(leg)}`)).addTo(routeLayer);
     });
   });
   L.circleMarker([r.lat,r.lon],{pane:'pointPane',radius:12,color:ACCENT,weight:2,fillColor:ACCENT,fillOpacity:.16}).addTo(pointLayer);

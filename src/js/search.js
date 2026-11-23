@@ -1,4 +1,4 @@
-import { HK_BBOX,HK_CENTER,KEY } from './config.js';
+import { HK_BBOX_STR,HK_CENTER,KEY } from './config.js';
 import { store } from './store.js';
 import { isNum,haversine } from './util.js';
 import { t } from './i18n.js';
@@ -56,7 +56,7 @@ export async function photonSearch(q,signal){
   url.searchParams.set('q',q);
   url.searchParams.set('limit','8');
   url.searchParams.set('lang',photonLang());
-  url.searchParams.set('bbox',HK_BBOX);
+  url.searchParams.set('bbox',HK_BBOX_STR);
   url.searchParams.set('lat',String(HK_CENTER.lat));
   url.searchParams.set('lon',String(HK_CENTER.lon));
   const res=await fetch(url.toString(),{signal});

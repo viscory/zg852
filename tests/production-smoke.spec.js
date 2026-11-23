@@ -1,4 +1,8 @@
 const { test, expect } = require('@playwright/test');
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
+
+const SW_CACHE_NAME = readFileSync(join(__dirname, '..', 'static', 'sw.js'), 'utf8').match(/CACHE='([^']+)'/)[1];
 
 const RAW_KEY = /\b(app|people|options|results|map|route|legal|vector|status|error|unit|tag|cat|mode|share|beta|search|place|district|note|locale)\.[A-Za-z][A-Za-z0-9]*/;
 
@@ -93,13 +97,13 @@ test('production focus controls and fare output are visible', async ({ page }) =
 
 test('stale cached catalogs cannot resurrect raw i18n keys', async ({ page }) => {
   await setup(page, { serviceWorker: true });
-  await page.evaluate(async () => {
+  await page.evaluate(async name => {
     await navigator.serviceWorker.ready;
-    const cache = await caches.open('zg852-v18');
+    const cache = await caches.open(name);
     await cache.put('/i18n/en.json', new Response(JSON.stringify({ 'app.title': 'Stale title' }), {
       headers: { 'content-type': 'application/json' },
     }));
-  });
+  }, SW_CACHE_NAME);
   await page.reload();
   await expect(page.locator('#netstatus')).toHaveText('network ready');
   await expect(page.locator('h1')).toHaveText('就腳 Zak Geok [zau6 goek3]');
@@ -124,11 +128,11 @@ test('recenter control sits on the map beside the zoom control', async ({ page }
 test('service worker precaches the bundle, data, and catalogs for offline use', async ({ page }) => {
   await setup(page, { serviceWorker: true });
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
-  const cached = await page.evaluate(async () => {
-    const cache = await caches.open('zg852-v18');
+  const cached = await page.evaluate(async name => {
+    const cache = await caches.open(name);
     const entries = ['/app.js', '/app.css', '/index.html', '/data/nodes.json', '/i18n/en.json'];
     return Object.fromEntries(await Promise.all(entries.map(async entry => [entry, !!(await cache.match(entry))])));
-  });
+  }, SW_CACHE_NAME);
   expect(cached).toEqual({
     '/app.js': true,
     '/app.css': true,
