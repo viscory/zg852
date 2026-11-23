@@ -635,7 +635,9 @@ test('design system avoids banned decoration and labels every control', async ({
   await expect(page.locator('.legend-head .icon-scan')).toBeVisible();
   await expect(page.locator('.legend')).toBeVisible();
   await expect(page.locator('.legend')).toHaveCSS('z-index', '900');
-  await expect(page.locator('#betaVectors')).toBeAttached();
+  await expect(page.locator('#betaBadge')).toBeVisible();
+  await expect(page.locator('#betaVectors')).toHaveCount(0);
+  await expect(page.locator('.beta-toggle')).toHaveCount(0);
   await expect(page.locator('#vectorSection')).toBeHidden();
   await expect(page.locator('#legendVectorKey')).toBeHidden();
   await expect(page.locator('.maplibregl-canvas')).toBeVisible();
@@ -676,7 +678,7 @@ test('beta interest vectors default off and recompute the map with labelled pref
   await expect(page.locator('#legendVectorKey')).toBeHidden();
   await Promise.all([
     page.waitForResponse(response => response.url().includes('poi-index.json')),
-    page.locator('label.beta-toggle').click(),
+    page.locator('#betaBadge').click(),
   ]);
   await expect(page.locator('#vectorSection')).toBeVisible();
   await expect(page.locator('#legendVectorKey')).toBeVisible();
@@ -712,7 +714,7 @@ test('beta interest vectors default off and recompute the map with labelled pref
   await expect(page.locator('#vec-food-val')).toHaveText('Avoid 3');
   await expect.poll(() => page.evaluate(() => localStorage.getItem('hkfair.v2.settings'))).toContain('"food":-3');
 
-  await page.locator('label.beta-toggle').click();
+  await page.locator('#betaBadge').click();
   await expect(page.locator('#vectorSection')).toBeHidden();
   await expect(page.locator('#legendVectorKey')).toBeHidden();
   await expect.poll(() => page.locator('#detailSub').textContent()).not.toContain('preference');

@@ -4,7 +4,7 @@ This file records visual critiques of 就腳. The newest critique is first. Chan
 
 ## 2026-11-23 Beta badge
 
-The header starts with a Beta badge. It is the first control in the top right bar. Pressing it turns beta features on or off. The tooltip says which features that enables. Today that is interest preferences, which can change the areas on the map. The options panel switch uses the same state.
+The header starts with a Beta badge. It is the first control in the top right bar. Pressing it turns beta features on or off. The tooltip says which features that enables. Today that is interest preferences, which can change the areas on the map. The options panel does not repeat the badge, the switch, or the experimental note. The interest sliders appear only while the badge is on.
 
 ## 2026-11-23 Header icons
 

@@ -50,7 +50,6 @@ async function setBetaEnabled(enabled){
   if(betaVectorsEnabled())await loadPoi();
   if(store.results.length)triggerSearch();
 }
-$('betaVectors').onchange=()=>setBetaEnabled($('betaVectors').checked);
 $('betaBadge').onclick=()=>setBetaEnabled(!betaVectorsEnabled());
 document.querySelectorAll('[data-vector]').forEach(input=>{input.oninput=readSettingsFromDom;});
 $('locale').onchange=e=>changeLocale(e.target.value);

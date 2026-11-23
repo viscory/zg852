@@ -51,7 +51,6 @@ export function updateSettingsLabels(){
 }
 export function applyBetaFeatures(){
   const enabled=betaVectorsEnabled();
-  const input=$('betaVectors');if(input)input.checked=enabled;
   const badge=$('betaBadge');if(badge)badge.setAttribute('aria-pressed',String(enabled));
   const section=$('vectorSection');if(section)section.hidden=!enabled;
   const legendKey=$('legendVectorKey');if(legendKey)legendKey.hidden=!enabled;
@@ -70,7 +69,6 @@ export function readSettingsFromDom(){
   store.settings.modes=[...document.querySelectorAll('.chip[aria-pressed="true"]')].map(c=>c.dataset.mode);
   store.settings.tolerance=clamp(Number($('tolerance').value),0.05,0.5,0.1);
   store.settings.budget=Number($('budget').value);
-  store.settings.beta={vectors:$('betaVectors').checked};
   const vectors=normalizeVectors(store.settings.vectors);
   document.querySelectorAll('[data-vector]').forEach(input=>{vectors[input.dataset.vector]=Number(input.value);});
   store.settings.vectors=vectors;
