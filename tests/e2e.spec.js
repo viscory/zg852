@@ -805,7 +805,7 @@ test('legal buttons open the dialog with loaded documents and direct pages still
   }
 });
 
-test('mobile layout puts the map above the panel and keeps the legend visible', async ({ page }) => {
+test('mobile layout keeps the map, both panels, and the legend usable', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator('#map')).toBeVisible();
   await expect(page.locator('.side-left')).toBeVisible();
@@ -963,3 +963,63 @@ test('changing the budget recomputes without pressing search', async ({ page }) 
   const stored = await page.evaluate(() => localStorage.getItem('hkfair.v2.settings'));
   expect(stored).toContain('"budget":120');
 });
+
+test('a late place search does not reopen a chosen stop', async ({ page }) => {
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  await page.route('**/photon.komoot.io/api/**', async route => {
+    await gate;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ features: [{
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [114.173, 22.278] },
+        properties: { name: 'Central Plaza', city: 'Hong Kong', country: 'Hong Kong', osm_type: 'way', osm_id: '9' },
+      }] }),
+    });
+  });
+  const card = page.locator('.card').first();
+  const input = card.locator('.start-input');
+  await input.fill('Central');
+  const row = card.locator('.suggestion').filter({ has: page.locator('.place-main', { hasText: /^Central$/ }) }).first();
+  await row.click();
+  await expect(input).toHaveValue('Central');
+  await expect(card.locator('.suggestions')).toBeHidden();
+  release();
+  await page.waitForTimeout(700);
+  await expect(card.locator('.suggestions')).toBeHidden();
+  await expect(input).toHaveValue('Central');
+});
+
+test('a two-character Chinese query returns places', async ({ page }) => {
+  await page.route('**/photon.komoot.io/api/**', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ features: [{
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [114.158, 22.281] },
+      properties: { name: '中環', city: '香港', country: '香港', osm_type: 'node', osm_id: '8' },
+    }] }),
+  }));
+  const card = page.locator('.card').first();
+  await card.locator('.start-input').fill('中環');
+  await expect(card.locator('.suggestion').first()).toContainText('中環');
+});
+
+test('legal pages include social preview tags', async ({ page }) => {
+  for (const name of ['privacy', 'terms', 'credits']) {
+    const body = await (await page.request.get(`/${name}.html`)).text();
+    expect(body).toContain('property="og:title"');
+    expect(body).toContain('name="twitter:card"');
+  }
+});
+
+test('the first start field sits above the bottom keyboard zone', async ({ page }) => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 640 }]) {
+    await page.setViewportSize(viewport);
+    const box = await page.locator('.start-input').first().boundingBox();
+    expect(box.y).toBeLessThanOrEqual(viewport.height - 300);
+  }
+});
+
