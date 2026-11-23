@@ -134,7 +134,7 @@ test('brand copy and MTR-facing labels use the 就腳 name', async ({ page }) =>
   await expect(page.locator('.chip[data-mode="rail"]')).toHaveAttribute('aria-label', 'MTR');
   await expect(page.locator('.route-key [data-i18n="map.railKey"]')).toHaveText('MTR');
   await expect(page.locator('#tolerance')).toHaveAttribute('min', '0.05');
-  await expect(page.locator('label[for="tolerance"]')).toHaveText('Travel time disparity tolerance');
+  await expect(page.locator('label[for="tolerance"]')).toHaveText('Up to 300% the slowest person may take that many times the fastest. Past 300% the map is unbounded: tap anywhere to pick a point.');
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', 'https://zg852.pages.dev/og-image.png?v=2');
 });
 
@@ -537,6 +537,7 @@ test('people and routes share the leftbar, parameters and results stay right, an
   await expect(page.locator('.side-right #nres')).toBeAttached();
   await expect(page.locator('#optionsPanel')).toBeVisible();
   await expect(page.locator('#optionsPanel')).toHaveCSS('position', 'sticky');
+  await expect(page.locator('.rightbar-footer')).toHaveCSS('position', 'sticky');
   await expect(page.locator('.side-right #go')).toBeVisible();
   await expect(page.locator('.side-right #tolerance')).toBeVisible();
   await expect(page.locator('#swapFace')).toBeVisible();
@@ -753,8 +754,8 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
-  expect(expected).toHaveLength(157);
-  for (const key of ['app.subtitle', 'options.includeHeadway', 'options.headwayHelp', 'options.tolerance', 'options.toleranceHelp', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
+  expect(expected).toHaveLength(155);
+  for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
   for (const key of ['app.meaning', 'people.focusLabel', 'people.focusTime', 'people.focusCost']) {
@@ -765,7 +766,7 @@ test('all catalogues keep the same keys and avoid ranking wording', async ({ pag
   expect(catalogues[0]['options.rail']).toBe('MTR');
   expect(catalogues[0]['mode.rail']).toBe('MTR');
   expect(catalogues[0]['map.railKey']).toBe('MTR');
-  expect(catalogues[0]['options.tolerance']).toBe('Travel time disparity tolerance');
+  expect(catalogues[0]['options.tolerance']).toBe('Up to 300% the slowest person may take that many times the fastest. Past 300% the map is unbounded: tap anywhere to pick a point.');
   expect(catalogues[0]['results.fareTotal']).toBe('Fare {value}');
   expect(catalogues[0]['results.noFitMtr']).toContain('MTR');
   for (const entries of catalogues) {

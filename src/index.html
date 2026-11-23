@@ -146,16 +146,14 @@
           <input type="checkbox" id="includeHeadway" data-i18n-aria-label="options.includeHeadway">
           <span data-i18n="options.includeHeadway">Include average headway</span>
         </label>
-        <p class="note headway-help" data-i18n="options.headwayHelp">Add half the average wait when changing between bus and MTR.</p>
       </div>
-      <div class="slider-row">
-        <label for="tolerance" data-i18n="options.tolerance">Travel time disparity tolerance</label>
+      <div class="slider-row tolerance-row">
+        <label for="tolerance" data-i18n="options.tolerance">Up to 300% the slowest person may take that many times the fastest. Past 300% the map is unbounded: tap anywhere to pick a point.</label>
+        <button class="diag-button" id="exportDiagnostics" type="button" data-i18n="diag.button" data-i18n-tooltip="diag.help" data-i18n-aria-label="diag.button" aria-label="Download diagnostics" title="Download diagnostics" data-tooltip="Download diagnostics"><span class="icon icon-download" aria-hidden="true"></span></button>
         <span class="value" id="tolval">10%</span>
       </div>
       <input type="range" id="tolerance" min="0.05" max="3.05" step="0.05" value="0.1">
       <div class="slider-row ends"><span data-i18n="options.toleranceNear">Near equal</span><span data-i18n="options.toleranceFlexible">More flexible</span></div>
-      <p class="note tol-help" data-i18n="options.toleranceHelp">Up to 300% the slowest person may take that many times the fastest. Past 300% the map is unbounded: tap anywhere to pick a point.</p>
-      <button class="diag-button" id="exportDiagnostics" type="button" data-i18n="diag.button" data-i18n-tooltip="diag.help" data-i18n-aria-label="diag.button" aria-label="Download diagnostics" title="Download diagnostics" data-tooltip="Download diagnostics">Download diagnostics</button>
       <output class="diag-status" id="diagStatus" role="status" aria-live="polite" hidden></output>
       <button class="go" id="go" type="button" data-i18n-tooltip="options.search" data-i18n-aria-label="options.search" aria-label="Find fair areas" title="Find fair areas" data-tooltip="Find fair areas">
         <span class="icon icon-search" aria-hidden="true"></span><span class="sr-only" id="goLabel" data-i18n="options.search">Find fair areas</span>

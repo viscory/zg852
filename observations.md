@@ -1,3 +1,10 @@
+## 2026-11-23T16:44:50Z
+
+- Reworked the Parameters block from user feedback: removed the headway help sentence entirely, moved the 300%/unlimited explanation into the tolerance label itself, and deleted the now-duplicated `options.headwayHelp` and `options.toleranceHelp` keys from FALLBACK and all 15 catalogues (155 keys).
+- Turned Download diagnostics into a tiny 22×18 icon-only button beside the tolerance label/value, using a muted Lucide download icon that only gains accent color on hover/focus; tooltip and live status remain for accessibility.
+- Restored a sticky rightbar footer with `position: sticky; bottom: -16px`, a solid surface background, and matching padding/margins so it stays visible while results scroll. Added a CSS assertion to the sticky-layout test.
+- Bumped service-worker cache `zg852-v36` → `zg852-v37` and updated DESIGN.md. Verification clean: `npm run lint` (155 keys × 15 catalogues, 106 literal keys), `npm test` 64/64, `npm run build`, `git diff --check`. Changes are in the working tree but not yet committed.
+
 ## 2026-11-23T16:40:05Z
 
 - Confirmed `origin/main` points at `d86425c`, with `73f6fa2` immediately behind it and a clean working tree.
