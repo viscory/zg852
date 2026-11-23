@@ -67,6 +67,7 @@
   "route.getOn": "ขึ้น: {place}",
   "route.getOff": "ลง: {place}",
   "route.walkLeg": "เดิน {time}",
+  "route.interchangeWait": "รอเปลี่ยนเส้นทาง {value}",
   "route.stopCount_one": "{count} ป้าย",
   "route.stopCount_other": "{count} ป้าย",
   "route.already": "อยู่ที่นั่นแล้ว",

@@ -67,6 +67,7 @@
   "route.getOn": "上车：{place}",
   "route.getOff": "下车：{place}",
   "route.walkLeg": "步行 {time}",
+  "route.interchangeWait": "换乘等候 {value}",
   "route.stopCount_one": "{count} 站",
   "route.stopCount_other": "{count} 站",
   "route.already": "已抵达",

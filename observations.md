@@ -1,3 +1,29 @@
+## 2026-11-23T13:53:35Z
+
+- Integrated the interchange-wait refinement from all five subagents: GTFS data now exports `w` (fixed boarding penalty) and `h` (capped duration-weighted half-headway); the solver uses a FRESH/BOARDED foot-state bit so `h` is charged only at interchanges; ride legs carry `interchangeWait` and show a whole-minute "Interchange wait N min" note in chips, steps and tooltips; SW cache is `zg852-v33`.
+- Fixed one stale assertion: removing first-boarding headway makes the default scenario favour buses, so the default test no longer requires rail chips; full MTR names remain covered by the dedicated rail and fairness tests.
+- Verification clean: `npm run lint` (151 keys × 15 catalogs), `npm test` 61/61 passed against built `public/`, and `git diff --check`. Ready to commit and push.
+
+## 2026-11-23T13:49:23Z
+
+- Solver/presentation subagent completed the interchange-wait contract in `src/js/routing.js` only: state encoding is now `stride=lines.length+2`, `FRESH=-2` (offset 0, seeded sources), `BOARDED=-1` (offset 1, alighting target), lines `>=0` (offset `line+2`), `start=-1` sentinel unchanged; foot walking stays in the same state, and boarding charges `w + (line===BOARDED && isNum(info.h) ? info.h : 0)` in both time and fare-mode arrival budgets.
+- `describe()` now enumerates final states from `-2`, decodes `line=(st%stride)-2`, marks each new ride leg with `interchangeWait` when the previous chain state is a boarded foot state (`pst!==start && pst%stride===1`) using `info.h`, and keeps boarding time/wait only in `stepT` (no double-add). Also updated the pure-walk candidate test to `c.line===-2` because `-1` now means "on foot after riding".
+- Added exported `interchangeWaitText(leg)` and used it inside `rideLegText()` for the `route.interchangeWait` note; all other exports/signatures unchanged. `walkTimes()` still uses `k%stride===0`.
+- `npm run lint` passed (including 15-catalogue i18n parity). Confirmed the other agents' i18n key and `map.js` legChip import of `interchangeWaitText` are already present and compatible. No commit made; `npm test` deliberately not run.
+
+## 2026-11-23T13:49:34Z
+
+- UI subagent for interchange-wait display: added `interchangeWaitText` to the routing import in `src/js/map.js` and appended a `<span class="interchange-wait">` after the fare span inside `.leg-meta` in `legChip()` (ride legs only, empty when helper returns ''); left leg labels, tooltips, result rows, subtitle and reveal behaviour untouched.
+- Added a compact `.interchange-wait{font-size:11px;color:var(--muted);font-weight:400}` rule to `src/styles.css` beside the `.leg-meta`/`.fare` rules; no :root or layout changes.
+- `src/js/ui.js` needed no edits: it renders no route leg text (result rows only show names/times/fares), and detail steps already go through `legChip()`; tooltips are covered by `rideLegText()` in routing.js.
+- Verified with `npx eslint src/js/map.js src/js/ui.js src/styles.css` (0 errors; CSS ignored by eslint config) and reviewed `git diff`; did not run `npm test` per shared-tree instruction and did not commit.
+
+## 2026-11-23T13:48:35Z
+
+- User refined the boarding-wait model: the half-headway should only apply when boarding at an interchange (after an earlier transit leg), because the first departure can be timed; the interchange wait must also be visibly noted.
+- Designed the change: split GTFS data into `w` (fixed boarding penalty, every boarding) and `h` (capped half-headway, interchanges only); extend the solver state with a "has boarded" foot state so the extra wait is charged only after alighting; surface `leg.interchangeWait` via a new `route.interchangeWait` i18n key in leg chips, steps and tooltips; bump SW cache to v33.
+- Launched five parallel subagents with disjoint ownership: GTFS data fields, solver/presentation logic, UI display, i18n key, and tests/docs.
+
 ## 2026-11-23T13:43:50Z
 
 - Committed the full change set as `f7d97d0` ("feat: add wait-aware times, full MTR names, and trip fairness metric", 42 files) and pushed to `origin/main`; the i18n pre-commit hook ran and passed. Working tree is clean.

@@ -67,6 +67,7 @@
   "route.getOn": "Monter : {place}",
   "route.getOff": "Descendre : {place}",
   "route.walkLeg": "À pied {time}",
+  "route.interchangeWait": "Attente de correspondance {value}",
   "route.stopCount_one": "{count} arrêt",
   "route.stopCount_other": "{count} arrêts",
   "route.already": "Déjà sur place",

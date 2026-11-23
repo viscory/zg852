@@ -67,6 +67,7 @@
   "route.getOn": "승차: {place}",
   "route.getOff": "하차: {place}",
   "route.walkLeg": "도보 {time}",
+  "route.interchangeWait": "환승 대기 {value}",
   "route.stopCount_one": "{count} 정류장",
   "route.stopCount_other": "{count} 정류장",
   "route.already": "이미 도착",

@@ -67,6 +67,7 @@
   "route.getOn": "Sumakay: {place}",
   "route.getOff": "Bumaba: {place}",
   "route.walkLeg": "Lakad {time}",
+  "route.interchangeWait": "Hintay sa paglipat {value}",
   "route.stopCount_one": "{count} hintayan",
   "route.stopCount_other": "{count} hintayan",
   "route.already": "Nandoon na",

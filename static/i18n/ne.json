@@ -67,6 +67,7 @@
   "route.getOn": "चढ्नुहोस्: {place}",
   "route.getOff": "झर्नुहोस्: {place}",
   "route.walkLeg": "पैदल {time}",
+  "route.interchangeWait": "सवारी बदल्ने प्रतीक्षा {value}",
   "route.stopCount_one": "{count} स्टप",
   "route.stopCount_other": "{count} स्टप",
   "route.already": "पहिले नै त्यहीँ",

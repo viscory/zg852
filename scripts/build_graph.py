@@ -325,10 +325,10 @@ def main():
             weighted = headways.get(tid)
             if weighted and weighted[1] > 0:
                 average_headway = weighted[0] / weighted[1]
-                wait = min(average_headway, MAX_WAIT_MIN) / 2
+                half_headway = min(average_headway, MAX_WAIT_MIN) / 2
             else:
-                wait = 7.5
-            pattern_waits[route].append((pattern, wait))
+                half_headway = 7.5
+            pattern_waits[route].append((pattern, half_headway))
             for i in range(len(node_seq) - 1):
                 dt = times[i + 1] - times[i]
                 if 0 < dt < 60:
@@ -343,13 +343,14 @@ def main():
     lines = {}
     line_geometry = {}
     for (route, pattern), edge_map in pattern_edges.items():
-        waits = [w for p, w in pattern_waits[route] if p == pattern]
-        wait = statistics.median(waits) if waits else 7.5
+        half_headways = [h for p, h in pattern_waits[route] if p == pattern]
+        half_headway = statistics.median(half_headways) if half_headways else 7.5
         cat = route_cat.get(route, "bus")
         line_id = f"{route}#{len(lines)}"
         lines[line_id] = {
             "cat": cat,
-            "wait": round(wait + BOARD_PENALTY[cat], 2),
+            "halfHeadway": round(half_headway, 2),
+            "wait": round(BOARD_PENALTY[cat], 2),
             "stops": list(pattern),
             "edges": [round(statistics.median(vals), 2) for _, vals in sorted(edge_map.items())],
         }
@@ -514,6 +515,7 @@ def export_client(nodes, lines, walk, line_geometry, route_long_name):
             "n": display_name(route_long_name.get(lid.split("#")[0], ""), label),
             "c": CAT_CODE[line["cat"]],
             "w": line["wait"],
+            "h": line["halfHeadway"],
             "s": [index[n] for n in line["stops"]],
             "e": line["edges"],
             "g": line_geometry[lid],

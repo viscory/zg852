@@ -262,6 +262,7 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .leg-meta .fare{padding:0 5px;background:var(--bg);font-family:var(--mono);font-variant-numeric:tabular-nums}
 .route-rail .leg-meta .fare{border-color:var(--accent)}
 .route-bus .leg-meta .fare{border-style:dashed;border-color:var(--accent-hover)}
+.interchange-wait{font-size:11px;color:var(--muted);font-weight:400}
 .route-line{stroke-linecap:round;stroke-linejoin:round}
 path.route-line.route-walk{stroke-dasharray:1 6;stroke-width:2;opacity:.7}
 path.route-line.route-rail{stroke-width:4}

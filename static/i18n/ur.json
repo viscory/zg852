@@ -67,6 +67,7 @@
   "route.getOn": "سوار ہوں: {place}",
   "route.getOff": "اتریں: {place}",
   "route.walkLeg": "پیدل {time}",
+  "route.interchangeWait": "تبادلے کا انتظار {value}",
   "route.stopCount_one": "{count} اسٹاپ",
   "route.stopCount_other": "{count} اسٹاپ",
   "route.already": "پہلے ہی وہاں موجود ہیں",

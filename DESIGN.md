@@ -2,6 +2,14 @@
 
 This file records visual critiques of 就腳. The newest critique is first. Change `src/styles.css` so the page matches the newest sizes. Keep one size scale on `:root`.
 
+## 2026-11-23 Interchange-only headway waits
+
+The wait model now has two parts. Each line in `network.json` carries `w`, a fixed boarding penalty (one minute on rail, two minutes on bus), and `h`, the duration-weighted average headway across the operating day, halved and capped at a sensible maximum. The solver charges `w` at every boarding, including the first. It charges `h` only when a ride is boarded after another transit leg — an interchange. The first transit boarding pays no headway wait because the traveller can time themselves rather than arrive at a random point in the headway. A leg therefore shows both its fixed boarding penalty and, after an interchange, its `interchangeWait` in minutes.
+
+Ride legs carry `interchangeWait` (0 for a first boarding). The route detail shows a whole-minute note such as `Interchange wait 4 min` in the leg's `.leg-meta`, and `rideLegText()` adds the same note to the leg tooltip. Waiting time is included in the leg's minute total, and every displayed minute remains a whole number.
+
+Earlier requirements are unchanged: full MTR line names, whole minutes everywhere, the trip-level time-versus-fare fairness metric, per-person walk tolerance, and the sticky-options two-column layout with the people/detail swap.
+
 ## 2026-11-23 Whole minutes, wait-aware rides and trip fairness
 
 Every minute value in the app is a whole number. Result spreads, longest times, per-person times, walk legs, and ride legs all use rounded minutes; no decimal point appears beside `min`. The ride time on a leg includes the average headway wait for that line, so it reflects the time someone actually spends waiting and riding rather than the in-vehicle time alone.

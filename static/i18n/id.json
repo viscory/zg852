@@ -67,6 +67,7 @@
   "route.getOn": "Naik: {place}",
   "route.getOff": "Turun: {place}",
   "route.walkLeg": "Jalan kaki {time}",
+  "route.interchangeWait": "Menunggu transit {value}",
   "route.stopCount_one": "{count} halte",
   "route.stopCount_other": "{count} halte",
   "route.already": "Sudah sampai",

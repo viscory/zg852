@@ -67,6 +67,7 @@
   "route.getOn": "Lên: {place}",
   "route.getOff": "Xuống: {place}",
   "route.walkLeg": "Đi bộ {time}",
+  "route.interchangeWait": "Chờ trung chuyển {value}",
   "route.stopCount_one": "{count} trạm",
   "route.stopCount_other": "{count} trạm",
   "route.already": "Đã có mặt ở đó",

@@ -90,10 +90,13 @@ export function solve(sources,mask,maxTime=180,mode='time'){
   // In fare mode `dist` holds accumulated boarding fares instead of minutes;
   // a parallel arrival map keeps the same time budget on the same state graph.
   const fareMode=mode==='fare';
-  const stride=store.NET.lines.length+1,key=(node,line)=>node*stride+(line+1),start=-1;
+  // State offsets: FRESH (-2) is on foot before any boarding, BOARDED (-1) is
+  // on foot after alighting, and >=0 is riding the corresponding line.
+  const FRESH=-2,BOARDED=-1;
+  const stride=store.NET.lines.length+2,key=(node,line)=>node*stride+(line+2),start=-1;
   const dist=new Map(),prev=new Map(),heap=new MinHeap(),arrival=new Map();
   sources.forEach(({node,minutes})=>{
-    const k=key(node,-1);
+    const k=key(node,FRESH);
     if(minutes<=maxTime&&minutes<(dist.get(k)??Infinity)){dist.set(k,minutes);arrival.set(k,minutes);prev.set(k,start);heap.push(minutes,k);}
   });
   const relax=(k,cost,from,time)=>{
@@ -111,15 +114,18 @@ export function solve(sources,mask,maxTime=180,mode='time'){
     if(d>(dist.get(k)??Infinity)||(!fareMode&&d>maxTime))continue;
     const time=fareMode?arrival.get(k):d;
     if(fareMode&&(time===undefined||time>maxTime+1e-9))continue;
-    const node=Math.floor(k/stride),line=(k%stride)-1;
+    const node=Math.floor(k/stride),line=(k%stride)-2;
     if(line<0){
-      for(const[to,step]of store.walkAdj[node])relax(key(to,-1),fareMode?d:d+step,k,fareMode?time:undefined);
+      for(const[to,step]of store.walkAdj[node])relax(key(to,line),fareMode?d:d+step,k,fareMode?time:undefined);
       for(const li of store.nodeLines[node])if(mask&(1<<store.NET.lines[li].c)){
         const info=store.NET.lines[li],wait=isNum(info.w)?info.w:0,fare=isNum(info.f)?info.f:0;
-        relax(key(node,li),fareMode?d+fare:d+wait,k,fareMode?time+wait:undefined);
+        // w is the fixed boarding penalty; the capped half-headway h applies
+        // only when boarding after alighting a transit leg (BOARDED foot state).
+        const extra=line===BOARDED&&isNum(info.h)?info.h:0;
+        relax(key(node,li),fareMode?d+fare:d+wait+extra,k,fareMode?time+wait+extra:undefined);
       }
     }else{
-      relax(key(node,-1),d,k,fareMode?time:undefined);
+      relax(key(node,BOARDED),d,k,fareMode?time:undefined);
       for(const[li,to,step]of store.rideAdj[node])if(li===line)relax(key(to,li),fareMode?d:d+step,k,fareMode?time+step:undefined);
     }
   }
@@ -182,10 +188,12 @@ export function stopName(name){
   return value;
 }
 export function walkLegText(leg){return t('route.walkLeg',{time:minuteText(leg.minutes)}).replace(/\s+/g,' ').trim();}
+export function interchangeWaitText(leg){return leg.interchangeWait>0?t('route.interchangeWait',{value:minuteText(leg.interchangeWait)}):'';}
 export function rideLegText(leg){
   const stops=tp('route.stopCount',leg.stopCount||0);
   const line=leg.mode==='rail'?(leg.lineName||String(leg.line).replace(/^MTR\s+/i,'')):leg.line;
-  return t('route.rideLeg',{mode:t('mode.'+leg.mode),line,from:leg.from,to:leg.to,stops,time:minuteText(leg.minutes)}).replace(/\s+/g,' ').trim();
+  const text=t('route.rideLeg',{mode:t('mode.'+leg.mode),line,from:leg.from,to:leg.to,stops,time:minuteText(leg.minutes)});
+  return (text+' '+interchangeWaitText(leg)).replace(/\s+/g,' ').trim();
 }
 export function legLabel(leg){return leg.mode==='walk'?walkLegText(leg):rideLegText(leg);}
 export function reconstructChain(sol,k){
@@ -195,7 +203,7 @@ export function reconstructChain(sol,k){
 }
 export function describe(sol,origin,target,metric='time',walkMinutes=WALK_TOLERANCE_DEFAULT){
   const walkLimit=clamp(walkMinutes,0,WALK_TOLERANCE_MAX,WALK_TOLERANCE_DEFAULT),candidates=[];
-  for(let l=-1;l<store.NET.lines.length;l++){
+  for(let l=-2;l<store.NET.lines.length;l++){
     const k=sol.key(target,l),d=sol.dist.get(k);
     if(d===undefined)continue;
     const legs=[],chain=reconstructChain(sol,k);
@@ -208,7 +216,7 @@ export function describe(sol,origin,target,metric='time',walkMinutes=WALK_TOLERA
       current=null;
     };
     chain.forEach((st,i)=>{
-      const node=Math.floor(st/sol.stride),line=(st%sol.stride)-1;
+      const node=Math.floor(st/sol.stride),line=(st%sol.stride)-2;
       const pst=i===0?sol.start:chain[i-1];
       const priorDistance=pst===sol.start?0:(sol.dist.get(pst)??0);
       const stepT=(sol.dist.get(st)??0)-priorDistance;
@@ -224,9 +232,11 @@ export function describe(sol,origin,target,metric='time',walkMinutes=WALK_TOLERA
         const info=store.NET.lines[line],mode=rideMode(info.c),label=info.l,name=mode==='rail'||mode==='lightRail'?stopName(rawName):rawName;
         if(!current||current.mode!==mode||current.line!==label){
           close();
-          // The first ride-state stepT already contains the boarding wait from
-          // solve() (dist(line state) - dist(walk state) = line.w), so do not add it again.
-          current={mode,line:label,lineName:info.n||info.l,minutes:stepT,coords:[coord,coord],from:name,to:name,fromNode:node,toNode:node,stopCount:0};
+          // The first ride-state stepT already contains the boarding penalty w
+          // from solve(); the interchange half-headway h is included only when
+          // boarding from a BOARDED foot state, so do not add either again here.
+          const fromBoarded=pst!==sol.start&&(pst%sol.stride)===1;
+          current={mode,line:label,lineName:info.n||info.l,minutes:stepT,coords:[coord,coord],from:name,to:name,fromNode:node,toNode:node,stopCount:0,interchangeWait:fromBoarded&&isNum(info.h)?info.h:0};
         }else{
           current.minutes+=stepT;
           const fromNode=pst===sol.start?null:Math.floor(pst/sol.stride);
@@ -251,7 +261,7 @@ export function describe(sol,origin,target,metric='time',walkMinutes=WALK_TOLERA
     candidates.push({d,line:l,legs,fares,total:fares.total});
   }
   if(!candidates.length)return{text:t('route.unreachable'),legs:[],path:[[origin.lat,origin.lon]],fares:{rail:0,bus:0,total:0}};
-  const walk=candidates.find(c=>c.line===-1&&c.d<=walkLimit);
+  const walk=candidates.find(c=>c.line===-2&&c.d<=walkLimit);
   if(!walk)candidates.sort((a,b)=>metric==='fare'?a.total-b.total||a.d-b.d:a.d-b.d||a.total-b.total);
   const best=walk||candidates[0],legs=best.legs;
   const text=legs.map(leg=>leg.text).join(' -> ')||t('route.already');

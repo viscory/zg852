@@ -67,6 +67,7 @@
   "route.getOn": "乗車: {place}",
   "route.getOff": "降車: {place}",
   "route.walkLeg": "徒歩 {time}",
+  "route.interchangeWait": "乗り換え待ち {value}",
   "route.stopCount_one": "{count}駅",
   "route.stopCount_other": "{count}駅",
   "route.already": "到着済み",

@@ -7,7 +7,7 @@ import { store } from './store.js';
 import { $,esc,clamp,isNum,icon,initialsFor,avatarClass } from './util.js';
 import { t,num,intNum,minuteText } from './i18n.js';
 import { betaVectorsEnabled,preferenceText,cellVector,cellCount,cellTopNames,cellPreference } from './vectors.js';
-import { prepareRoutes,legLabel,fareMarkup,money,cellToResult } from './routing.js';
+import { prepareRoutes,legLabel,fareMarkup,money,cellToResult,interchangeWaitText } from './routing.js';
 import { displayName } from './state.js';
 import { markSelectedResult,setPinOrigin,setLabel,setSidebarFace } from './ui.js';
 
@@ -202,7 +202,9 @@ function legChip(leg){
   const label=leg.lineName||String(leg.line).replace(/^MTR\s+/i,'');
   const modeLabel=rail?label:`Bus ${leg.line}`;
   const fare=leg.fare?`<span class="fare">${esc(t('results.fareTotal',{value:money(leg.fare)}))}</span>`:'';
-  return `<span class="ride-leg route-${leg.mode}"><span class="leg-mode"><span class="icon icon-${rail?'rail':'bus'}" aria-hidden="true"></span>${esc(modeLabel)}</span><span class="leg-stops"><span class="leg-board">${esc(t('route.getOn',{place:leg.from}))}</span><span class="leg-alight">${esc(t('route.getOff',{place:leg.to}))}</span></span><span class="leg-meta"><span class="leg-time">${esc(minuteText(leg.minutes))}</span>${fare}</span></span>`;
+  const wait=interchangeWaitText(leg);
+  const waitNote=wait?`<span class="interchange-wait">${esc(wait)}</span>`:'';
+  return `<span class="ride-leg route-${leg.mode}"><span class="leg-mode"><span class="icon icon-${rail?'rail':'bus'}" aria-hidden="true"></span>${esc(modeLabel)}</span><span class="leg-stops"><span class="leg-board">${esc(t('route.getOn',{place:leg.from}))}</span><span class="leg-alight">${esc(t('route.getOff',{place:leg.to}))}</span></span><span class="leg-meta"><span class="leg-time">${esc(minuteText(leg.minutes))}</span>${fare}${waitNote}</span></span>`;
 }
 export function renderSelection(r,active=store.activePeople){
   if(!r)return;

@@ -67,6 +67,7 @@
   "route.getOn": "Subir: {place}",
   "route.getOff": "Bajar: {place}",
   "route.walkLeg": "Caminar {time}",
+  "route.interchangeWait": "Espera de transbordo {value}",
   "route.stopCount_one": "{count} parada",
   "route.stopCount_other": "{count} paradas",
   "route.already": "Ya estás allí",

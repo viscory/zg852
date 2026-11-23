@@ -67,6 +67,7 @@
   "route.getOn": "Get on: {place}",
   "route.getOff": "Get off: {place}",
   "route.walkLeg": "Walk {time}",
+  "route.interchangeWait": "Interchange wait {value}",
   "route.stopCount_one": "{count} stop",
   "route.stopCount_other": "{count} stops",
   "route.already": "Already there",

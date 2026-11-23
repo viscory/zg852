@@ -67,6 +67,7 @@
   "route.getOn": "चढ़ें: {place}",
   "route.getOff": "उतरें: {place}",
   "route.walkLeg": "पैदल {time}",
+  "route.interchangeWait": "वाहन बदलने की प्रतीक्षा {value}",
   "route.stopCount_one": "{count} स्टॉप",
   "route.stopCount_other": "{count} स्टॉप",
   "route.already": "पहले से वहीं हैं",

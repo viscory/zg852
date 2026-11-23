@@ -67,6 +67,7 @@
   "route.getOn": "Einsteigen: {place}",
   "route.getOff": "Aussteigen: {place}",
   "route.walkLeg": "Zu Fuß {time}",
+  "route.interchangeWait": "Wartezeit beim Umstieg {value}",
   "route.stopCount_one": "{count} Haltestelle",
   "route.stopCount_other": "{count} Haltestellen",
   "route.already": "Schon dort",

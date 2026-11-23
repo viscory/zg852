@@ -226,9 +226,9 @@ test('defaults load and a two-person search draws fair map areas', async ({ page
     expect(text).toMatch(/\b\d+\s+min\b/);
     expect(text).not.toMatch(/\d+\.\d+\s+min/);
   }
+  // The default scenario can favour buses now that first boardings no longer
+  // carry headway wait. Full MTR names are asserted in the dedicated rail tests.
   const railChips = await page.locator('.ride-leg.route-rail .leg-mode').allInnerTexts();
-  expect(railChips.length).toBeGreaterThan(0);
-  expect(railChips.some(chip => /[A-Z][a-z]+\s+(?:[A-Z][a-z]+\s+)?(?:Line|Express)\b/.test(chip))).toBeTruthy();
   for (const chip of railChips) {
     expect(chip).not.toMatch(/MTR\s+[A-Z]{3}\b/);
   }
@@ -240,6 +240,76 @@ test('defaults load and a two-person search draws fair map areas', async ({ page
   await expect(page.locator('body')).not.toContainText('★');
   await expect(page.locator('body')).not.toContainText('—');
   expect(errors).toEqual([]);
+});
+
+test('interchange waits are charged only after the first transit leg', async ({ page }) => {
+  // One `.step` is one person's route; ride legs inside it are in travel order.
+  // Return the interchange notes attached to each ride leg of each route.
+  const routeWaits = () => page.locator('#steps .step').evaluateAll(steps => steps.map(step => {
+    const rides = [...step.querySelectorAll('.ride-leg')];
+    return rides.map(ride => [...ride.querySelectorAll('.interchange-wait')].map(note => note.textContent.trim()));
+  }));
+  const hasInterchange = routes => routes.some(route => route.length >= 2
+    && route[0].length === 0
+    && route.slice(1).every(notes => notes.length === 1));
+
+  // The default pair can meet on a single line, so fall back to origins on
+  // lines that have no direct interchange before giving up.
+  const pairs = [
+    null,
+    ['Tsim Sha Tsui', 'Airport'],
+    ['Lo Wu', 'Airport'],
+    ['Lo Wu', 'Tsim Sha Tsui'],
+  ];
+  let found = false;
+  for (const pair of pairs) {
+    if (pair) {
+      // Selecting a result reveals the detail face; bring the people face back
+      // so the start fields can be edited.
+      if (!await page.locator('.face[data-face="people"]').isVisible()) {
+        await page.locator('#swapFace').click();
+      }
+      await expect(page.locator('.face[data-face="people"]')).toBeVisible();
+      await pickStation(page, 0, pair[0]);
+      await pickStation(page, 1, pair[1]);
+    }
+    await page.locator('#go').click();
+    try {
+      await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+    } catch {
+      continue;
+    }
+    const rows = page.locator('.result-row');
+    const rowCount = Math.min(await rows.count(), 24);
+    for (let i = 0; i < rowCount; i++) {
+      await rows.nth(i).click();
+      if (hasInterchange(await routeWaits())) {
+        found = true;
+        break;
+      }
+    }
+    if (found) break;
+  }
+  // Never let the test pass without actually seeing an interchange.
+  expect(found).toBe(true);
+
+  const routes = await routeWaits();
+  const interchange = routes.find(route => route.length >= 2
+    && route[0].length === 0
+    && route.slice(1).every(notes => notes.length === 1));
+  expect(interchange).toBeTruthy();
+  expect(interchange.length).toBeGreaterThanOrEqual(2);
+  expect(interchange[0]).toEqual([]);
+  // The first boarding of every person's route is free of headway wait.
+  expect(routes.every(route => route.length === 0 || route[0].length === 0)).toBe(true);
+
+  const notes = await page.locator('.ride-leg .interchange-wait').allInnerTexts();
+  expect(notes.length).toBeGreaterThan(0);
+  for (const note of notes) {
+    expect(note).toMatch(/^Interchange wait\s+\d+\s+min$/);
+    expect(note).not.toMatch(/\d+\.\d+\s+min/);
+  }
+  expect(await page.locator('.ride-leg .leg-meta .interchange-wait').count()).toBe(notes.length);
 });
 
 test('travel budget slider is gone', async ({ page }) => {
@@ -593,7 +663,7 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
-  for (const key of ['app.subtitle', 'options.fairnessLabel', 'options.fairnessTime', 'options.fairnessFare', 'options.fairnessHelp', 'options.tolerance', 'route.rideLeg', 'route.getOn', 'route.getOff', 'route.stopCount_other', 'results.fareTotal', 'results.fareSpread', 'results.fareLongest', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
+  for (const key of ['app.subtitle', 'options.fairnessLabel', 'options.fairnessTime', 'options.fairnessFare', 'options.fairnessHelp', 'options.tolerance', 'route.rideLeg', 'route.getOn', 'route.getOff', 'route.interchangeWait', 'route.stopCount_other', 'results.fareTotal', 'results.fareSpread', 'results.fareLongest', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
   for (const key of ['app.meaning', 'people.focusLabel', 'people.focusTime', 'people.focusCost']) {
