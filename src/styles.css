@@ -26,7 +26,6 @@ button svg{width:16px;height:16px;flex:none}
 .icon-add{-webkit-mask-image:url(../node_modules/lucide-static/icons/plus.svg);mask-image:url(../node_modules/lucide-static/icons/plus.svg)}
 .icon-library{-webkit-mask-image:url(../node_modules/lucide-static/icons/users.svg);mask-image:url(../node_modules/lucide-static/icons/users.svg)}
 .icon-search{-webkit-mask-image:url(../node_modules/lucide-static/icons/search.svg);mask-image:url(../node_modules/lucide-static/icons/search.svg)}
-.icon-reset{-webkit-mask-image:url(../node_modules/lucide-static/icons/rotate-ccw.svg);mask-image:url(../node_modules/lucide-static/icons/rotate-ccw.svg)}
 .icon-edit{-webkit-mask-image:url(../node_modules/lucide-static/icons/pencil.svg);mask-image:url(../node_modules/lucide-static/icons/pencil.svg)}
 .icon-close{-webkit-mask-image:url(../node_modules/lucide-static/icons/x.svg);mask-image:url(../node_modules/lucide-static/icons/x.svg)}
 .icon-rail{-webkit-mask-image:url(../node_modules/lucide-static/icons/train-front.svg);mask-image:url(../node_modules/lucide-static/icons/train-front.svg)}
@@ -173,7 +172,6 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .beta-toggle input:focus-visible + .toggle-track{outline:2px solid var(--accent);outline-offset:2px}
 .beta-note{margin-top:0;margin-bottom:0}
 .vector-section{margin-top:12px}
-.options-divider{border-top:1px solid var(--border);margin:16px 0}
 .vector-title{margin-top:0}
 .vector-help{margin-top:0;margin-bottom:10px;max-width:none}
 .vector-grid{display:grid;gap:8px}
@@ -252,7 +250,6 @@ path.route-line.route-bus{stroke-dasharray:8 5;stroke-width:4}
 .legal-button{border:0;background:transparent;color:var(--accent);padding:0;font:inherit;cursor:pointer}
 .legal-button:hover{text-decoration:underline}
 .route-empty .muted{display:block;margin-top:4px}
-.linkish{display:inline;border:0;background:none;color:var(--accent);font:inherit;cursor:pointer;text-decoration:underline;padding:0}
 .dialog{width:min(560px,calc(100vw - 32px));max-height:min(640px,calc(100vh - 32px));border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);color:var(--text);padding:16px;box-shadow:0 16px 48px rgba(80,20,20,.24)}
 .dialog::backdrop{background:rgba(36,23,22,.62)}
 .legal-dialog{max-width:720px;width:calc(100% - 32px)}

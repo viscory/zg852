@@ -2,9 +2,8 @@ import { PERSON_COLORS,WALK_SPEED_KMH,WALK_DETOUR } from './config.js';
 
 export const $=id=>document.getElementById(id);
 export const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export const ICONS={globe:'globe',up:'arrow-up',down:'arrow-down',pin:'map-pin',centre:'scan',save:'bookmark-plus',remove:'trash-2',add:'add',library:'library',search:'search',reset:'reset',edit:'edit',close:'close',rail:'rail',bus:'bus',share:'share',food:'food',drinks:'drinks',activities:'activities',culture:'culture',landmark:'landmark',outdoors:'outdoors',shopping:'shopping'};
+export const ICONS={up:'arrow-up',down:'arrow-down',pin:'map-pin',centre:'scan',save:'bookmark-plus',remove:'trash-2',add:'add',edit:'edit'};
 export const icon=name=>`<span class="icon icon-${ICONS[name]}" aria-hidden="true"></span>`;
-export const personColor=i=>PERSON_COLORS[i%PERSON_COLORS.length];
 export const initialsFor=name=>{const parts=String(name||'').trim().split(/\s+/).filter(Boolean);return (parts.length?parts.slice(0,2).map(part=>part[0]).join(''):'?').toUpperCase();};
 export const avatarClass=i=>`person-${i%PERSON_COLORS.length}`;
 export const clamp=(v,lo,hi,fallback)=>Number.isFinite(v)?Math.min(hi,Math.max(lo,v)):fallback;

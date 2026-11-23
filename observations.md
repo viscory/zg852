@@ -1,3 +1,19 @@
+## 2026-11-23T01:42:00Z
+
+- Executed the dead-code removal. Deleted `personColor` and 15 unused `ICONS` entries in `src/js/util.js`, `oldWeight` and `oldRecent` from `KEY` in `src/js/config.js`, and the `.icon-reset`, `.options-divider`, `.linkish` rules in `src/styles.css`.
+- Stripped the 13 unused i18n keys from all 15 catalogues in `static/i18n/`. 195 lines removed, none reformatted.
+- Bumped the service-worker cache to `zg852-v20`. `finalize.mjs` patch strings still match.
+- One edit error: a first `sed` pass on `styles.css` used off-by-one line numbers and deleted two innocent lines. Restored from git and redid the deletions with `StrReplace`. Final diff verified as exactly three removed lines.
+- Verification: `npx eslint .` clean, `npm test` green with 43 passed. Over-exported symbols were left as-is, per the audit report.
+
+## 2026-11-23T01:40:00Z
+
+- Ran a read-only dead-code audit on request. No code changed.
+- Method: read every module in `src/` and built the call graph by hand. ESLint `no-unused-vars` passes clean, so no unused imports exist. Verified each export, store field, DOM id, CSS class, and i18n key by grep across `src/`, `tests/`, `scripts/`, `static/`.
+- Confirmed dead: `personColor` in `src/js/util.js`; `KEY.oldWeight` and `KEY.oldRecent` in `src/js/config.js`; the `reset` entry in `ICONS`; the `.icon-reset`, `.options-divider`, `.linkish` rules in `src/styles.css`.
+- Confirmed dead i18n keys in all 15 catalogues: people.centre, people.drag, people.hintPinMode, people.librarySaved, people.libraryUpdated, results.shown, results.score, results.selectPrompt, map.routes, map.pinHint, route.leg, results.fit, share.copy.
+- Also flagged 30 exported symbols with only same-module callers (over-exported, not dead). User wants to verify before any deletion.
+
 ## 2026-11-23T01:35:00Z
 
 - Committed the security fixes as `5d6f151` on `main`. Seven files, 43 insertions, 15 deletions. Working tree clean.
