@@ -125,6 +125,8 @@
   "beta.title": "Tính năng beta",
   "beta.vectors": "Tùy chọn sở thích",
   "beta.note": "Thử nghiệm. Sở thích có thể thay đổi các khu vực hiển thị trên bản đồ.",
+  "beta.badge": "Beta",
+  "beta.badgeTip": "Bật các tính năng thử nghiệm. Sở thích có thể thay đổi các khu vực hiển thị trên bản đồ.",
   "results.noRoutes": "Không có chặng đường cho địa điểm này.",
   "results.noFitMtr": "Không có khu vực chỉ dùng MTR nào phù hợp với mức chênh lệch và ngân sách này. Bật xe buýt hoặc tăng mức chênh lệch hoặc ngân sách.",
   "results.noFitBus": "Không có khu vực chỉ dùng xe buýt nào phù hợp với mức chênh lệch và ngân sách này. Bật MTR hoặc tăng mức chênh lệch hoặc ngân sách.",

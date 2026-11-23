@@ -43,13 +43,15 @@ document.querySelectorAll('.legal-button[data-legal]').forEach(button=>{button.o
 document.querySelectorAll('.chip').forEach(chip=>chip.onclick=()=>{chip.setAttribute('aria-pressed',String(chip.getAttribute('aria-pressed')!=='true'));clearError();readSettingsFromDom();});
 $('tolerance').oninput=readSettingsFromDom;
 $('budget').oninput=readSettingsFromDom;
-$('betaVectors').onchange=async()=>{
-  store.settings.beta={vectors:$('betaVectors').checked};
+async function setBetaEnabled(enabled){
+  store.settings.beta={vectors:!!enabled};
   save();
   applyBetaFeatures();
   if(betaVectorsEnabled())await loadPoi();
   if(store.results.length)triggerSearch();
-};
+}
+$('betaVectors').onchange=()=>setBetaEnabled($('betaVectors').checked);
+$('betaBadge').onclick=()=>setBetaEnabled(!betaVectorsEnabled());
 document.querySelectorAll('[data-vector]').forEach(input=>{input.oninput=readSettingsFromDom;});
 $('locale').onchange=e=>changeLocale(e.target.value);
 $('swapFace').onclick=()=>setSidebarFace(store.sidebarFace==='people'?'results':'people');

@@ -52,6 +52,7 @@ export function updateSettingsLabels(){
 export function applyBetaFeatures(){
   const enabled=betaVectorsEnabled();
   const input=$('betaVectors');if(input)input.checked=enabled;
+  const badge=$('betaBadge');if(badge)badge.setAttribute('aria-pressed',String(enabled));
   const section=$('vectorSection');if(section)section.hidden=!enabled;
   const legendKey=$('legendVectorKey');if(legendKey)legendKey.hidden=!enabled;
   if(!enabled){store.POI={cells:{}};store.poiLoaded=false;}

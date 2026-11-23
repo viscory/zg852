@@ -125,6 +125,8 @@
   "beta.title": "Fitur beta",
   "beta.vectors": "Preferensi ketertarikan",
   "beta.note": "Eksperimental. Preferensi dapat mengubah area yang ditampilkan peta.",
+  "beta.badge": "Beta",
+  "beta.badgeTip": "Menyalakan fitur eksperimental. Preferensi dapat mengubah area yang ditampilkan peta.",
   "results.noRoutes": "Tidak ada bagian rute untuk tempat ini.",
   "results.noFitMtr": "Tidak ada area khusus MTR yang cocok dengan toleransi dan anggaran ini. Aktifkan bus atau tambah toleransi atau anggaran.",
   "results.noFitBus": "Tidak ada area khusus bus yang cocok dengan toleransi dan anggaran ini. Aktifkan MTR atau tambah toleransi atau anggaran.",

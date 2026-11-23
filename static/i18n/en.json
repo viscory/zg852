@@ -125,6 +125,8 @@
   "beta.title": "Beta features",
   "beta.vectors": "Interest preferences",
   "beta.note": "Experimental. Preferences can change which areas the map shows.",
+  "beta.badge": "Beta",
+  "beta.badgeTip": "Turns on experimental features. Interest preferences can change which areas the map shows.",
   "results.noRoutes": "No route legs are available for this place.",
   "results.noFitMtr": "No MTR-only areas fit this tolerance and budget. Enable bus or increase tolerance or budget.",
   "results.noFitBus": "No bus-only areas fit this tolerance and budget. Enable MTR or increase tolerance or budget.",

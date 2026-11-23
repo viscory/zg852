@@ -125,6 +125,8 @@
   "beta.title": "Funciones beta",
   "beta.vectors": "Preferencias de intereses",
   "beta.note": "Experimental. Una preferencia puede cambiar las zonas mostradas en el mapa.",
+  "beta.badge": "Beta",
+  "beta.badgeTip": "Activa funciones experimentales. Una preferencia puede cambiar las zonas mostradas en el mapa.",
   "results.noRoutes": "No hay tramos de ruta para este lugar.",
   "results.noFitMtr": "Ninguna zona solo de MTR se ajusta a esta tolerancia y presupuesto. Activa el autobús o aumenta la tolerancia o el presupuesto.",
   "results.noFitBus": "Ninguna zona solo de autobús se ajusta a esta tolerancia y presupuesto. Activa la MTR o aumenta la tolerancia o el presupuesto.",

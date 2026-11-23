@@ -125,6 +125,8 @@
   "beta.title": "Beta-Funktionen",
   "beta.vectors": "Präferenzen für Interessen",
   "beta.note": "Experimentell. Eine Präferenz kann die angezeigten Gebiete ändern.",
+  "beta.badge": "Beta",
+  "beta.badgeTip": "Schaltet experimentelle Funktionen ein. Eine Präferenz kann die angezeigten Gebiete ändern.",
   "results.noRoutes": "Für diesen Ort sind keine Routenabschnitte verfügbar.",
   "results.noFitMtr": "Keine reinen MTR-Gebiete passen zu dieser Toleranz und diesem Budget. Bus aktivieren oder Toleranz bzw. Budget erhöhen.",
   "results.noFitBus": "Keine reinen Bus-Gebiete passen zu dieser Toleranz und diesem Budget. MTR aktivieren oder Toleranz bzw. Budget erhöhen.",

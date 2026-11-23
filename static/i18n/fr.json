@@ -125,6 +125,8 @@
   "beta.title": "Fonctions bêta",
   "beta.vectors": "Préférences d'intérêts",
   "beta.note": "Expérimental. Une préférence peut changer les zones affichées sur la carte.",
+  "beta.badge": "Bêta",
+  "beta.badgeTip": "Active les fonctions expérimentales. Une préférence peut changer les zones affichées sur la carte.",
   "results.noRoutes": "Aucun tronçon n'est disponible pour ce lieu.",
   "results.noFitMtr": "Aucune zone uniquement MTR ne correspond à cette tolérance et à ce budget. Activez le bus ou augmentez la tolérance ou le budget.",
   "results.noFitBus": "Aucune zone uniquement bus ne correspond à cette tolérance et à ce budget. Activez le MTR ou augmentez la tolérance ou le budget.",

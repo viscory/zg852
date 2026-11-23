@@ -2,6 +2,10 @@
 
 This file records visual critiques of 就腳. The newest critique is first. Change `src/styles.css` so the page matches the newest sizes. Keep one size scale on `:root`.
 
+## 2026-11-23 Beta badge
+
+The header starts with a Beta badge. It is the first control in the top right bar. Pressing it turns beta features on or off. The tooltip says which features that enables. Today that is interest preferences, which can change the areas on the map. The options panel switch uses the same state.
+
 ## 2026-11-23 Header icons
 
 The language control shows the language name and is wider than the saved-people button. Share sits under the search button.

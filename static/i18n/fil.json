@@ -125,6 +125,8 @@
   "beta.title": "Mga tampok na beta",
   "beta.vectors": "Mga kagustuhan sa interes",
   "beta.note": "Eksperimental. Maaaring baguhin ng kagustuhan ang mga lugar sa mapa.",
+  "beta.badge": "Beta",
+  "beta.badgeTip": "Ino-on ang mga eksperimental na tampok. Maaaring baguhin ng kagustuhan ang mga lugar sa mapa.",
   "results.noRoutes": "Walang bahagi ng ruta para sa lugar na ito.",
   "results.noFitMtr": "Walang lugar na MTR lamang ang swak sa tolerance at budget na ito. I-enable ang bus o taasan ang tolerance o budget.",
   "results.noFitBus": "Walang lugar na bus lamang ang swak sa tolerance at budget na ito. I-enable ang MTR o taasan ang tolerance o budget.",
