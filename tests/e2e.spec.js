@@ -97,14 +97,14 @@ test('map renders a keyless vector canvas with no API-key errors', async ({ page
   expect(raster).toEqual([]);
 });
 
-test('brand, meaning text and MTR-facing labels use the Zak Geok identity', async ({ page }) => {
+test('brand copy and MTR-facing labels use the Zak Geok identity', async ({ page }) => {
   const en = await catalog(page, 'en');
   await expect(page.locator('.brand .logo')).toHaveText('ZG');
-  await expect(page.locator('h1')).toHaveText('擇角 Zak Geok');
+  await expect(page.locator('h1')).toHaveText('擇角 Zak Geok [zé jiǎo]');
   await expect(page.locator('h1')).toHaveText(en['app.title']);
-  await expect(page.locator('.brand .meaning')).toBeVisible();
-  await expect(page.locator('.brand .meaning')).toHaveText(en['app.meaning']);
-  await expect(page.locator('.brand .meaning')).toContainText('choose a corner');
+  await expect(page.locator('.brand .sub')).toHaveText('Find the most convenient meeting point for everyone');
+  await expect(page.locator('.brand .sub')).toHaveText(en['app.subtitle']);
+  await expect(page.locator('.brand .meaning')).toHaveCount(0);
   await expect(page.locator('.chip[data-mode="rail"]')).toHaveAttribute('aria-label', 'MTR');
   await expect(page.locator('.route-key [data-i18n="map.railKey"]')).toHaveText('MTR');
   await expect(page.locator('#tolerance')).toHaveAttribute('min', '0.05');
@@ -124,16 +124,16 @@ test('robots, llms, sitemap and build headers expose the llms.txt endpoint', asy
   expect(sitemap.ok()).toBeTruthy();
   expect(await sitemap.text()).toContain('/llms.txt');
 
-  const build = await page.request.get('/scripts/build-pages.mjs');
-  expect(build.ok()).toBeTruthy();
-  expect(await build.text()).toContain('/llms.txt');
+  const headers = await page.request.get('/_headers');
+  expect(headers.ok()).toBeTruthy();
+  expect(await headers.text()).toContain('/llms.txt');
 });
 
 test('production module wiring avoids inline importmaps and CSP exceptions', async ({ page }) => {
   const index = await page.evaluate(async () => (await (await fetch('index.html')).text()));
   const app = await page.evaluate(async () => (await (await fetch('app.js')).text()));
   const wrapper = await page.evaluate(async () => (await (await fetch('vendor/leaflet-maplibre-gl.mjs')).text()));
-  const build = await page.evaluate(async () => (await (await fetch('scripts/build-pages.mjs')).text()));
+  const headers = await page.evaluate(async () => (await (await fetch('_headers')).text()));
   expect(index).not.toContain('importmap');
   expect(index).toContain('<script type="module" src="app.js"></script>');
   expect(app).toContain("import * as L from './vendor/leaflet-src.esm.js';");
@@ -142,8 +142,8 @@ test('production module wiring avoids inline importmaps and CSP exceptions', asy
   expect(app).not.toContain('.style.cssText');
   expect(wrapper).toContain('from "./leaflet-src.esm.js"');
   expect(wrapper).toContain('from "./maplibre-gl.mjs"');
-  expect(build).toContain("script-src 'self'");
-  expect(build).not.toContain('unsafe-inline');
+  expect(headers).toContain("script-src 'self'");
+  expect(headers).not.toContain('unsafe-inline');
 });
 
 test('clean basemap adds keyless place labels without raster tiles', async ({ page }) => {
@@ -286,7 +286,7 @@ test('move controls reorder people and recenter never changes an origin', async 
   await expect(page.locator('.card .centre')).toHaveCount(0);
 
   const before = await page.locator('.start-input').first().inputValue();
-  await page.locator('#recenter').click();
+  await page.locator('.map-recenter-control .map-recenter').click();
   await expect(page.locator('.start-input').first()).toHaveValue(before);
   await expect(page.locator('.hint').first()).not.toHaveText('Map pin saved');
 });
@@ -473,10 +473,12 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
-  for (const key of ['app.meaning', 'people.focusTime', 'people.focusCost', 'options.tolerance', 'route.rideLeg', 'route.stopCount_other', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.close']) {
+  for (const key of ['app.subtitle', 'people.focusTime', 'people.focusCost', 'options.tolerance', 'route.rideLeg', 'route.stopCount_other', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
-  expect(catalogues[0]['app.title']).toBe('擇角 Zak Geok');
+  expect(Object.keys(catalogues[0])).not.toContain('app.meaning');
+  expect(catalogues[0]['app.title']).toBe('擇角 Zak Geok [zé jiǎo]');
+  expect(catalogues[0]['app.subtitle']).toBe('Find the most convenient meeting point for everyone');
   expect(catalogues[0]['options.rail']).toBe('MTR');
   expect(catalogues[0]['mode.rail']).toBe('MTR');
   expect(catalogues[0]['map.railKey']).toBe('MTR');
@@ -582,7 +584,7 @@ test('design system avoids banned decoration and labels every control', async ({
   await expect(page.locator('.locale')).toHaveAttribute('data-tooltip', 'Language');
   await expect(page.locator('.locale .icon-globe')).toBeVisible();
   await expect(page.locator('#locale')).toHaveAttribute('aria-label', 'Language');
-  for (const selector of ['#add', '#library', '#go', '#recenter', '#share']) {
+  for (const selector of ['#add', '#library', '#go', '#share']) {
     await expect(page.locator(`${selector} .icon`)).toBeVisible();
     await expect(page.locator(selector)).toHaveAttribute('data-tooltip', /.+/);
     await expect(page.locator(selector)).toHaveAttribute('aria-label', /.+/);
@@ -593,7 +595,11 @@ test('design system avoids banned decoration and labels every control', async ({
     await expect(chip.locator('.icon')).toBeVisible();
     await expect(chip).toHaveAttribute('data-tooltip', /.+/);
   }
-  await expect(page.locator('#recenter .icon-scan')).toBeVisible();
+  await expect(page.locator('#recenter')).toHaveCount(0);
+  await expect(page.locator('.map-recenter-control .map-recenter')).toBeVisible();
+  await expect(page.locator('.map-recenter-control .icon-scan')).toBeVisible();
+  await expect(page.locator('.map-recenter-control .map-recenter')).toHaveAttribute('aria-label', 'Recenter map');
+  await expect(page.locator('.leaflet-control-zoom')).toBeVisible();
   await expect(page.locator('.legend-head .icon-scan')).toBeVisible();
   await expect(page.locator('.legend')).toBeVisible();
   await expect(page.locator('.legend')).toHaveCSS('z-index', '900');
@@ -778,4 +784,28 @@ test('mobile layout puts the map above the panel and keeps the legend visible', 
   await expect(page.locator('.legend .pin-key')).toBeVisible();
   await expect(page.locator('.legend .recenter-key')).toBeVisible();
   await expect(page.locator('.legend .cloud-key')).toBeVisible();
+});
+
+test('changing a start place recomputes without pressing search', async ({ page }) => {
+  await expect(page.locator('.card')).toHaveCount(2);
+  await page.locator('.card').first().locator('.start-input').fill('Harbour City');
+  await expect(page.locator('.card').first().locator('.suggestion').first()).toBeVisible();
+  await page.locator('.card').first().locator('.suggestion').first().click();
+  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+  await expect(page.locator('#error')).toBeHidden();
+});
+
+test('adding and removing a person recomputes without pressing search', async ({ page }) => {
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+
+  await page.locator('#add').click();
+  await expect(page.locator('.card')).toHaveCount(3);
+  await expect.poll(() => page.locator('path.heat-cell').count()).toBe(0);
+  await expect(page.locator('#error')).toHaveText('Choose a start place for every person.');
+
+  await page.locator('.card').nth(2).locator('.remove').click();
+  await expect(page.locator('.card')).toHaveCount(2);
+  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+  await expect(page.locator('#error')).toBeHidden();
 });

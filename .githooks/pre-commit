@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+
+file="observations.md"
+
+if git diff --cached --quiet -- "$file"; then
+  exit 0
+fi
+
+if git diff --cached --name-status --diff-filter=D -- "$file" | grep -q '^D'; then
+  echo "pre-commit: observations.md must not be deleted" >&2
+  exit 1
+fi
+
+if git diff --cached --unified=0 -- "$file" | grep -E '^-' | grep -vE '^--- ' | grep -q .; then
+  echo "pre-commit: observations.md is prepend-only; existing lines must not be mutated" >&2
+  exit 1
+fi
+
+exit 0

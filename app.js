@@ -420,18 +420,18 @@ function flashSaved(id){
 function deleteDirectoryPerson(id){
   directory=directory.filter(d=>d.id!==id);
   people.forEach(p=>{if(p.directoryId===id)p.directoryId=null;});
-  saveDirectory();save();renderDirectoryList();
+  saveDirectory();save();renderDirectoryList();scheduleRecompute();
 }
 function addDirectoryPerson(profile){
   if(people.length>=8||!profile)return;
   people.push({id:`p${seq++}`,name:profile.name,origin:clone(profile.origin),directoryId:profile.id,focus:profile.focus==='cost'?'cost':'time'});
-  renderCards();save();
+  renderCards();save();scheduleRecompute();
 }
 function editDirectoryPerson(profile){
   let person=people.find(p=>p.directoryId===profile.id);
   if(!person&&people.length<8){addDirectoryPerson(profile);person=people[people.length-1];}
   if(person){person.name=profile.name;person.origin=clone(profile.origin);person.focus=profile.focus==='cost'?'cost':'time';}
-  renderCards();save();
+  renderCards();save();scheduleRecompute();
 }
 function profileLabel(profile){return profile.origin?.label||t('people.hintEmpty');}
 function profileDistrict(profile){return profile.origin?.district||districtFor(profile.origin?.lat,profile.origin?.lon);}
@@ -601,7 +601,7 @@ function setOrigin(person,place,hint,input,sug){
   if(input)input.value=place.label;
   if(hint)hint.textContent=originHint(person.origin);
   if(sug){sug.hidden=true;input?.setAttribute('aria-expanded','false');input?.removeAttribute('aria-activedescendant');}
-  clearError();save();
+  clearError();save();scheduleRecompute();
 }
 function renderSuggestions(sug,entries,person,input,failed=false){
   const items=dedupePlaces(entries,8);
@@ -696,7 +696,7 @@ function makeCard(person){
     },350);
   });
   card.querySelector('.save-person').onclick=()=>savePersonToDirectory(person);
-  card.querySelector('.remove').onclick=()=>{people=people.filter(p=>p.id!==id);renderCards();save();};
+  card.querySelector('.remove').onclick=()=>{people=people.filter(p=>p.id!==id);renderCards();save();scheduleRecompute();};
   card.querySelector('.move.up').onclick=()=>movePerson(id,-1);
   card.querySelector('.move.down').onclick=()=>movePerson(id,1);
   card.querySelector('.pin').onclick=()=>startPinMode(id,hint,input,sug);
@@ -714,7 +714,7 @@ function movePerson(id,delta){
   const i=people.findIndex(p=>p.id===id),j=i+delta;
   if(i<0||j<0||j>=people.length)return;
   [people[i],people[j]]=[people[j],people[i]];
-  renderCards();save();
+  renderCards();save();scheduleRecompute();
   document.querySelector(`.card[data-id="${CSS.escape(id)}"] .name-input`)?.focus();
 }
 function renderCards(){
@@ -765,7 +765,7 @@ function setPinOrigin(id,lat,lon){
   const idx=people.findIndex(p=>p.id===id);if(idx<0)return;
   people[idx].origin={kind:'coords',source:'pin',label:`${t('people.pin')} ${num(lat)}, ${num(lon)}`,lat,lon,district:districtFor(lat,lon)};
   clearPinMode();
-  renderCards();clearError();save();
+  renderCards();clearError();save();scheduleRecompute();
 }
 function renderDirectoryList(){
   const list=$('directoryList');if(!list)return;
@@ -1206,6 +1206,24 @@ async function init(){
   map=L.map('map',{zoomControl:false,keyboard:true,minZoom:1,maxBounds:[[180,-Infinity],[-180,Infinity]],maxBoundsViscosity:1,attributionControl:true}).setView([22.31,114.17],12);
   map.attributionControl.setPrefix('');
   map.attributionControl.addAttribution('© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>, <a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>, © OpenMapTiles · <a href="https://github.com/viscory/zg852/issues" target="_blank" rel="noopener noreferrer">Report a map issue</a>');
+  const RecenterControl=L.Control.extend({
+    options:{position:'bottomright'},
+    onAdd(){
+      const container=L.DomUtil.create('div','leaflet-control leaflet-bar map-recenter-control');
+      const button=L.DomUtil.create('button','map-recenter',container);
+      button.type='button';
+      button.innerHTML=icon('centre');
+      button.setAttribute('aria-label','Recenter map');
+      button.title='Recenter map';
+      button.dataset.tooltip='Recenter map';
+      button.setAttribute('data-i18n-aria-label','map.recenter');
+      button.setAttribute('data-i18n-tooltip','map.recenter');
+      L.DomEvent.disableClickPropagation(button);
+      L.DomEvent.on(button,'click',event=>{L.DomEvent.preventDefault(event);recenterMap();});
+      return container;
+    },
+  });
+  new RecenterControl().addTo(map);
   L.control.zoom({position:'bottomright'}).addTo(map);
   map.createPane('routePane').style.zIndex=450;
   map.createPane('pointPane').style.zIndex=460;
@@ -1231,7 +1249,7 @@ async function init(){
   loadNetwork().catch(err=>{console.error(err);showError(t('error.timetableFailed',{message:err.message}));});
 }
 
-$('add').onclick=()=>{if(people.length<8){people.push({id:`p${seq++}`,name:defaultName(people.length),origin:null,focus:'time'});renderCards();save();}};
+$('add').onclick=()=>{if(people.length<8){people.push({id:`p${seq++}`,name:defaultName(people.length),origin:null,focus:'time'});renderCards();save();scheduleRecompute();}};
 $('library').onclick=openDirectory;
 $('libraryClose').onclick=()=>closeDialog($('peopleDialog'));
 $('directorySearch').oninput=renderDirectoryList;
@@ -1254,7 +1272,6 @@ document.querySelectorAll('[data-vector]').forEach(input=>{input.oninput=readSet
 $('locale').onchange=e=>changeLocale(e.target.value);
 $('go').onclick=triggerSearch;
 $('emptyRun').onclick=triggerSearch;
-$('recenter').onclick=recenterMap;
 $('share').onclick=shareScenario;
 $('cancelPin').onclick=clearPinMode;
 document.addEventListener('click',e=>{document.querySelectorAll('.suggestions').forEach(s=>{if(!s.hidden&&!s.contains(e.target)){s.hidden=true;const input=s.parentElement.querySelector('.start-input');input?.setAttribute('aria-expanded','false');}});});

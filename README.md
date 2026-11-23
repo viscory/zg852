@@ -19,7 +19,9 @@ Open http://localhost:8765/
 npm test
 ```
 
-Playwright expects a local static server at `http://127.0.0.1:8765`.
+Playwright builds `public/` first and serves that directory at `http://127.0.0.1:8765`, so the tests exercise the same artifact that is deployed. Set `TEST_BASE_URL` to run the smoke spec against a deployed site instead, for example `TEST_BASE_URL=https://zg852.pages.dev npm test`.
+
+`npm install` activates the repository hooks in `.githooks/`. The pre-commit hook enforces that `observations.md` is prepend-only: every assistant turn adds a new block at the top, and existing lines must never be edited or removed.
 
 ## Build
 

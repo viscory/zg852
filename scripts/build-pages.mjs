@@ -106,6 +106,15 @@ for (const name of binaryFiles) {
   if (existsSync(source)) await cp(source, join(out, name));
 }
 
+const css = await readFile(join(root, 'styles.css'), 'utf8');
+const cssAssets = [...css.matchAll(/url\(\s*['"]?([^'")]+)['"]?\s*\)/g)].map(match => match[1]);
+for (const asset of cssAssets) {
+  if (/^(data:|https?:|blob:)/.test(asset)) continue;
+  const relative = asset.replace(/^\.\//, '');
+  if (!existsSync(join(root, relative))) throw new Error(`Missing asset referenced by styles.css: ${asset}`);
+  if (!existsSync(join(out, relative))) throw new Error(`Asset not copied to public: ${asset}`);
+}
+
 const swPath = join(out, 'sw.js');
 await writeFile(swPath, patchServiceWorker(await readFile(swPath, 'utf8')));
 await writeFile(join(out, '_headers'), headers);

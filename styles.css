@@ -48,7 +48,6 @@ header{height:67px;display:flex;align-items:center;justify-content:space-between
 .logo{width:34px;height:34px;border:1px solid var(--accent);border-radius:var(--r-md);display:grid;place-items:center;background:var(--accent);color:#FFFFFF;font-family:var(--sans);font-size:14px;font-weight:700;line-height:1;letter-spacing:.02em}
 .brand h1{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:0;color:var(--text)}
 .brand p{margin:2px 0 0;font-size:12px;color:var(--muted)}
-.brand .meaning{font-size:10px;line-height:1.3;color:var(--subtle)}
 .header-end{display:flex;align-items:center;gap:12px}
 .header-actions{display:flex;align-items:center;gap:8px}
 .status{margin:0;font-size:12px;color:var(--muted)}
@@ -199,6 +198,11 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .leaflet-control-attribution a{color:var(--accent)!important}
 .leaflet-bar a{background:var(--elevated)!important;color:var(--text)!important;border-bottom-color:var(--border)!important}
 .leaflet-bar a:hover{background:var(--danger-bg)!important}
+.map-recenter-control{border-bottom:0}
+.leaflet-control .map-recenter{width:30px;height:30px;padding:0;border:0;border-bottom:1px solid var(--border);border-radius:0;background:var(--elevated);color:var(--text);display:grid;place-items:center}
+.leaflet-control .map-recenter:last-child{border-bottom:0}
+.leaflet-control .map-recenter:hover{background:var(--danger-bg);color:var(--accent)}
+.leaflet-control .map-recenter .icon{width:16px;height:16px}
 .legend{position:absolute;left:24px;bottom:24px;z-index:900;pointer-events:none;display:grid;gap:6px;max-width:560px;background:var(--elevated);border:1px solid var(--border);border-radius:var(--r-md);padding:8px 12px;font-size:12px;color:var(--muted);box-shadow:0 6px 20px rgba(80,20,20,.08)}
 .legend-head{display:flex;align-items:center;gap:6px;color:var(--text);font-weight:600}
 .legend-head .icon{color:var(--accent)}
@@ -284,7 +288,6 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   header{height:auto;min-height:67px;flex-wrap:wrap;padding:8px 16px}
   .brand h1{font-size:18px}
   .brand p{font-size:11px}
-  .brand .meaning{font-size:10px}
   .header-end{width:100%;justify-content:space-between}
   .layout{grid-template-columns:minmax(0,1fr);grid-template-rows:48vh auto auto;height:calc(100vh - 104px);overflow-y:auto;align-content:start}
   .main{grid-column:1;grid-row:1;min-height:0}

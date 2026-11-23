@@ -1,7 +1,6 @@
 {
-  "app.title": "擇角 Zak Geok",
-  "app.subtitle": "Find a fair meeting point in Hong Kong",
-  "app.meaning": "Cantonese zaak6 goek3, choose a corner. Find a meeting point that is fair for everyone.",
+  "app.title": "擇角 Zak Geok [zé jiǎo]",
+  "app.subtitle": "Find the most convenient meeting point for everyone",
   "header.status": "Browser-side routing. Timetable:",
   "header.saved": "Saved on this device.",
   "people.title": "People and start places",
