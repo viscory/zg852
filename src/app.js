@@ -7,7 +7,7 @@ import { betaVectorsEnabled } from './js/vectors.js';
 import { defaultName,applySharedState,restoreState,restoreDirectory,shareScenario,readHashState,save } from './js/state.js';
 import { triggerSearch } from './js/engine.js';
 import { createMap,drawOrigins } from './js/map.js';
-import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,commitPeople } from './js/ui.js';
+import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,commitPeople,setSidebarFace } from './js/ui.js';
 
 async function init(){
   createMap();
@@ -50,8 +50,9 @@ $('betaVectors').onchange=async()=>{
 };
 document.querySelectorAll('[data-vector]').forEach(input=>{input.oninput=readSettingsFromDom;});
 $('locale').onchange=e=>changeLocale(e.target.value);
-$('go').onclick=triggerSearch;
-$('emptyRun').onclick=triggerSearch;
+$('swapFace').onclick=()=>setSidebarFace(store.sidebarFace==='people'?'results':'people');
+$('go').onclick=()=>{setSidebarFace('results');triggerSearch();};
+$('emptyRun').onclick=()=>{setSidebarFace('results');triggerSearch();};
 $('share').onclick=shareScenario;
 $('cancelPin').onclick=clearPinMode;
 document.addEventListener('click',e=>{document.querySelectorAll('.suggestions').forEach(s=>{if(!s.hidden&&!s.contains(e.target)){s.hidden=true;const input=s.parentElement.querySelector('.start-input');input?.setAttribute('aria-expanded','false');}});});

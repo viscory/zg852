@@ -1,3 +1,12 @@
+## 2026-11-23T02:05:00Z
+
+- Made the Jyutping `zau6 goek3` 13px. It stays italic and uses the lighter `--subtle` color. The name 就腳 stays at 20px.
+- The left sidebar now has two faces. People are the default. Results stay hidden until the user swaps or presses Search.
+- The swap control is `#swapFace`, an icon button at the top right of the left sidebar. `setSidebarFace()` in `src/js/ui.js` flips the stage on the Y axis, then shows the other face. Reduced motion skips the animation.
+- Search (`#go` and `#emptyRun`) opens the results face. Later recomputes do not pull the user back.
+- Added `sidebar.swap` to all 15 catalogues. Bumped the service-worker cache to `zg852-v22`.
+- `npx eslint .` is clean. `npm test` passed 43 tests. The locale test needed a swap back to people before it could click Add. Changes are not committed.
+
 ## 2026-11-23T01:46:00Z
 
 - Removed the English name "Zak Geok" from the header, page titles, meta tags, catalogues, legal pages, README, and `llms.txt`. The visible heading is now 就腳 plus the Jyutping `zau6 goek3`.

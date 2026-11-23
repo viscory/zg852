@@ -13,6 +13,25 @@ import { hideTooltip,clearMapOutput,selectResult } from './map.js';
 export function showError(message){const el=$('error');el.textContent=message;el.hidden=false;}
 export function clearError(){const el=$('error');el.textContent='';el.hidden=true;}
 export function setLabel(el,value){if(!el)return;el.setAttribute('aria-label',value);el.title=value;el.dataset.tooltip=value;}
+let flipToken=0;
+export function setSidebarFace(face){
+  if(face!=='people'&&face!=='results'||store.sidebarFace===face)return;
+  const stage=$('flipStage');
+  const apply=()=>{
+    store.sidebarFace=face;
+    document.querySelectorAll('.side-left [data-face]').forEach(el=>{el.hidden=el.dataset.face!==face;});
+  };
+  if(!stage||matchMedia('(prefers-reduced-motion: reduce)').matches){apply();return;}
+  const token=++flipToken;
+  stage.classList.remove('flip-in');
+  stage.classList.add('flip-out');
+  stage.addEventListener('animationend',event=>{
+    if(event.target!==stage||token!==flipToken)return;
+    stage.classList.remove('flip-out');
+    apply();
+    stage.classList.add('flip-in');
+  },{once:true});
+}
 export function flashTooltip(element,message){
   if(!element)return;
   const original=element.dataset.tooltip||element.getAttribute('aria-label')||'';

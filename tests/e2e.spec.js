@@ -106,10 +106,11 @@ test('brand copy and MTR-facing labels use the 就腳 name', async ({ page }) =>
   const jyutping = await page.locator('h1 .jyutping').evaluate(el => {
     const style = getComputedStyle(el);
     const parent = getComputedStyle(el.parentElement);
-    return { fontStyle: style.fontStyle, color: style.color, parentColor: parent.color };
+    return { fontStyle: style.fontStyle, color: style.color, parentColor: parent.color, fontSize: parseFloat(style.fontSize), parentSize: parseFloat(parent.fontSize) };
   });
   expect(jyutping.fontStyle).toBe('italic');
   expect(jyutping.color).not.toBe(jyutping.parentColor);
+  expect(jyutping.fontSize).toBeLessThan(jyutping.parentSize);
   const sizes = await page.evaluate(() => {
     const input = document.querySelector('.name-input').getBoundingClientRect();
     const save = document.querySelector('.save-person').getBoundingClientRect();
@@ -180,7 +181,7 @@ test('defaults load and a two-person search draws fair map areas', async ({ page
   await expect(page.locator('#detail')).toBeHidden();
   await expect(page.locator('path.heat-cell')).toHaveCount(0);
   await expect(page.locator('#resultsList')).toBeEmpty();
-  await expect(page.locator('#resultState')).toBeVisible();
+  await expect(page.locator('#resultState')).toBeHidden();
   await expect(page.locator('#nres')).toBeEmpty();
 
   await page.locator('#go').click();
@@ -328,7 +329,13 @@ test('people and results stay left, controls stay right, and the map fills the m
   await expect(page.locator('.side-left .card')).toHaveCount(2);
   await expect(page.locator('.side-left #add')).toBeVisible();
   await expect(page.locator('.side-left #resultsList')).toBeAttached();
+  await expect(page.locator('.side-left #resultState')).toBeHidden();
+  await expect(page.locator('#swapFace')).toBeVisible();
+  await page.locator('#swapFace').click();
   await expect(page.locator('.side-left #resultState')).toBeVisible();
+  await expect(page.locator('.side-left #add')).toBeHidden();
+  await page.locator('#swapFace').click();
+  await expect(page.locator('.side-left #add')).toBeVisible();
   await expect(page.locator('.side-left #nres')).toBeEmpty();
   await expect(page.locator('.side-right #go')).toBeVisible();
   await expect(page.locator('.side-right #tolerance')).toBeVisible();
@@ -474,6 +481,7 @@ test('locale switching translates static text and enables RTL layout', async ({ 
   await expect(page.locator('#detailSub')).toContainText('差距');
   await expect(page.locator('#detailSub')).toContainText('最長');
 
+  await page.locator('#swapFace').click();
   await page.locator('#add').click();
   await page.locator('#locale').selectOption('ur');
   await expect.poll(() => page.locator('html').getAttribute('dir')).toBe('rtl');
@@ -812,6 +820,7 @@ test('adding and removing a person recomputes without pressing search', async ({
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
 
+  await page.locator('#swapFace').click();
   await page.locator('#add').click();
   await expect(page.locator('.card')).toHaveCount(3);
   await expect.poll(() => page.locator('path.heat-cell').count()).toBe(0);

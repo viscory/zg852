@@ -7,5 +7,5 @@ export const store={
   selection:{kind:'result',index:0},sharedSelection:null,
   geoCache:{},pinTarget:null,
   POI:null,poiLoaded:false,poiLoading:null,recomputeTimer:null,workSeq:0,hoverCell:null,tooltipTimer:null,solveKey:null,
-  locale:'en',EN:{},I18N:{},DISTRICTS:[],
+  locale:'en',EN:{},I18N:{},DISTRICTS:[],sidebarFace:'people',
 };
