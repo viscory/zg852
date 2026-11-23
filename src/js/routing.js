@@ -187,6 +187,19 @@ export function reconstructChain(sol,k){
   while(cur!==undefined&&cur!==sol.start&&chain.length<4000){chain.push(cur);cur=sol.prev.get(cur);}
   return chain.reverse();
 }
+// A walk-only route to a pinned point can end with two adjacent walk legs:
+// the walk to the nearest stop, then the short walk from that stop to the pin.
+// Show that as one continuous walk instead of "Walk 6 min" + "Walk 2 min".
+function mergeWalks(legs){
+  for(let i=legs.length-1;i>0;i--){
+    const previous=legs[i-1],next=legs[i];
+    if(previous.mode!=='walk'||next.mode!=='walk')continue;
+    const minutes=previous.minutes+next.minutes,pinned=next.to===t('map.pinnedPoint');
+    const text=pinned?t('route.walkTo',{time:minuteText(minutes),to:next.to}):t('route.walkLeg',{time:minuteText(minutes)});
+    legs.splice(i-1,2,{...previous,minutes,coords:dedupePath([...previous.coords,...next.coords]),to:next.to,toNode:next.toNode,text});
+  }
+  return legs;
+}
 export function describe(sol,origin,target,walkMinutes=WALK_TOLERANCE_DEFAULT,targetPoint=null){
   const walkLimit=clamp(walkMinutes,0,WALK_TOLERANCE_MAX,WALK_TOLERANCE_DEFAULT),includeHeadway=store.settings.includeHeadway!==false,candidates=[];
   for(let l=-2;l<store.NET.lines.length;l++){
@@ -256,8 +269,9 @@ export function describe(sol,origin,target,walkMinutes=WALK_TOLERANCE_DEFAULT,ta
         legs.push(finalWalk);
       }
     }
-    const fares=routeFares({legs});
-    candidates.push({d,line:l,legs,fares,total:fares.total});
+    const merged=mergeWalks(legs);
+    const fares=routeFares({legs:merged});
+    candidates.push({d,line:l,legs:merged,fares,total:fares.total});
   }
   if(!candidates.length)return{text:t('route.unreachable'),legs:[],path:[[origin.lat,origin.lon]],fares:{rail:0,bus:0,total:0}};
   const walk=candidates.find(c=>c.line===-2&&c.d<=walkLimit);

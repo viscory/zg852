@@ -136,7 +136,8 @@ test('brand copy and MTR-facing labels use the 就腳 name', async ({ page }) =>
   await expect(page.locator('#tolerance')).toHaveAttribute('min', '0.05');
   await expect(page.locator('label[for="tolerance"]')).toHaveText('How much longer the slowest trip may be than the fastest, as a percentage.');
   await expect(page.locator('.tolerance-row #exportDiagnostics')).toHaveCount(0);
-  await expect(page.locator('.legal-links #exportDiagnostics .beta-tag')).toHaveText('beta');
+  await expect(page.locator('.legal-links #exportDiagnostics')).toBeHidden();
+  await expect(page.locator('#exportDiagnostics .icon-download')).toHaveCount(1);
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', 'https://zg852.pages.dev/og-image.png?v=2');
 });
 
@@ -649,6 +650,11 @@ test('tolerance runs from 5% to 300%, then opens free point picking', async ({ p
   await expect(page.locator('#pointBanner')).toBeVisible();
   await expect(page.locator('#detailTitle')).toHaveText('Pinned point');
   await expect(page.locator('#steps')).toContainText('Pinned point');
+  await expect(page.locator('#steps .route-meta')).toHaveCount(2);
+  await expect(page.locator('#steps .route-meta').first()).toContainText('min');
+  await expect(page.locator('#steps .route-meta').first()).toContainText('HK$');
+  const splitWalks = await page.locator('#steps .step').evaluateAll(steps => steps.filter(step => !step.querySelector('.ride-leg') && step.querySelectorAll('.walk-leg').length > 1).length);
+  expect(splitWalks).toBe(0);
 
   await page.locator('#clearPoint').click();
   await expect(page.locator('#pointBanner')).toBeHidden();
@@ -664,6 +670,8 @@ test('diagnostics dump downloads a timestamped JSON file and copies it', async (
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await page.locator('#betaBadge').click();
+  await expect(page.locator('#exportDiagnostics')).toBeVisible();
 
   const downloadPromise = page.waitForEvent('download');
   await page.locator('#exportDiagnostics').click();
@@ -756,8 +764,8 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
-  expect(expected).toHaveLength(160);
-  for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.beta', 'diag.help', 'vector.ratings', 'vector.ratingScale', 'vector.overall', 'vector.rating', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
+  expect(expected).toHaveLength(159);
+  for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'vector.ratings', 'vector.ratingScale', 'vector.overall', 'vector.rating', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
   for (const key of ['app.meaning', 'people.focusLabel', 'people.focusTime', 'people.focusCost']) {
@@ -939,12 +947,14 @@ test('design system avoids banned decoration and labels every control', async ({
 test('beta interest vectors default off and recompute the map with labelled preferences', async ({ page }) => {
   await expect(page.locator('#vectorSection')).toBeHidden();
   await expect(page.locator('#legendVectorKey')).toBeHidden();
+  await expect(page.locator('#exportDiagnostics')).toBeHidden();
   await Promise.all([
     page.waitForResponse(response => response.url().includes('poi-index.json')),
     page.locator('#betaBadge').click(),
   ]);
   await expect(page.locator('#vectorSection')).toBeVisible();
   await expect(page.locator('#legendVectorKey')).toBeVisible();
+  await expect(page.locator('#exportDiagnostics')).toBeVisible();
   for (const key of ['food', 'drinks', 'activities', 'culture', 'outdoors', 'shopping']) {
     await expect(page.locator(`#vec-${key}`)).toHaveValue('0');
     await expect(page.locator(`#vec-${key}-val`)).toHaveText('Off');
@@ -985,6 +995,7 @@ test('beta interest vectors default off and recompute the map with labelled pref
   await page.locator('#betaBadge').click();
   await expect(page.locator('#vectorSection')).toBeHidden();
   await expect(page.locator('#legendVectorKey')).toBeHidden();
+  await expect(page.locator('#exportDiagnostics')).toBeHidden();
   await expect(page.locator('#interestRatings')).toBeHidden();
   await expect.poll(() => page.locator('#detailSub').textContent()).not.toContain('preference');
 });
@@ -1012,9 +1023,11 @@ test('interest tooltip shows normalized category ratings when beta is on', async
   await expect(page.locator('#mapTooltip')).toBeVisible({ timeout: 2500 });
   await expect(page.locator('#mapTooltip')).toContainText('Area interest fit');
   await expect(page.locator('#mapTooltip .tooltip-vector')).toHaveCount(6);
-  for (const key of ['food', 'drinks', 'activities', 'culture', 'outdoors', 'shopping']) {
-    await expect(page.locator(`#mapTooltip .tooltip-vector[data-category="${key}"] .tooltip-rating`)).toHaveText(/^\d+\/100$/);
-  }
+  await expect(page.locator('#mapTooltip .tooltip-fill')).toHaveCount(6);
+  await expect(page.locator('#mapTooltip')).not.toContainText('/100');
+  const widths = await page.locator('#mapTooltip .tooltip-fill').evaluateAll(fills => fills.map(fill => fill.style.width));
+  expect(widths).toHaveLength(6);
+  expect(widths.every(width => /^\d+%$/.test(width))).toBe(true);
 });
 
 // Leaves the page on a result whose route really has an interchange, so tests

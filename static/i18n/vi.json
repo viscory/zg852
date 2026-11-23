@@ -154,7 +154,6 @@
   "diag.downloaded": "Đã tải dữ liệu chẩn đoán",
   "diag.failed": "Không thể xuất dữ liệu chẩn đoán",
   "route.walkTo": "Đi bộ {time} đến {to}",
-  "diag.beta": "beta",
   "vector.ratings": "Điểm sở thích",
   "vector.ratingScale": "Chuẩn hoá logarit 0–100 theo danh mục",
   "vector.overall": "Tổng thể {value}/100",

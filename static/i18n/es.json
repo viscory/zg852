@@ -154,7 +154,6 @@
   "diag.downloaded": "Diagnóstico descargado",
   "diag.failed": "No se pudo exportar el diagnóstico",
   "route.walkTo": "Caminar {time} hasta {to}",
-  "diag.beta": "beta",
   "vector.ratings": "Valoraciones de intereses",
   "vector.ratingScale": "Normalizado logarítmico 0–100 por categoría",
   "vector.overall": "General {value}/100",

@@ -154,7 +154,6 @@
   "diag.downloaded": "निदान डेटा डाउनलोड किया गया",
   "diag.failed": "निदान डेटा निर्यात नहीं किया जा सका",
   "route.walkTo": "{to} तक पैदल {time}",
-  "diag.beta": "बीटा",
   "vector.ratings": "रुचि रेटिंग",
   "vector.ratingScale": "श्रेणी अनुसार लघुगणकीय 0–100",
   "vector.overall": "कुल {value}/100",

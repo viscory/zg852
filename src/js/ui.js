@@ -56,6 +56,7 @@ export function applyBetaFeatures(){
   const badge=$('betaBadge');if(badge)badge.setAttribute('aria-pressed',String(enabled));
   const section=$('vectorSection');if(section)section.hidden=!enabled;
   const legendKey=$('legendVectorKey');if(legendKey)legendKey.hidden=!enabled;
+  const diagnostics=$('exportDiagnostics');if(diagnostics)diagnostics.hidden=!enabled;
   if(!enabled){store.POI={cells:{}};store.poiLoaded=false;}
 }
 export function applySettingsToDom(){

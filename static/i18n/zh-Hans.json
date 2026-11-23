@@ -154,7 +154,6 @@
   "diag.downloaded": "诊断数据已下载",
   "diag.failed": "无法导出诊断数据",
   "route.walkTo": "步行 {time} 至{to}",
-  "diag.beta": "测试版",
   "vector.ratings": "兴趣评分",
   "vector.ratingScale": "各类别以对数归一化为 0–100",
   "vector.overall": "整体 {value}/100",

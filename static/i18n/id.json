@@ -154,7 +154,6 @@
   "diag.downloaded": "Diagnostik dimuat turun",
   "diag.failed": "Gagal mengeksport diagnostik",
   "route.walkTo": "Jalan {time} ke {to}",
-  "diag.beta": "beta",
   "vector.ratings": "Peringkat minat",
   "vector.ratingScale": "Dinormalisasi log 0–100 per kategori",
   "vector.overall": "Keseluruhan {value}/100",

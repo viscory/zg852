@@ -6,7 +6,7 @@ import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,TRAVEL_BUDGET_MINUTES } from
 import { store } from './store.js';
 import { $,esc,clamp,isNum,icon,initialsFor,avatarClass,haversine } from './util.js';
 import { t,num,intNum,minuteText } from './i18n.js';
-import { betaVectorsEnabled,preferenceText,cellTopNames,cellPreference,cellRatings,overallRating,ratingText } from './vectors.js';
+import { betaVectorsEnabled,preferenceText,cellTopNames,cellRatings,overallRating,ratingText } from './vectors.js';
 import { prepareRoutes,legLabel,fareMarkup,money,cellToResult,interchangeWaitText } from './routing.js';
 import { hkbusUrl,mtrLineCode,districtFor } from './data.js';
 import { displayName } from './state.js';
@@ -152,7 +152,7 @@ export function scheduleCellTooltip(cell,event){
     const tooltip=$('mapTooltip');
     if(enabled){
       const ratings=cellRatings(cell),places=cellTopNames(cell);
-      tooltip.innerHTML=`<b>${esc(t('map.cellTitle'))} · ${esc(ratingText(overallRating(cell)))} · ${esc(preferenceText(cellPreference(cell)))}</b>${ratings.map(({key,rating,count})=>`<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}"><span>${esc(t('vector.'+key))}<em>${esc(num(count))}</em></span><span class="tooltip-track"><i class="tooltip-fill" data-width="${rating}"></i></span><span class="tooltip-rating">${esc(ratingText(rating))}</span></span>`).join('')}${places.length?`<span class="tooltip-places">${esc(places.join(' · '))}</span>`:''}`;
+      tooltip.innerHTML=`<b>${esc(t('map.cellTitle'))}</b>${ratings.map(({key,rating})=>`<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}"><span>${esc(t('vector.'+key))}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${rating}"></i></span></span>`).join('')}${places.length?`<span class="tooltip-places">${esc(places.join(' · '))}</span>`:''}`;
       tooltip.querySelectorAll('.tooltip-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
     }else{
       tooltip.innerHTML=`<b>${esc(t('map.areaTitle'))} · ${esc(t('results.longest',{value:intNum(cell.slowest)}))}</b>`;
@@ -262,7 +262,7 @@ export function renderSelection(r,active=store.activePeople){
   const already=r.times.every(value=>value<=0.5);
   $('steps').innerHTML=legCount?r.routes.map((route,j)=>`<div class="step">
     <span class="dot ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>
-    <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(legChip).join('')}</span><span class="muted">${esc(minuteText(r.times[j]))}</span>${fareMarkup(route)}</span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t(already?'route.already':'results.noRoutes'))}</span></span></div>`;
+    <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(legChip).join('')}</span><span class="route-meta"><span class="muted">${esc(minuteText(r.times[j]))}</span>${fareMarkup(route)}</span></span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t(already?'route.already':'results.noRoutes'))}</span></span></div>`;
   const pts=r.paths.flat().concat(active.map(p=>[p.origin.lat,p.origin.lon]));
   if(pts.length)map.fitBounds(pts,{padding:[60,60],maxZoom:14});
 }

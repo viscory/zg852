@@ -1,3 +1,11 @@
+## 2026-11-23T17:09:40Z
+
+- Replaced the literal “Diagnostics beta” footer text with a muted download icon button in `.legal-links` after Process. It is hidden by default and only shown by `applyBetaFeatures()` when beta vectors are on; accessible label/tooltip remain, and the unused `diag.beta` key was removed from FALLBACK and all 15 catalogues (159 keys).
+- Reworked the beta map tooltip: it now shows only the category label plus a filled normalized bar for each of the six interests. Removed the per-category `/100` values, counts, and overall numeric score from the tooltip; the bars are still set from the existing 0..1 log-normalised POI values.
+- Fixed the pinned-point route display. `describe()` now merges adjacent walk legs before building legs/fares, so a walk-only route to a pin shows one continuous walk instead of “Walk 6 min” followed by “Walk 2 min to Pinned point”. Total journey time and fare now render together in one `.route-meta` line per person instead of on separate rows.
+- Preserved the earlier fixes: one-line tolerance explanation, no headway help text, sticky footer, per-category interest ratings in the detail panel, full MTR names, integer minutes, search flipping to detail, i18n parity, and no raw keys.
+- Bumped service-worker cache `zg852-v39` → `zg852-v40`. Verification clean: `npm run lint` (159 keys × 15 catalogues, 106 literal keys), `npm test` 65/65, `npm run build`, `git diff --check`. Changes are in the working tree but not yet committed.
+
 ## 2026-11-23T16:57:47Z
 
 - Corrected the previous misread: diagnostics is now a muted text button beside Process in the rightbar footer with a small `beta` superscript, and its status output lives in the footer. Removed `data-i18n` from the button element because the i18n pass replaced its child markup and hid the beta tag.
