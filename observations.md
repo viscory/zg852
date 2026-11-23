@@ -1,3 +1,9 @@
+## 2026-11-23T03:00:00Z
+
+- Committed the audit fixes as `b12991c` and pushed `main` to `origin`.
+- GitHub Actions deploy still has no Cloudflare secrets, so I deployed with the local wrangler login. Production `sw.js` is now `zg852-v24`.
+- `https://zg852.pages.dev/definitely-not-a-page` returns 404. The deployment URL is `https://f8e0f31b.zg852.pages.dev`.
+
 ## 2026-11-23T02:57:00Z
 
 - The live Playwright job finished with 50 failed and 0 passed. The live journey probe finished with exit 0. Both results are already in the 02:54 UTC section of `AUDIT-REPORT.md`.
