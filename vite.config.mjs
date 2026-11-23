@@ -14,6 +14,7 @@ export default defineConfig({
         privacy: resolve('src/privacy.html'),
         terms: resolve('src/terms.html'),
         credits: resolve('src/credits.html'),
+        process: resolve('src/process.html'),
       },
       output: {
         entryFileNames: '[name].js',

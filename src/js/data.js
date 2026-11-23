@@ -22,7 +22,7 @@ export async function loadNetwork(){
   store.NET.walk.forEach(([a,b,d])=>{store.walkAdj[a].push([b,d]);store.walkAdj[b].push([a,d]);});
   store.NET.lines.forEach((line,li)=>{for(let i=0;i<line.s.length;i++){
     const node=line.s[i];store.nodeLines[node].push(li);
-    if(i+1<line.s.length)store.rideAdj[node].push([li,line.s[i+1],line.e[i]]);
+    if(i+1<line.s.length)store.rideAdj[node].push([li,line.s[i+1],line.e[i],i]);
   }});
   document.documentElement.dataset.net='ready';
   return store.NET;

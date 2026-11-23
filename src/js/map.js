@@ -7,7 +7,7 @@ import { store } from './store.js';
 import { $,esc,clamp,isNum,icon,initialsFor,avatarClass } from './util.js';
 import { t,num,minuteText } from './i18n.js';
 import { betaVectorsEnabled,preferenceText,cellVector,cellCount,cellTopNames,cellPreference } from './vectors.js';
-import { prepareRoutes,legLabel,fareMarkup,cellToResult } from './routing.js';
+import { prepareRoutes,legLabel,fareMarkup,money,cellToResult } from './routing.js';
 import { displayName } from './state.js';
 import { markSelectedResult,setPinOrigin,setLabel } from './ui.js';
 
@@ -195,6 +195,12 @@ export function applySelection(active=store.activePeople){
   }
   selectResult(clamp(Number(store.selection?.index)||0,0,Math.max(0,store.results.length-1)),active);
 }
+function legChip(leg){
+  if(leg.mode==='walk')return `<span class="walk-leg route-walk"><span class="ride-text">${esc(leg.text||legLabel(leg))}</span></span>`;
+  const rail=leg.mode==='rail',modeLabel=rail?`MTR ${String(leg.line).replace(/^MTR\s+/i,'')}`:`Bus ${leg.line}`;
+  const fare=leg.fare?`<span class="fare">${esc(t('results.fareTotal',{value:money(leg.fare)}))}</span>`:'';
+  return `<span class="ride-leg route-${leg.mode}"><span class="leg-mode"><span class="icon icon-${rail?'rail':'bus'}" aria-hidden="true"></span>${esc(modeLabel)}</span><span class="leg-stops"><span class="leg-board">${esc(t('route.getOn',{place:leg.from}))}</span><span class="leg-alight">${esc(t('route.getOff',{place:leg.to}))}</span></span><span class="leg-meta"><span class="leg-time">${esc(minuteText(leg.minutes))}</span>${fare}</span></span>`;
+}
 export function renderSelection(r,active=store.activePeople){
   if(!r)return;
   const index=store.results.findIndex(result=>resultMatches(result,r));
@@ -221,7 +227,7 @@ export function renderSelection(r,active=store.activePeople){
   const already=r.times.every(value=>value<=0.5);
   $('steps').innerHTML=legCount?r.routes.map((route,j)=>`<div class="step">
     <span class="dot ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>
-    <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(leg=>`<span class="${leg.mode==='walk'?'walk-leg':'ride-leg'} route-${leg.mode}"><span class="ride-text">${esc(leg.text||legLabel(leg))}</span></span>`).join('')}</span><span class="muted">${esc(minuteText(r.times[j]))}</span>${fareMarkup(route)}</span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t(already?'route.already':'results.noRoutes'))}</span></span></div>`;
+    <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(legChip).join('')}</span><span class="muted">${esc(minuteText(r.times[j]))}</span>${fareMarkup(route)}</span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t(already?'route.already':'results.noRoutes'))}</span></span></div>`;
   const pts=r.paths.flat().concat(active.map(p=>[p.origin.lat,p.origin.lon]));
   if(pts.length)map.fitBounds(pts,{padding:[60,60],maxZoom:14});
 }

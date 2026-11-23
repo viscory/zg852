@@ -42,6 +42,7 @@
       <button class="icon-button" id="share" type="button" data-i18n-tooltip="share.title" data-i18n-aria-label="share.title" aria-label="Share scenario" title="Share scenario" data-tooltip="Share scenario">
         <span class="icon icon-share" aria-hidden="true"></span>
       </button>
+      <output id="shareStatus" class="share-status" role="status" aria-live="polite" hidden></output>
       <label class="locale icon-button" for="locale" data-i18n-tooltip="locale.label" title="Language" data-tooltip="Language">
         <span class="sr-only" data-i18n="locale.label">Language</span>
         <span class="icon icon-globe" aria-hidden="true"></span>
@@ -109,7 +110,7 @@
     <div class="map-tooltip" id="mapTooltip" role="tooltip" hidden></div>
     <div class="legend">
       <div class="legend-head"><span class="icon icon-scan" aria-hidden="true"></span><span data-i18n="map.legend">Map key</span></div>
-      <div class="cloud-key"><span class="swatch h6"></span><span class="swatch h5"></span><span class="swatch h4"></span><span class="swatch h3"></span><span class="swatch h2"></span><span class="swatch h1"></span> <span data-i18n="map.fairArea">Fair area, darker means closer to the budget</span></div>
+      <div class="cloud-key"><span class="swatch h6"></span><span class="swatch h5"></span><span class="swatch h4"></span><span class="swatch h3"></span><span class="swatch h2"></span><span class="swatch h1"></span> <span data-i18n="map.fairArea">Fair area, darker means shorter travel time</span></div>
       <div class="route-key">
         <span data-i18n="map.routeKey">Route key</span>
         <span class="key-line route-walk"></span><span data-i18n="map.walkKey">Walk</span>
@@ -144,12 +145,6 @@
     </div>
     <input type="range" id="tolerance" min="0.05" max="0.5" step="0.05" value="0.1">
     <div class="slider-row ends"><span data-i18n="options.toleranceNear">Near equal</span><span data-i18n="options.toleranceFlexible">More flexible</span></div>
-    <div class="slider-row slider-gap">
-      <label for="budget" data-i18n="options.budget">Travel budget for everyone</label>
-      <span class="value" id="budgetval">60 min</span>
-    </div>
-    <input type="range" id="budget" min="15" max="180" step="5" value="60">
-    <div class="slider-row ends"><span data-i18n="options.budgetMin">15 min</span><span data-i18n="options.budgetMax">180 min</span></div>
     <button class="go" id="go" type="button" data-i18n-tooltip="options.search" data-i18n-aria-label="options.search" aria-label="Find fair areas" title="Find fair areas" data-tooltip="Find fair areas">
       <span class="icon icon-search" aria-hidden="true"></span><span class="sr-only" id="goLabel" data-i18n="options.search">Find fair areas</span>
     </button>
@@ -168,13 +163,16 @@
         <div class="slider-row ends vector-ends"><span data-i18n="vector.avoidStrong">Strong avoid</span><span data-i18n="vector.off">Off</span><span data-i18n="vector.preferStrong">Strong prefer</span></div>
       </div>
     <p class="save-summary" id="saveSummary"></p>
-    <p class="note"><span data-i18n="note.attribution">Routing runs in this browser. Place search uses keyless Photon and the map uses OpenFreeMap vector tiles from OpenStreetMap data. Your people and settings stay on this device.</span></p>
-    <p class="note credit-note"><span data-i18n="credit.inspired">Inspired by</span> <a href="https://fairpin.ph/" target="_blank" rel="noopener noreferrer">FairPin PH</a>. <span data-i18n="credit.unused">I have not used their service.</span></p>
-    <nav class="legal-links" aria-label="Legal and project information">
-      <button class="legal-button" type="button" data-legal="privacy" data-i18n="legal.privacy">Privacy</button>
-      <button class="legal-button" type="button" data-legal="terms" data-i18n="legal.terms">Terms</button>
-      <button class="legal-button" type="button" data-legal="credits" data-i18n="legal.credits">Credits</button>
-    </nav>
+    <footer class="rightbar-footer">
+      <p class="note"><span data-i18n="note.attribution">Routing runs in this browser. Place search uses keyless Photon and the map uses OpenFreeMap vector tiles from OpenStreetMap data. Your people and settings stay on this device.</span></p>
+      <p class="note credit-note"><span data-i18n="credit.inspired">Inspired by</span> <a href="https://fairpin.ph/" target="_blank" rel="noopener noreferrer">FairPin PH</a>. <span data-i18n="credit.unused">I have not used their service.</span></p>
+      <nav class="legal-links" aria-label="Legal and project information">
+        <button class="legal-button" type="button" data-legal="privacy" data-i18n="legal.privacy">Privacy</button>
+        <button class="legal-button" type="button" data-legal="terms" data-i18n="legal.terms">Terms</button>
+        <button class="legal-button" type="button" data-legal="credits" data-i18n="legal.credits">Credits</button>
+        <button class="legal-button" type="button" data-legal="process" data-i18n="legal.process">Process</button>
+      </nav>
+    </footer>
   </aside>
 </div>
 <dialog class="dialog" id="peopleDialog" aria-labelledby="libraryTitle">

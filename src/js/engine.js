@@ -1,4 +1,4 @@
-import { MAX_CLOUD_CELLS,RECOMPUTE_DELAY } from './config.js';
+import { MAX_CLOUD_CELLS,RECOMPUTE_DELAY,TRAVEL_BUDGET_MINUTES } from './config.js';
 import { store } from './store.js';
 import { $,clamp } from './util.js';
 import { t,applyStaticText } from './i18n.js';
@@ -17,20 +17,20 @@ export function compute(){
   if(store.activePeople.length<2){renderEmpty();showError(t('error.needTwo'));return;}
   const mask=store.settings.modes.reduce((m,mode)=>m|(mode==='rail'?1|(1<<3):mode==='bus'?2|(1<<2):0),0);
   if(!mask){renderEmpty();showError(t('error.noMode'));return;}
-  const tolerance=clamp(Number($('tolerance').value),0.05,0.5,0.1),budget=Number($('budget').value);
-  store.settings.tolerance=tolerance;store.settings.budget=budget;save();
-  // solve() depends only on origins, the mode mask, and the budget. Tolerance
-  // and vector changes re-filter cells from the cached solutions instead of
-  // re-running Dijkstra for every person.
-  const solveKey=`${mask}:${budget}:${store.activePeople.map(p=>{const o=p.origin;return o.kind==='node'?`n${o.node}`:`c${o.lat},${o.lon}`;}).join('|')}`;
+  const tolerance=clamp(Number($('tolerance').value),0.05,0.5,0.1);
+  store.settings.tolerance=tolerance;save();
+  // solve() depends only on origins, the mode mask, and the fixed travel cap.
+  // Tolerance and vector changes re-filter cells from the cached solutions
+  // instead of re-running Dijkstra for every person.
+  const solveKey=`${mask}:${TRAVEL_BUDGET_MINUTES}:${store.activePeople.map(p=>{const o=p.origin;return o.kind==='node'?`n${o.node}`:`c${o.lat},${o.lon}`;}).join('|')}`;
   if(store.solveKey!==solveKey){
     store.solveKey=solveKey;
-    const sources=store.activePeople.map(p=>sourcesFor(p.origin,budget));
+    const sources=store.activePeople.map(p=>sourcesFor(p.origin,TRAVEL_BUDGET_MINUTES));
     if(sources.some(s=>!s.length)){renderEmpty();showError(t('error.noNearby'));return;}
-    store.sols=sources.map(s=>solve(s,mask,budget));
+    store.sols=sources.map(s=>solve(s,mask,TRAVEL_BUDGET_MINUTES));
   }
   if(store.sols.some(s=>!s.dist.size)){renderEmpty();showError(t('error.noReach'));return;}
-  const grids=store.sols.map(bestTimes),cells=buildCells(grids,tolerance,budget);
+  const grids=store.sols.map(bestTimes),cells=buildCells(grids,tolerance,TRAVEL_BUDGET_MINUTES);
   const ordered=cells.map(cell=>({cell,fitScore:cellFitScore(cell)})).sort((a,b)=>a.fitScore-b.fitScore||a.cell.score-b.cell.score||a.cell.key.localeCompare(b.cell.key));
   store.cloudCells=ordered.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
   store.results=ordered.slice(0,7).map(({cell:c})=>cellToResult(c));
@@ -42,7 +42,7 @@ export function compute(){
     return;
   }
   renderResults(store.activePeople);
-  drawOrigins(store.activePeople);drawCloud(budget);applySelection(store.activePeople);
+  drawOrigins(store.activePeople);drawCloud(TRAVEL_BUDGET_MINUTES);applySelection(store.activePeople);
 }
 export function scheduleRecompute(){
   clearTimeout(store.recomputeTimer);
@@ -76,7 +76,7 @@ export function rerender(){
   store.results.forEach(r=>{r.district=districtFor(r.lat,r.lon);});
   updateSettingsLabels();
   renderCards();
-  if(store.results.length){renderResults(store.activePeople);drawOrigins(store.activePeople);drawCloud(store.settings.budget);applySelection(store.activePeople);}
+  if(store.results.length){renderResults(store.activePeople);drawOrigins(store.activePeople);drawCloud(TRAVEL_BUDGET_MINUTES);applySelection(store.activePeople);}
   else renderEmpty();
   renderDirectoryList();
 }

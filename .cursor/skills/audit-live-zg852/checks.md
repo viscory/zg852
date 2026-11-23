@@ -18,7 +18,7 @@ Desktop 1280×800. Wait until routing is ready (`#netstatus` is not `loading`, o
 2. Change one start to Kowloon Tong. The list changes with no Search click.
 3. Recenter (`.map-recenter-control`) shares the x of `.leaflet-control-zoom` and sits under it, not in the right sidebar.
 4. Both starts Central. The detail is the already-there sentence, not an empty-leg sentence, when the time is 0.
-5. Three people. Budget slider at 15 and at 180. A pin far from stops shows the no-nearby error and does not freeze the page.
+5. Three people. A pin far from stops shows the no-nearby error and does not freeze the page. The travel budget slider is absent.
 
 ## C. Route truth
 
@@ -30,7 +30,7 @@ Run the graph script, then these live pairs twice. Compare the step text with th
 | Central, Kowloon Tong | MTR only | TWL and KTL. Ride times are ordinary urban hops, not tens of minutes for one stop. |
 | Tsim Sha Tsui, Airport | both | Airport Express Airport to Tsing Yi. Flag a ride near 30 minutes or a fare from the shared rail band (top HK$20.5). |
 | Kennedy Town, Shau Kei Wan | both | Island line both ways. No walk across the harbour. |
-| Nam Cheong, Tuen Mun | MTR only, budget 90, tolerance 10% | Empty is a defect if stations are reachable inside the budget. |
+| Nam Cheong, Tuen Mun | MTR only, tolerance 10% | Empty is a defect if stations are reachable inside the fixed 60-minute cap. |
 | Swap the two starts | both | Same areas. Fares follow the person. |
 
 Also count, in the top result, `.ride-leg.route-rail` and `.ride-leg.route-bus`. A bus-only title with MTR steps is a labeling issue, not a missing MTR leg.
@@ -49,7 +49,7 @@ Pan to Lantau, Lamma, and the northern border. Note blank tiles. Zoom and recent
 
 Locales: en, zh-Hant, zh-Hans, ja, ko, hi, ur, fil, id, fr, th, vi, ne, es, de.
 
-Fetch each `/i18n/*.json`. Same key set as `en`. After each switch, these must not stay English unless the catalog value is intentionally the same word: attribution, credit line, budget ends `15 min` and `180 min`, zoom-in name, map issue link. `html[dir=rtl]` for `ur`. At 1280px the people panel (`.side-left`) is on the right. Reload keeps `hkfair.v2.locale`.
+Fetch each `/i18n/*.json`. Same key set as `en`. After each switch, these must not stay English unless the catalog value is intentionally the same word: attribution, credit line, tolerance ends, zoom-in name, map issue link. `html[dir=rtl]` for `ur`. At 1280px the people panel (`.side-left`) is on the right. Reload keeps `hkfair.v2.locale`.
 
 Spot-check 10 `zh-Hant` strings against `zh-Hans` for the wrong script.
 

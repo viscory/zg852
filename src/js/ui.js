@@ -1,7 +1,7 @@
 import { LETTERS,VECTOR_KEYS } from './config.js';
 import { store } from './store.js';
 import { $,esc,clamp,icon,initialsFor,avatarClass,clone } from './util.js';
-import { t,tp,num,minuteText } from './i18n.js';
+import { t,tp,num } from './i18n.js';
 import { normalizeVectors,vectorLabel,betaVectorsEnabled } from './vectors.js';
 import { searchPlaces,districtFor } from './data.js';
 import { dedupePlaces,photonSearch } from './search.js';
@@ -45,7 +45,6 @@ export function updateSaveSummary(){
 }
 export function updateSettingsLabels(){
   $('tolval').textContent=`${Math.round(store.settings.tolerance*100)}%`;
-  $('budgetval').textContent=minuteText(store.settings.budget);
   store.settings.vectors=normalizeVectors(store.settings.vectors);
   VECTOR_KEYS.forEach(key=>{const label=$(`vec-${key}-val`);if(label)label.textContent=vectorLabel(store.settings.vectors[key]);});
 }
@@ -59,7 +58,6 @@ export function applyBetaFeatures(){
 export function applySettingsToDom(){
   document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',String(store.settings.modes.includes(c.dataset.mode))));
   $('tolerance').value=store.settings.tolerance;
-  $('budget').value=store.settings.budget;
   store.settings.vectors=normalizeVectors(store.settings.vectors);
   document.querySelectorAll('[data-vector]').forEach(input=>{input.value=store.settings.vectors[input.dataset.vector];});
   applyBetaFeatures();
@@ -68,7 +66,6 @@ export function applySettingsToDom(){
 export function readSettingsFromDom(){
   store.settings.modes=[...document.querySelectorAll('.chip[aria-pressed="true"]')].map(c=>c.dataset.mode);
   store.settings.tolerance=clamp(Number($('tolerance').value),0.05,0.5,0.1);
-  store.settings.budget=Number($('budget').value);
   const vectors=normalizeVectors(store.settings.vectors);
   document.querySelectorAll('[data-vector]').forEach(input=>{vectors[input.dataset.vector]=Number(input.value);});
   store.settings.vectors=vectors;
@@ -173,7 +170,6 @@ export function makeCard(person){
   const idx=store.people.indexOf(person),letter=LETTERS[idx%8];
   const id=person.id;
   const saveLabel=esc(t('people.save')),removeLabel=esc(t('people.remove',{letter})),pinLabel=esc(t('people.pin'));
-  const upLabel=esc(t('people.moveUp',{name:displayName(person,idx)})),downLabel=esc(t('people.moveDown',{name:displayName(person,idx)}));
   const card=document.createElement('div');card.className='card';card.dataset.id=id;
   card.innerHTML=`<div class="card-head">
     <span class="avatar ${avatarClass(idx)}">${esc(initialsFor(person.name))}</span>
@@ -193,10 +189,6 @@ export function makeCard(person){
       <button class="icon-button pin" type="button" aria-label="${pinLabel}" title="${pinLabel}" data-tooltip="${pinLabel}">${icon('pin')}</button>
     </div>
     <span class="hint">${esc(originHint(person.origin))}</span>
-  </div>
-  <div class="card-tools">
-    <button class="icon-button move up" type="button" aria-label="${upLabel}" title="${upLabel}" data-tooltip="${upLabel}" ${idx===0?'disabled':''}>${icon('up')}</button>
-    <button class="icon-button move down" type="button" aria-label="${downLabel}" title="${downLabel}" data-tooltip="${downLabel}" ${idx===store.people.length-1?'disabled':''}>${icon('down')}</button>
   </div>
   <div class="focus-toggle" role="group" aria-label="${esc(t('people.focusLabel'))}">
     <span class="focus-label">${esc(t('people.focusLabel'))}</span>
@@ -229,8 +221,6 @@ export function makeCard(person){
   });
   card.querySelector('.save-person').onclick=()=>savePersonToDirectory(person);
   card.querySelector('.remove').onclick=()=>{store.people=store.people.filter(p=>p.id!==id);commitPeople();};
-  card.querySelector('.move.up').onclick=()=>movePerson(id,-1);
-  card.querySelector('.move.down').onclick=()=>movePerson(id,1);
   card.querySelector('.pin').onclick=()=>startPinMode(id,hint,input,sug);
   const focusToggle=card.querySelector('.focus-toggle');
   focusToggle.querySelectorAll('.focus-option').forEach(option=>{
@@ -241,13 +231,6 @@ export function makeCard(person){
     };
   });
   refreshMeta();
-}
-export function movePerson(id,delta){
-  const i=store.people.findIndex(p=>p.id===id),j=i+delta;
-  if(i<0||j<0||j>=store.people.length)return;
-  [store.people[i],store.people[j]]=[store.people[j],store.people[i]];
-  commitPeople();
-  document.querySelector(`.card[data-id="${CSS.escape(id)}"] .name-input`)?.focus();
 }
 export function renderCards(){
   const saved=store.people.slice();store.people=[];
@@ -267,9 +250,6 @@ export function refreshMeta(){
     const startInput=card.querySelector('.start-input');if(startInput)startInput.placeholder=t('people.startPlaceholder');
     const remove=card.querySelector('.remove');remove.hidden=store.people.length<=1;setLabel(remove,t('people.remove',{letter}));
     setLabel(card.querySelector('.pin'),t('people.pin'));
-    const up=card.querySelector('.move.up'),down=card.querySelector('.move.down');
-    if(up){up.disabled=idx===0;setLabel(up,t('people.moveUp',{name:displayName(person,idx)}));}
-    if(down){down.disabled=idx===store.people.length-1;setLabel(down,t('people.moveDown',{name:displayName(person,idx)}));}
     setLabel(card.querySelector('.save-person'),t('people.save'));
   });
   updateSaveSummary();
@@ -372,7 +352,7 @@ export function openDirectory(){
   openDialog($('peopleDialog'),$('directorySearch'));
 }
 export async function openLegal(kind){
-  if(!['privacy','terms','credits'].includes(kind))return;
+  if(!['privacy','terms','credits','process'].includes(kind))return;
   const dialog=$('legalDialog'),title=$('legalTitle'),body=$('legalBody');
   if(!dialog)return;
   if(title)title.textContent=t(`legal.${kind}`);

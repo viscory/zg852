@@ -75,6 +75,9 @@ test('production header copy is exact and no raw i18n keys leak into the UI', as
   await expect(page.locator('[data-legal="privacy"]')).toHaveText('Privacy');
   await expect(page.locator('[data-legal="terms"]')).toHaveText('Terms');
   await expect(page.locator('[data-legal="credits"]')).toHaveText('Credits');
+  await expect(page.locator('[data-legal="process"]')).toHaveText('Process');
+  await expect(page.locator('#budget')).toHaveCount(0);
+  await expect(page.locator('#shareStatus')).toBeAttached();
   await expect(page.locator('.focus-option[data-focus="time"]').first()).toHaveText('Time');
   await expect(page.locator('.focus-option[data-focus="cost"]').first()).toHaveText('Cost');
   expect(await page.locator('body').innerText()).not.toMatch(RAW_KEY);

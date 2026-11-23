@@ -9,7 +9,7 @@ Effective 22 November 2026.
 The app stores these values in browser `localStorage`:
 
 - `hkfair.v2.people`: current people and start places
-- `hkfair.v2.settings`: modes, tolerance, budget, and beta preferences
+- `hkfair.v2.settings`: modes, tolerance, and beta preferences
 - `hkfair.v2.directory`: saved people library
 - `hkfair.v2.geocache`: recent place-search results
 - `hkfair.v2.locale`: selected language

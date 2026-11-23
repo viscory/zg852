@@ -27,17 +27,35 @@ export function aelFare(from,to){
   return 64.5;
 }
 export function routeFares(route){
-  let rail=0,bus=0,railKm=0;
-  const flushRail=()=>{if(railKm>0){rail+=bandFare(railKm,RAIL_FARE_BANDS);railKm=0;}};
+  let rail=0,bus=0,railKm=0,railLeg=null;
+  const flushRail=()=>{
+    if(railKm>0){
+      const fare=round1(bandFare(railKm,RAIL_FARE_BANDS));
+      rail+=fare;
+      if(railLeg)railLeg.fare=fare;
+      railKm=0;railLeg=null;
+    }
+  };
   for(const leg of route.legs){
     if(leg.mode==='walk'){
+      leg.fare=0;
       if(leg.minutes>FARE_INTERCHANGE_WALK_MINUTES)flushRail();
       continue;
     }
-    if(leg.mode==='rail'&&String(leg.line).startsWith('MTR AEL')){flushRail();rail+=aelFare(leg.from,leg.to);continue;}
+    if(leg.mode==='rail'&&String(leg.line).startsWith('MTR AEL')){
+      flushRail();
+      const fare=round1(aelFare(leg.from,leg.to));
+      rail+=fare;leg.fare=fare;
+      continue;
+    }
     const km=legDistanceKm(leg);
-    if(leg.mode==='rail'||leg.mode==='lightRail')railKm+=km;
-    else{flushRail();bus+=bandFare(km,BUS_FARE_BANDS);}
+    if(leg.mode==='rail'||leg.mode==='lightRail'){
+      railKm+=km;leg.fare=0;railLeg=leg;
+    }else{
+      flushRail();
+      const fare=round1(bandFare(km,BUS_FARE_BANDS));
+      bus+=fare;leg.fare=fare;
+    }
   }
   flushRail();
   return{rail:round1(rail),bus:round1(bus),total:round1(rail+bus)};
@@ -179,7 +197,20 @@ export function describe(sol,origin,target,focus='time'){
           close();
           current={mode,line:label,minutes:stepT,coords:[coord,coord],from:name,to:name,fromNode:node,toNode:node,stopCount:0};
         }else{
-          current.minutes+=stepT;current.coords.push(coord);current.to=name;current.toNode=node;current.stopCount++;
+          current.minutes+=stepT;
+          const fromNode=pst===sol.start?null:Math.floor(pst/sol.stride);
+          const edgeIndex=fromNode===null?undefined:store.rideAdj[fromNode].find(([id,to])=>id===line&&to===node)?.[3];
+          const seg=edgeIndex===undefined?null:store.NET.lines[line].g?.[edgeIndex];
+          const start=fromNode===null?null:[store.NODES.lat[fromNode],store.NODES.lon[fromNode]];
+          const same=(point,target)=>Array.isArray(point)&&point.length>=2&&target&&
+            Math.abs(point[0]-target[0])<1e-4&&Math.abs(point[1]-target[1])<1e-4;
+          if(Array.isArray(seg)&&seg.length>1&&start){
+            let points=seg;
+            if(!same(points[0],start)&&same(points[points.length-1],start))points=[...points].reverse();
+            if(same(points[0],start)&&same(points[points.length-1],coord))current.coords.push(...points.slice(1));
+            else current.coords.push(coord);
+          }else current.coords.push(coord);
+          current.to=name;current.toNode=node;current.stopCount++;
         }
       }
       lastCoord=coord;

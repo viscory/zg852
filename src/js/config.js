@@ -14,6 +14,7 @@ export const CELL_SIZE=0.005;
 export const WALK_SPEED_KMH=4.5;
 export const WALK_DETOUR=1.3;
 export const MAX_CLOUD_CELLS=600;
+export const TRAVEL_BUDGET_MINUTES=60;
 export const VECTOR_KEYS=['food','drinks','activities','culture','outdoors','shopping'];
 export const VECTOR_BONUS_MINUTES=6;
 export const RECOMPUTE_DELAY=500;

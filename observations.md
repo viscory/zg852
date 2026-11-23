@@ -1,3 +1,116 @@
+## 2026-11-23T13:01:33Z
+
+- User asked to commit and push. Working tree contains the integrated UI/routing/data changes plus pre-existing uncommitted edits to `AUDIT-REPORT.md` and `observations.md`.
+- Plan: keep the audit-report refresh in its own commit, then commit the feature work (including this log) and push both to `origin/main`. Verification before commit: lint clean, 59 Playwright tests passed.
+
+## 2026-11-23T12:19:38Z
+
+- All four subagents finished and their work was integrated. The GTFS pipeline now adds per-edge `g` geometry anchored to stop coordinates (55,583 aligned arrays; 62% of hops detailed) and `network.json` grew from 2.2 MB to 5.5 MB; `graph.json` and `nodes.json` stayed identical.
+- Fixed two integration defects found by the full suite: rail chip labels became `MTR MTR TWL`, and the old no-fit tests relied on the removed 15-minute budget. Rail labels are now normalised to `MTR TWL`; no-fit tests use four spread-out starts while keeping the fixed 60-minute cap.
+- Also switched leg fare chips to the localised `results.fareTotal` string so they read `Fare HK$…`, and refactored route-chip rendering into a `legChip()` helper.
+- Verified `npm run lint` and the full `npm test` suite against built `public/`: 59 passed, 0 failed. `git diff --check` is clean; temporary probe spec and `__pycache__` are gone.
+- `AUDIT-REPORT.md` retained its pre-existing uncommitted changes; I did not edit it.
+
+## 2026-11-23T12:07:26Z
+
+- The UI/state/build agent finished. Reviewed its diff: move controls and budget UI/state are gone, the fixed 60-minute cap is wired through the engine, the rightbar footer/Process page/share status are in place, and build/cache/docs are updated.
+- Verified all 15 i18n catalogs parse with identical 148-key sets, including `legal.process`, `route.getOn`, and `route.getOff`, with removed budget/move keys absent.
+- Cleaned stale budget references in `PRIVACY.md` and the local audit checklist. `src/js/routing.js` and `src/js/map.js` still show the pre-data-agent state, so the GTFS-shape agent is the only one still running.
+- No full build/lint/test run yet.
+
+## 2026-11-23T12:06:12Z
+
+- The Playwright agent finished and both test files pass `node --check`; `git diff --check` is clean for the tests and stylesheet.
+- Test updates now cover the removed move/budget controls, the new rightbar footer and Process legal page/dialog, visible share status, structured ride-leg cards, GTFS `g` geometry in `network.json`, rendered multi-vertex ride paths, and leg-fare reconciliation.
+- The data/GTFS/routing/map and UI/state/i18n/build agents are still running; no full build, lint, or Playwright verification yet.
+
+## 2026-11-23T12:05:03Z
+
+- Started the requested changes with four parallel subagents using disjoint file ownership: data/GTFS shapes + routing + map, UI/state/i18n/build/docs, `src/styles.css`, and Playwright tests.
+- The stylesheet agent finished: removed move/arrow and ride-text CSS, added the 6px header subtitle spacer, footer flex layout, share-status pill, and three-row route-card styles. Its diff was reviewed and looks consistent.
+- The other three agents are still running. Current tree shows partial edits across app/state/i18n/tests and a new `src/process.html`; `scripts/__pycache__/` appeared from running the graph script and must be removed before finishing.
+- No lint or Playwright run yet; integration and verification come after all agents finish. `AUDIT-REPORT.md` and the existing observations blocks remain untouched.
+
+## 2026-11-23T11:32:30Z
+
+- Familiarized with the repo; made no code changes. It is a static, client-side HK fair meeting-point finder built with Vite, Leaflet, MapLibre, and hand-written multi-modal routing, with 15 locale catalogs and 55 Playwright specs.
+- Key structure: `src/js/store.js` holds shared state, `engine.js`/`routing.js` solve and rank fair cells, `ui.js`/`map.js` own behaviour, `static/data/` holds generated graph and POI files, `scripts/finalize.mjs` writes headers and patches the `zg852-v29` service worker.
+- HEAD is `ec1f9c8`; only `AUDIT-REPORT.md` and this observations file are modified in the working tree. Route-affecting edits must call `scheduleRecompute()`, and cached-asset edits need an `sw.js` version bump plus matching finalize patch strings.
+
+## 2026-11-23T03:53:00Z
+
+- Fixed five audit defects and pushed `a20664a` then `fff4d71` to `origin/main`.
+- A failed map layer stayed on the map and aborted search. A late Photon reply reopened the place list. Two-character Chinese names never searched. The phone form now sits above the map. Legal pages have social tags. The worker cache is `zg852-v27`.
+- The bus-stop meeting title was left as it is. That name is the stop in the cell. `npm test` passed 55 tests. The live site does not have this build until the next deploy.
+
+## 2026-11-23T03:33:00Z
+
+- Audited live `https://zg852.pages.dev/` again and replaced the empty `AUDIT-REPORT.md` with this run.
+- The graph script printed `ISSUE_COUNT 0`. Live `network.json` matches the tree. `npm test` against the live origin passed 50 tests.
+- Six live issues are in the report. The largest are a WebGL2 failure that breaks search, a place list that reopens over the next field, and a silent result for `中環`.
+
+## 2026-11-23T04:10:00Z
+
+- Deploy run `45109888063` succeeded. `https://zg852.pages.dev/` no longer has the options-panel beta title or switch. The header badge remains. The service worker cache is `zg852-v29`.
+
+## 2026-11-23T04:08:00Z
+
+- Removed the options-panel beta title, switch, and experimental note. The header badge remains the switch. Interest sliders still appear when the badge is on. Pushed `ec1f9c8`.
+
+## 2026-11-23T04:05:00Z
+
+- The first push `eb0ee80` failed lint, so the site did not update. `ce7a16d` removed the control character that blocked lint. Deploy run `45109457751` succeeded. `https://zg852.pages.dev/` now serves the Beta badge, and the service worker cache is `zg852-v28`.
+
+## 2026-11-23T04:02:00Z
+
+- Pushed the header Beta badge as `eb0ee80` to `origin/main`. The badge was only in the local working tree before this push.
+
+## 2026-11-23T04:00:00Z
+
+- The header now starts with a Beta badge. It is 36px tall and sits before the saved-people button. A click turns interest preferences on or off, and the options switch follows that state. The tooltip says interest preferences can change the areas on the map. `npm test` passed 55 tests. The service worker cache is `zg852-v28`. This change is not committed.
+
+## 2026-11-23T03:41:30Z
+
+- Pushed `8e069d7` to `origin/main`.
+
+## 2026-11-23T03:41:00Z
+
+- The header now has three 36px buttons. Saved people, share, and language each use a 12px icon. The language name is not painted. Share is in the header.
+- The left sidebar scroll width now equals its client width. The extra width came from a tooltip that laid out past the right edge. `npm test` passed 50 tests.
+
+## 2026-11-23T03:27:00Z
+
+- The local preview server on port 8765 stopped after the size check. That stop was intentional so the test suite could bind the same port. The compact chrome commit remains `442676f` on `origin/main`.
+
+## 2026-11-23T03:26:00Z
+
+- Pushed `442676f` to `origin/main`. The commit is `DESIGN.md`, `src/styles.css`, and `static/sw.js`. `observations.md` and `AUDIT-REPORT.md` stayed uncommitted.
+
+## 2026-11-23T03:25:00Z
+
+- Built `public/` and measured the compact scale. Desktop header is 52px, fields and icon buttons are 36px, card icons are 14px, chips are 32px, and body text is 14px. The header plus the layout equals the viewport on both 1280x800 and 390x844.
+- A fixed `100vh - 96px` phone offset clipped the page. The layout now fills the space under the header.
+- `npm test` passed 50 tests. Service worker cache is `zg852-v25`.
+
+## 2026-11-23T03:20:00Z
+
+- The page chrome is too large. `DESIGN.md` now records a compact scale. Controls are 36px, the base icon is 12px, and button icons are 14px. Body text stays 14px.
+- One worker is editing `src/styles.css` to that scale. Browser check, commit, and push come after that edit.
+
+## 2026-11-23T03:11:00Z
+
+- Replaced the GitHub secret `CLOUDFLARE_API_TOKEN` with the API token from the Cloudflare create-token screen. `tokens/verify` returned active, and Wrangler listed the `zg852` Pages project with that token. The token value was not written into the repo.
+
+## 2026-11-23T03:08:00Z
+
+- A Wrangler refresh returns a new access token and a new refresh token. The old refresh token stops working. GitHub Actions cannot save that new refresh token with the default `GITHUB_TOKEN`.
+- Restored the local Wrangler login after a refresh, and updated `CLOUDFLARE_API_TOKEN` to that new one-hour token. It expires about 2026-11-23T04:07:56Z.
+
+## 2026-11-23T03:05:00Z
+
+- Set GitHub secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` on `viscory/zg852`. The token is the current Wrangler login. It expires at 2026-11-23T03:59:49Z. This login cannot create a long-lived API token. The API returned 403.
+- Reran the failed deploy job on run `45103410459`. The test job had already passed.
+
 ## 2026-11-23T03:00:00Z
 
 - Committed the audit fixes as `b12991c` and pushed `main` to `origin`.

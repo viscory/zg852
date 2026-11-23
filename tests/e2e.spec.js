@@ -210,10 +210,13 @@ test('defaults load and a two-person search draws fair map areas', async ({ page
   await expect(page.locator('.step').first().locator('.fare.total')).toContainText('Fare HK$');
   await expect(page.locator('.step').first()).not.toContainText('MTR HK$');
   await expect(page.locator('.step').first()).not.toContainText('Bus HK$');
-  await expect(page.locator('.ride-leg .ride-text').first()).toContainText('MTR');
-  await expect(page.locator('.ride-leg .ride-text').first()).not.toContainText('MTR MTR');
-  await expect(page.locator('.ride-leg .ride-text').first()).toContainText('stops');
-  await expect(page.locator('.ride-leg .ride-text').first()).toContainText('min');
+  await expect(page.locator('.ride-leg .leg-mode').first()).toContainText('MTR');
+  await expect(page.locator('.ride-leg .leg-mode').first()).toContainText(/MTR\s*\S+/);
+  await expect(page.locator('.ride-leg .leg-mode').first()).not.toContainText('MTR MTR');
+  await expect(page.locator('.ride-leg .leg-board').first()).toContainText('Get on:');
+  await expect(page.locator('.ride-leg .leg-alight').first()).toContainText('Get off:');
+  await expect(page.locator('.ride-leg .leg-meta').first()).toContainText('min');
+  await expect(page.locator('.ride-leg .leg-meta').first()).toContainText('Fare HK$');
   await expect(page.locator('#steps .dot').first()).toHaveText('PA');
   await expect(page.locator('#steps .dot').nth(1)).toHaveText('PB');
   await expect.poll(() => page.locator('path.route-line.route-person-0').count()).toBeGreaterThan(0);
@@ -222,6 +225,81 @@ test('defaults load and a two-person search draws fair map areas', async ({ page
   await expect(page.locator('body')).not.toContainText('★');
   await expect(page.locator('body')).not.toContainText('—');
   expect(errors).toEqual([]);
+});
+
+test('travel budget slider is gone', async ({ page }) => {
+  await expect(page.locator('#budget')).toHaveCount(0);
+  await expect(page.locator('#budgetval')).toHaveCount(0);
+  await expect(page.locator('label[for="budget"]')).toHaveCount(0);
+});
+
+test('right sidebar footer carries attribution, inspiration and project links', async ({ page }) => {
+  const footer = page.locator('.side-right footer');
+  await expect(footer).toBeVisible();
+  await expect(footer).toContainText('Routing runs in this browser');
+  await expect(footer).toContainText('Inspired by');
+  for (const [key, label] of Object.entries({
+    privacy: 'Privacy',
+    terms: 'Terms',
+    credits: 'Credits',
+    process: 'Process',
+  })) {
+    const button = footer.locator(`[data-legal="${key}"]`);
+    await expect(button).toBeVisible();
+    await expect(button).toHaveText(label);
+  }
+});
+
+test('ride paths follow GTFS shapes anchored to stop coordinates', async ({ page }) => {
+  const report = await page.evaluate(async () => {
+    const net = await (await fetch('data/network.json')).json();
+    const nodes = await (await fetch('data/nodes.json')).json();
+    const close = (point, index) => Array.isArray(point)
+      && Number.isFinite(index)
+      && Math.abs(point[0] - nodes.lat[index]) <= 1e-5
+      && Math.abs(point[1] - nodes.lon[index]) <= 1e-5;
+    let detailedSegments = 0;
+    let anchoredLines = 0;
+    for (const line of net.lines) {
+      if (line.c !== 0 && line.c !== 1) continue;
+      if (!Array.isArray(line.g)) continue;
+      let anchored = false;
+      for (let i = 0; i < line.g.length; i++) {
+        const shape = line.g[i];
+        if (!Array.isArray(shape) || shape.length <= 2) continue;
+        detailedSegments += 1;
+        if (close(shape[0], line.s[i]) && close(shape[shape.length - 1], line.s[i + 1])) anchored = true;
+      }
+      if (anchored) anchoredLines += 1;
+    }
+    return { detailedSegments, anchoredLines };
+  });
+  expect(report.detailedSegments).toBeGreaterThan(0);
+  expect(report.anchoredLines).toBeGreaterThan(0);
+});
+
+test('rendered ride paths include shape geometry beyond a stop-to-stop chord', async ({ page }) => {
+  const selectors = 'path.route-line.route-bus, path.route-line.route-rail';
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator(selectors).count()).toBeGreaterThan(0);
+  // Leaflet emits SVG paths as M/L commands; a straight one-stop chord has two pairs.
+  await expect.poll(() => page.locator(selectors).evaluateAll(els => Math.max(0, ...els.map(el => {
+    const numbers = (el.getAttribute('d') || '').match(/-?\d+(?:\.\d+)?/g) || [];
+    return Math.floor(numbers.length / 2);
+  })))).toBeGreaterThan(3);
+});
+
+test('leg fare chips reconcile with the step fare total', async ({ page }) => {
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('#steps .step').count()).toBeGreaterThan(0);
+  const step = page.locator('#steps .step').first();
+  await expect.poll(() => step.locator('.ride-leg .fare').count()).toBeGreaterThan(0);
+  const amount = text => Number(text.replace(/[^0-9.]/g, ''));
+  const legAmounts = (await step.locator('.ride-leg .fare').allInnerTexts()).map(amount).filter(Number.isFinite);
+  expect(legAmounts.length).toBeGreaterThan(0);
+  const total = amount(await step.locator('.fare.total').first().innerText());
+  expect(Number.isFinite(total)).toBeTruthy();
+  expect(Math.abs(legAmounts.reduce((sum, value) => sum + value, 0) - total)).toBeLessThanOrEqual(0.1);
 });
 
 test('selected map area shows district subtitles and segmented routes', async ({ page }) => {
@@ -302,12 +380,7 @@ test('saved people library can add and delete profiles', async ({ page }) => {
   await expect(page.locator('.directory-row')).toHaveCount(1);
 });
 
-test('move controls reorder people and recenter never changes an origin', async ({ page }) => {
-  await expect(page.locator('.card').first().locator('.move.up')).toBeDisabled();
-  await expect(page.locator('.card').last().locator('.move.down')).toBeDisabled();
-  await page.locator('.card').nth(1).locator('.move.up').click();
-  await expect(page.locator('.name-input').first()).toHaveValue('Person B');
-  await expect(page.locator('.name-input').nth(1)).toHaveValue('Person A');
+test('recenter never changes an origin', async ({ page }) => {
   await expect(page.locator('.card .centre')).toHaveCount(0);
 
   const before = await page.locator('.start-input').first().inputValue();
@@ -324,7 +397,7 @@ test('scenario removal works down to one and card controls are icon-only', async
   await expect(card.locator('.drag-handle')).toHaveCount(0);
   await expect(card.locator('.centre')).toHaveCount(0);
 
-  for (const selector of ['.save-person', '.remove', '.pin', '.move.up', '.move.down']) {
+  for (const selector of ['.save-person', '.remove', '.pin']) {
     await expect(card.locator(selector)).toHaveText('');
   }
 
@@ -350,7 +423,8 @@ test('people and results stay left, controls stay right, and the map fills the m
   await expect(page.locator('.side-left #nres')).toBeEmpty();
   await expect(page.locator('.side-right #go')).toBeVisible();
   await expect(page.locator('.side-right #tolerance')).toBeVisible();
-  await expect(page.locator('.side-right #budget')).toBeVisible();
+  await expect(page.locator('#budget')).toHaveCount(0);
+  await expect(page.locator('#shareStatus')).toBeAttached();
   await expect(page.locator('.side-right #reset')).toHaveCount(0);
   await expect(page.locator('.side-right #detail')).toBeHidden();
   await expect(headerLibrary(page)).toBeVisible();
@@ -405,7 +479,7 @@ test('search results draw a discrete red heatmap instead of a gradient', async (
   await expect(page.locator('.legend .swatch.h6')).toBeVisible();
 });
 
-test('named people, Photon addresses, tolerance cloud and budget work', async ({ page }) => {
+test('named people, Photon addresses and tolerance cloud work', async ({ page }) => {
   await page.locator('.card').nth(0).locator('.name-input').fill('Alex');
   await page.locator('.card').nth(1).locator('.name-input').fill('Sam');
   await page.locator('#add').click();
@@ -419,9 +493,7 @@ test('named people, Photon addresses, tolerance cloud and budget work', async ({
   await expect(page.locator('#count')).toHaveText('3');
 
   await setRange(page, '#tolerance', '0.2');
-  await setRange(page, '#budget', '90');
   await expect(page.locator('#tolval')).toHaveText('20%');
-  await expect(page.locator('#budgetval')).toHaveText('90 min');
 
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
@@ -436,7 +508,6 @@ test('settings, people, library and locale persist, and clearing storage restore
   await page.locator('.card').nth(0).locator('.name-input').fill('Alex');
   await page.locator('.chip[data-mode="bus"]').click();
   await setRange(page, '#tolerance', '0.25');
-  await setRange(page, '#budget', '75');
   await page.locator('.card').first().locator('.save-person').click();
   await page.locator('#locale').selectOption('zh-Hant');
   await expect.poll(() => page.locator('html').getAttribute('lang')).toBe('zh-Hant');
@@ -450,7 +521,6 @@ test('settings, people, library and locale persist, and clearing storage restore
   }));
   expect(stored.people).toContain('Alex');
   expect(stored.settings).toContain('"tolerance":0.25');
-  expect(stored.settings).toContain('"budget":75');
   expect(stored.directory).toContain('Alex');
   expect(stored.locale).toBe('zh-Hant');
 
@@ -461,7 +531,6 @@ test('settings, people, library and locale persist, and clearing storage restore
   await expect(page.locator('.chip[data-mode="rail"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.chip[data-mode="bus"]')).toHaveAttribute('aria-pressed', 'false');
   await expect(page.locator('#tolerance')).toHaveValue('0.25');
-  await expect(page.locator('#budget')).toHaveValue('75');
 
   await page.locator('#locale').selectOption('en');
   await expect.poll(() => page.locator('html').getAttribute('lang')).toBe('en');
@@ -472,7 +541,6 @@ test('settings, people, library and locale persist, and clearing storage restore
   await expect(page.locator('.card')).toHaveCount(2);
   await expect(page.locator('.name-input').first()).toHaveValue('Person A');
   await expect(page.locator('#tolerance')).toHaveValue('0.1');
-  await expect(page.locator('#budget')).toHaveValue('60');
 });
 
 test('locale switching translates static text and enables RTL layout', async ({ page }) => {
@@ -505,7 +573,7 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
-  for (const key of ['app.subtitle', 'people.focusTime', 'people.focusCost', 'options.tolerance', 'route.rideLeg', 'route.stopCount_other', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.close']) {
+  for (const key of ['app.subtitle', 'people.focusTime', 'people.focusCost', 'options.tolerance', 'route.rideLeg', 'route.getOn', 'route.getOff', 'route.stopCount_other', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
   expect(Object.keys(catalogues[0])).not.toContain('app.meaning');
@@ -535,20 +603,24 @@ test('rejects an unset origin with an inline error and no map output', async ({ 
   await expect(page.locator('#resultsList')).toBeEmpty();
 });
 
-test('tight tolerance and budget produce no map areas', async ({ page }) => {
+test('tight tolerance across spread-out starts produces no map areas', async ({ page }) => {
+  await page.locator('#add').click();
+  await page.locator('#add').click();
+  await pickStation(page, 0, 'Lo Wu');
+  await pickStation(page, 1, 'Airport');
+  await pickStation(page, 2, 'Tuen Mun');
+  await pickStation(page, 3, 'Tsuen Wan');
   await setRange(page, '#tolerance', '0.05');
-  await setRange(page, '#budget', '15');
   await page.locator('#go').click();
   await expect(page.locator('path.heat-cell')).toHaveCount(0);
   await expect(page.locator('#detail')).toBeHidden();
-  await expect(page.locator('#error')).toHaveText('No areas fit this tolerance and budget. Increase either setting.');
+  await expect(page.locator('#error')).toHaveText('No areas fit this tolerance. Increase tolerance or enable another mode.');
 });
 
 test('MTR-only search still finds fair areas with default settings', async ({ page }) => {
   await expect(page.locator('.card')).toHaveCount(2);
   await expect(page.locator('.chip[data-mode="rail"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#tolerance')).toHaveValue('0.1');
-  await expect(page.locator('#budget')).toHaveValue('60');
   await page.locator('.chip[data-mode="bus"]').click();
   await expect(page.locator('.chip[data-mode="bus"]')).toHaveAttribute('aria-pressed', 'false');
   await page.locator('#go').click();
@@ -559,9 +631,14 @@ test('MTR-only search still finds fair areas with default settings', async ({ pa
 });
 
 test('MTR-only no-fit message names the disabled mode', async ({ page }) => {
+  await page.locator('#add').click();
+  await page.locator('#add').click();
+  await pickStation(page, 0, 'Lo Wu');
+  await pickStation(page, 1, 'Airport');
+  await pickStation(page, 2, 'Tuen Mun');
+  await pickStation(page, 3, 'Tsuen Wan');
   await page.locator('.chip[data-mode="bus"]').click();
   await setRange(page, '#tolerance', '0.05');
-  await setRange(page, '#budget', '15');
   await page.locator('#go').click();
   await expect(page.locator('path.heat-cell')).toHaveCount(0);
   await expect(page.locator('#error')).toBeVisible();
@@ -749,8 +826,12 @@ test('per-person focus toggle persists through storage, reload and routes', asyn
   await expect(page.locator('.card').first().locator('.focus-option[data-focus="cost"]')).toHaveAttribute('aria-pressed', 'true');
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
-  await expect.poll(() => page.locator('.ride-leg .ride-text').count()).toBeGreaterThan(0);
-  await expect(page.locator('.ride-leg .ride-text').first()).toContainText('MTR');
+  await expect.poll(() => page.locator('.ride-leg .leg-mode').count()).toBeGreaterThan(0);
+  await expect(page.locator('.ride-leg .leg-mode').first()).toContainText('MTR');
+  await expect(page.locator('.ride-leg .leg-mode').first()).not.toContainText('MTR MTR');
+  await expect(page.locator('.ride-leg .leg-board').first()).toContainText('Get on:');
+  await expect(page.locator('.ride-leg .leg-alight').first()).toContainText('Get off:');
+  await expect(page.locator('.ride-leg .leg-meta').first()).toContainText('Fare HK$');
 });
 
 test('share links restore the current scenario', async ({ page }) => {
@@ -763,9 +844,11 @@ test('share links restore the current scenario', async ({ page }) => {
   });
   await page.locator('.card').first().locator('.name-input').fill('Alex');
   await page.locator('.card').first().locator('.focus-option[data-focus="cost"]').click();
-  await setRange(page, '#budget', '75');
   await page.locator('#go').click();
   await page.locator('#share').click();
+  await expect(page.locator('#shareStatus')).toBeVisible();
+  await expect(page.locator('#shareStatus')).toHaveText('Share link copied');
+  await expect(page.locator('#shareStatus')).toHaveAttribute('role', 'status');
   await expect(page.locator('#share')).toHaveAttribute('data-tooltip', 'Share link copied');
   const sharedUrl = await page.evaluate(() => window.__copied);
   expect(sharedUrl).toContain('#s=');
@@ -775,7 +858,6 @@ test('share links restore the current scenario', async ({ page }) => {
   await page.goto(sharedUrl);
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('.name-input').first()).toHaveValue('Alex');
-  await expect(page.locator('#budget')).toHaveValue('75');
   await expect(page.locator('.card').first().locator('.focus-option[data-focus="cost"]')).toHaveAttribute('aria-pressed', 'true');
 });
 
@@ -784,6 +866,7 @@ test('legal buttons open the dialog with loaded documents and direct pages still
     { key: 'privacy', title: 'Privacy', body: 'What stays on your device' },
     { key: 'terms', title: 'Terms', body: 'Informational service' },
     { key: 'credits', title: 'Credits', body: 'Transit data' },
+    { key: 'process', title: 'Process', body: 'Routing runs in this browser' },
   ];
   for (const document of documents) {
     await page.locator(`[data-legal="${document.key}"]`).click();
@@ -896,7 +979,6 @@ test('Airport Express fare is above the shared rail band', async ({ page }) => {
   await pickStation(page, 0, 'Tsim Sha Tsui');
   await pickStation(page, 1, 'Airport');
   await page.locator('.chip[data-mode="bus"]').click();
-  await setRange(page, '#budget', '90');
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   const fares = await page.locator('.fare.total').allInnerTexts();
@@ -907,7 +989,6 @@ test('Airport Express fare is above the shared rail band', async ({ page }) => {
 test('MTR-only Nam Cheong and Tuen Mun still returns an area', async ({ page }) => {
   await pickStation(page, 0, 'Nam Cheong');
   await pickStation(page, 1, 'Tuen Mun');
-  await setRange(page, '#budget', '90');
   await page.locator('.chip[data-mode="bus"]').click();
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
@@ -955,17 +1036,6 @@ test('shipped graph keeps plausible hop times', async ({ page }) => {
   expect(report.shortSlow).toBe(0);
 });
 
-test('changing the budget recomputes without pressing search', async ({ page }) => {
-  await page.locator('#go').click();
-  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
-  await setRange(page, '#budget', '120');
-  await expect(page.locator('#budgetval')).toHaveText('120 min');
-  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
-  await expect(page.locator('#error')).toBeHidden();
-  const stored = await page.evaluate(() => localStorage.getItem('hkfair.v2.settings'));
-  expect(stored).toContain('"budget":120');
-});
-
 test('a late place search does not reopen a chosen stop', async ({ page }) => {
   let release;
   const gate = new Promise(resolve => { release = resolve; });
@@ -1010,7 +1080,7 @@ test('a two-character Chinese query returns places', async ({ page }) => {
 });
 
 test('legal pages include social preview tags', async ({ page }) => {
-  for (const name of ['privacy', 'terms', 'credits']) {
+  for (const name of ['privacy', 'terms', 'credits', 'process']) {
     const body = await (await page.request.get(`/${name}.html`)).text();
     expect(body).toContain('property="og:title"');
     expect(body).toContain('name="twitter:card"');

@@ -12,7 +12,7 @@ export const normFocus=value=>value==='cost'?'cost':'time';
 export function nextSeq(people){return Math.max(1,...people.map(p=>Number(String(p.id).replace(/\D/g,''))||0))+1;}
 function buildSettings(stored,modes){
   stored=stored&&typeof stored==='object'?stored:{};
-  return{modes:Array.isArray(modes)&&modes.length?modes:['rail','bus'],tolerance:clamp(Number(stored.tolerance),0.05,0.5,0.1),budget:clamp(Number(stored.budget),15,180,60),vectors:migrateVectors(stored.vectors),beta:{vectors:!!stored.beta?.vectors}};
+  return{modes:Array.isArray(modes)&&modes.length?modes:['rail','bus'],tolerance:clamp(Number(stored.tolerance),0.05,0.5,0.1),vectors:migrateVectors(stored.vectors),beta:{vectors:!!stored.beta?.vectors}};
 }
 export function displayName(person,i){return (person?.name||'').trim()||defaultName(i);}
 export function profileLabel(profile){return profile.origin?.label||t('people.hintEmpty');}
@@ -86,9 +86,17 @@ export async function shareScenario(){
     :{kind:'result',index:store.selected>=0?store.selected:0};
   const state={v:1,people:store.people.map(p=>({id:p.id,name:p.name,origin:p.origin,focus:normFocus(p.focus)})),settings:clone(store.settings),locale:store.locale,selected:selectedState};
   const url=`${location.origin}${location.pathname}${location.search}#s=${encodeBase64Url(state)}`;
-  const button=$('share');
-  try{await copyText(url);flashTooltip(button,t('share.copied'));}
-  catch(err){console.error(err);flashTooltip(button,t('share.failed'));}
+  const button=$('share'),status=$('shareStatus');
+  const report=message=>{
+    flashTooltip(button,message);
+    if(!status)return;
+    clearTimeout(status.shareStatusTimer);
+    status.textContent=message;
+    status.hidden=false;
+    status.shareStatusTimer=setTimeout(()=>{status.hidden=true;status.textContent='';},2500);
+  };
+  try{await copyText(url);report(t('share.copied'));}
+  catch(err){console.error(err);report(t('share.failed'));}
 }
 export function readHashState(){
   if(!location.hash.startsWith('#s='))return null;

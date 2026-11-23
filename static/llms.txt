@@ -19,5 +19,6 @@ Compare travel time and cost from each person's start place to find a meeting po
 - Privacy: https://zg852.pages.dev/privacy.html
 - Terms: https://zg852.pages.dev/terms.html
 - Credits: https://zg852.pages.dev/credits.html
+- Process: https://zg852.pages.dev/process.html
 - Sitemap: https://zg852.pages.dev/sitemap.xml
 - Robots: https://zg852.pages.dev/robots.txt

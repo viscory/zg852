@@ -2,6 +2,14 @@
 
 This file records visual critiques of 就腳. The newest critique is first. Change `src/styles.css` so the page matches the newest sizes. Keep one size scale on `:root`.
 
+## 2026-11-23 Header spacing, sidebar footer and route legs
+
+The header subtitle needs a 6px spacer underneath it before the header ends. That is a 6px gap below the subtitle line, not a larger title margin or a taller header.
+
+The right sidebar ends with a footer separated from the options above it by a thin separator line. The footer holds the attribution note, the inspired-by note, and one row of legal links: Privacy, Terms, Credits, and Process. Process opens the page explaining routing, Photon, and OpenFreeMap.
+
+Route leg cards in the detail panel use three rows: the person's name and fare on top, the leg icons with their line and stop labels in the middle, and the total time at the bottom. Leg icons keep the existing scale, 12px for legend-scale icons and 14px for card action and route icons. Ride lines follow the shapes in the GTFS feed rather than a straight join between stops; walking lines connect starts, stops, rides, and the meeting area.
+
 ## 2026-11-23 Beta badge
 
 The header starts with a Beta badge. It is the first control in the top right bar. Pressing it turns beta features on or off. The tooltip says which features that enables. Today that is interest preferences, which can change the areas on the map. The options panel does not repeat the badge, the switch, or the experimental note. The interest sliders appear only while the badge is on.

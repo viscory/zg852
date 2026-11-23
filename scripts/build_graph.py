@@ -7,7 +7,8 @@ import math
 import os
 import statistics
 import zipfile
-from collections import defaultdict
+from bisect import bisect_left, bisect_right
+from collections import Counter, defaultdict
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(BASE, "static", "data")
@@ -23,6 +24,8 @@ WALK_NEIGHBOURS = 6
 MAX_WAIT_MIN = 20.0
 BOARD_PENALTY = {"rail": 1.0, "bus": 2.0, "ferry": 2.0, "lightRail": 1.0}
 CAT_CODE = {"rail": 0, "bus": 1, "ferry": 2, "lightRail": 3}
+SHAPE_TOLERANCE_M = 30.0
+SHAPE_SNAP_M = 400.0
 
 BIG_INTERCHANGES = {"ADM": 2.0, "CEN": 1.5, "MOK": 1.0, "KOT": 1.0, "TSY": 0.5, "TAW": 0.5}
 
@@ -34,12 +37,16 @@ def to_minutes(text):
     return int(parts[0]) * 60 + int(parts[1]) + int(parts[2]) / 60
 
 
-def haversine(a, b):
-    lat1, lon1 = math.radians(a["lat"]), math.radians(a["lon"])
-    lat2, lon2 = math.radians(b["lat"]), math.radians(b["lon"])
+def haversine_xy(lat1, lon1, lat2, lon2):
+    lat1, lon1 = math.radians(lat1), math.radians(lon1)
+    lat2, lon2 = math.radians(lat2), math.radians(lon2)
     dlat, dlon = lat2 - lat1, lon2 - lon1
     h = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
     return 2 * 6371000 * math.asin(math.sqrt(h))
+
+
+def haversine(a, b):
+    return haversine_xy(a["lat"], a["lon"], b["lat"], b["lon"])
 
 
 def read_table(zf, name):
@@ -57,6 +64,155 @@ def resolve(stop_id, stops, nodes):
         seen.add(stop_id)
         stop_id = stops[stop_id]["parent"]
     return stop_id if stop_id in nodes else None
+
+
+def read_shapes(zf, wanted):
+    """Read only the shapes used by exported lines, keyed by shape_id.
+
+    Each value is a pair of parallel lists: cumulative distances (metres) and
+    [lat, lon] points quantised to the same precision as nodes.json.
+    """
+    points = defaultdict(list)
+    if not wanted:
+        return {}
+    for row in read_table(zf, "shapes.txt"):
+        sid = row["shape_id"]
+        if sid not in wanted:
+            continue
+        try:
+            lat, lon = round(float(row["shape_pt_lat"]), 5), round(float(row["shape_pt_lon"]), 5)
+            seq = int(row["shape_pt_sequence"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        try:
+            dist = float(row["shape_dist_traveled"])
+        except (KeyError, TypeError, ValueError):
+            dist = None
+        points[sid].append((seq, dist, lat, lon))
+    result = {}
+    for sid, rows in points.items():
+        rows.sort(key=lambda item: item[0])
+        dists, coords, last, previous = [], [], None, None
+        travelled = 0.0
+        for _, dist, lat, lon in rows:
+            if last is not None:
+                travelled += haversine_xy(last[0], last[1], lat, lon)
+                if dist is None or dist < travelled - 1:
+                    dist = travelled
+            if dist is None:
+                dist = travelled
+            if previous is not None and dist <= previous:
+                dist = previous + 1e-6
+            dists.append(dist)
+            coords.append([lat, lon])
+            last, previous = (lat, lon), dist
+        result[sid] = (dists, coords)
+    return result
+
+
+def nearest_shape_point(coords, lat, lon):
+    """Index and metres of the shape point closest to a stop coordinate."""
+    scale_x = 111320 * math.cos(math.radians(lat))
+    best, index = float("inf"), None
+    for i, (plat, plon) in enumerate(coords):
+        dx, dy = (plon - lon) * scale_x, (plat - lat) * 110540
+        distance = dx * dx + dy * dy
+        if distance < best:
+            best, index = distance, i
+    return index, math.sqrt(best) if index is not None else float("inf")
+
+
+def stop_distances_for_line(shape, distances, stops, nodes):
+    """Use GTFS stop distances when complete, otherwise snap stops to the shape."""
+    usable = (distances and len(distances) == len(stops)
+              and all(d is not None for d in distances)
+              and all(distances[i] < distances[i + 1] for i in range(len(distances) - 1)))
+    if usable:
+        return distances
+    if not shape:
+        return None
+    _, coords = shape
+    snapped, previous = [], -1.0
+    for stop in stops:
+        node = nodes[stop]
+        index, metres = nearest_shape_point(coords, node["lat"], node["lon"])
+        distance = shape[0][index] if index is not None and metres <= SHAPE_SNAP_M else None
+        if distance is not None and distance > previous:
+            snapped.append(distance)
+            previous = distance
+        else:
+            snapped.append(None)
+    return snapped
+
+
+def simplify_shape(coords, tolerance, ref_lat, max_interior=None):
+    """Ramer-Douglas-Peucker on locally projected metres, keeping endpoints."""
+    if len(coords) <= 2:
+        return coords
+    scale_x = 111320 * math.cos(math.radians(ref_lat))
+    projected = [(lon * scale_x, lat * 110540) for lat, lon in coords]
+    keep = [False] * len(coords)
+    keep[0] = keep[-1] = True
+    stack = [(0, len(coords) - 1)]
+    while stack:
+        start, end = stack.pop()
+        ax, ay = projected[start]
+        bx, by = projected[end]
+        dx, dy = bx - ax, by - ay
+        norm = dx * dx + dy * dy
+        farthest, index = -1.0, None
+        for i in range(start + 1, end):
+            px, py = projected[i]
+            if norm:
+                ratio = max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / norm))
+                distance = math.hypot(px - (ax + ratio * dx), py - (ay + ratio * dy))
+            else:
+                distance = math.hypot(px - ax, py - ay)
+            if distance > farthest:
+                farthest, index = distance, i
+        if index is not None and farthest > tolerance:
+            keep[index] = True
+            stack.append((start, index))
+            stack.append((index, end))
+    indices = [i for i in range(1, len(coords) - 1) if keep[i]]
+    if max_interior is not None and len(indices) > max_interior:
+        ax, ay = projected[0]
+        bx, by = projected[-1]
+        dx, dy = bx - ax, by - ay
+        norm = dx * dx + dy * dy
+        scored = []
+        for i in indices:
+            px, py = projected[i]
+            if norm:
+                ratio = max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / norm))
+                deviation = math.hypot(px - (ax + ratio * dx), py - (ay + ratio * dy))
+            else:
+                deviation = math.hypot(px - ax, py - ay)
+            scored.append((deviation, i))
+        indices = sorted(i for _, i in sorted(scored, reverse=True)[:max_interior])
+    return [coords[0]] + [coords[i] for i in indices] + [coords[-1]]
+
+
+def segment_geometry(shape, d0, d1, start, end):
+    """Polyline for one stop-to-stop hop, anchored at the exact node coords."""
+    first = [round(start["lat"], 5), round(start["lon"], 5)]
+    last = [round(end["lat"], 5), round(end["lon"], 5)]
+    fallback = [first, last]
+    if not shape or d0 is None or d1 is None or not (d0 < d1):
+        return fallback
+    dists, coords = shape
+    lo, hi = bisect_right(dists, d0), bisect_left(dists, d1)
+    if hi <= lo:
+        return fallback
+    interior = [[round(lat, 4), round(lon, 4)] for lat, lon in coords[lo:hi]]
+    span = haversine_xy(first[0], first[1], last[0], last[1])
+    max_interior = 1 if span < 1200 else 4 if span < 4000 else 10
+    poly = simplify_shape([first] + interior + [last], SHAPE_TOLERANCE_M, first[0], max_interior)
+    deduped = [poly[0]]
+    for coord in poly[1:]:
+        if coord != deduped[-1]:
+            deduped.append(coord)
+    return deduped if len(deduped) > 1 else fallback
 
 
 def main():
@@ -107,8 +263,10 @@ def main():
             route_cat[row["route_id"]] = "rail" if agency == "MTRR" else "ferry" if agency == "FERRY" else "lightRail" if agency == "LR" else "bus"
 
         trip_route = {}
+        trip_shape = {}
         for row in read_table(zf, "trips.txt"):
             trip_route[row["trip_id"]] = row["route_id"]
+            trip_shape[row["trip_id"]] = row["shape_id"] or ""
 
         headways = defaultdict(list)
         for row in read_table(zf, "frequencies.txt"):
@@ -130,18 +288,32 @@ def main():
             if node is None:
                 continue
             dep = to_minutes(row["departure_time"]) or to_minutes(row["arrival_time"])
-            trip_pattern.setdefault(tid, []).append((seq, node, dep))
+            try:
+                distance = float(row["shape_dist_traveled"])
+            except (KeyError, TypeError, ValueError):
+                distance = None
+            trip_pattern.setdefault(tid, []).append((seq, node, dep, distance))
 
         pattern_edges = defaultdict(lambda: defaultdict(list))
         pattern_waits = defaultdict(list)
+        pattern_shapes = defaultdict(Counter)
+        pattern_shape_distances = {}
         for tid, records in trip_pattern.items():
             records.sort()
-            node_seq = [node for _, node, _ in records]
-            times = [t for _, _, t in records if t is not None]
+            node_seq = [node for _, node, _, _ in records]
+            times = [t for _, _, t, _ in records if t is not None]
             if len(node_seq) < 2 or len(times) != len(records):
                 continue
             pattern = tuple(node_seq)
             route = trip_route[tid]
+            shape_id = trip_shape.get(tid, "")
+            if shape_id:
+                key = (route, pattern, shape_id)
+                pattern_shapes[(route, pattern)][shape_id] += 1
+                candidate = tuple(d for _, _, _, d in records)
+                previous = pattern_shape_distances.get(key)
+                if previous is None or sum(d is None for d in candidate) < sum(d is None for d in previous):
+                    pattern_shape_distances[key] = candidate
             waits = headways.get(tid, [])
             wait = min(statistics.median(waits), MAX_WAIT_MIN) / 2 if waits else 7.5
             pattern_waits[route].append((pattern, wait))
@@ -150,7 +322,14 @@ def main():
                 if 0 < dt < 60:
                     pattern_edges[(route, pattern)][i].append(dt)
 
+        pattern_rep_shape = {
+            key: max(counts.items(), key=lambda item: (item[1], item[0]))[0]
+            for key, counts in pattern_shapes.items()
+        }
+        shapes = read_shapes(zf, set(pattern_rep_shape.values()))
+
     lines = {}
+    line_geometry = {}
     for (route, pattern), edge_map in pattern_edges.items():
         waits = [w for p, w in pattern_waits[route] if p == pattern]
         wait = statistics.median(waits) if waits else 7.5
@@ -162,6 +341,20 @@ def main():
             "stops": list(pattern),
             "edges": [round(statistics.median(vals), 2) for _, vals in sorted(edge_map.items())],
         }
+        shape_id = pattern_rep_shape.get((route, pattern))
+        shape = shapes.get(shape_id)
+        distances = stop_distances_for_line(
+            shape,
+            pattern_shape_distances.get((route, pattern, shape_id)) if shape_id else None,
+            pattern, nodes,
+        )
+        geometry = []
+        for index, _ in sorted(edge_map.items()):
+            d0 = distances[index] if distances and index < len(distances) else None
+            d1 = distances[index + 1] if distances and index + 1 < len(distances) else None
+            geometry.append(segment_geometry(shape, d0, d1,
+                                             nodes[pattern[index]], nodes[pattern[index + 1]]))
+        line_geometry[line_id] = geometry
 
     adjust_edges(lines, nodes)
 
@@ -234,7 +427,7 @@ def main():
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(graph, fh, separators=(",", ":"), ensure_ascii=False)
 
-    export_client(nodes, lines, walk)
+    export_client(nodes, lines, walk, line_geometry)
 
     print(f"nodes={len(nodes)} platforms={sum(map(len, station_platforms.values()))} "
           f"exits={sum(map(len, station_exits.values()))} lines={len(lines)} "
@@ -284,7 +477,7 @@ def line_label(line_id):
     return route
 
 
-def export_client(nodes, lines, walk):
+def export_client(nodes, lines, walk, line_geometry):
     order = list(nodes.keys())
     index = {nid: i for i, nid in enumerate(order)}
     kinds = {"station": 1, "platform": 2, "exit": 3, "bus": 4, "stop": 5}
@@ -303,6 +496,7 @@ def export_client(nodes, lines, walk):
             "w": line["wait"],
             "s": [index[n] for n in line["stops"]],
             "e": line["edges"],
+            "g": line_geometry[lid],
         })
     walk_data = [[index[a], index[b], t] for a, b, t in walk]
     with open(os.path.join(DATA, "nodes.json"), "w", encoding="utf-8") as fh:

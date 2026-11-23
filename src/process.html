@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Process - 就腳</title>
+<meta name="description" content="How 就腳 matches starts, computes fair areas, and draws routes.">
+<link rel="canonical" href="https://zg852.pages.dev/process">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="就腳">
+<meta property="og:title" content="Process - 就腳">
+<meta property="og:description" content="How 就腳 matches starts, computes fair areas, and draws routes.">
+<meta property="og:url" content="https://zg852.pages.dev/process">
+<meta property="og:image" content="https://zg852.pages.dev/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Process - 就腳">
+<meta name="twitter:description" content="How 就腳 matches starts, computes fair areas, and draws routes.">
+<meta name="twitter:image" content="https://zg852.pages.dev/og-image.png">
+<script src="preview-noindex.js"></script>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="stylesheet" href="./legal.css">
+</head>
+<body>
+<main>
+<h1>Process</h1>
+<p>Routing runs in this browser. Place search uses keyless Photon and the map uses OpenFreeMap vector tiles from OpenStreetMap data. Your people and settings stay on this device.</p>
+<h2>Starts matched to nearby stops</h2>
+<p>Each start place is matched to nearby transit stops within a fixed walking radius. A stop saved from the local list uses the stop itself; an address or map pin uses the closest stops around that point.</p>
+<h2>Multi-source Dijkstra</h2>
+<p>Those nearby stops become the sources of a multi-source Dijkstra search over a local transit graph. Walking links connect the sources, and ride edges follow the scheduled network, so every reachable place gets a travel time for each person.</p>
+<h2>Fair-cell grouping</h2>
+<p>The map is divided into small cells. Cells are grouped by how different the travel times are across everyone, then ranked so the fairest, quickest areas appear first. The tolerance control changes this grouping without re-running the whole search.</p>
+<h2>Route legs</h2>
+<p>Route legs follow the shapes stored in the transit feed. Walking segments connect a start to a stop, a stop to a ride, and the last ride to the meeting area. Ride segments trace the actual path of the MTR or bus line rather than a straight line between stops.</p>
+<h2>Fare estimates</h2>
+<p>Fares are adult Octopus estimates based on the ride distance and operator fare bands. They are shown for comparison only; check the operator for exact fares.</p>
+<h2>Data sources</h2>
+<p>The transit graph comes from a community-maintained Hong Kong GTFS feed. The interest index uses open Hong Kong government data and Overture. Place search uses Photon, and the basemap uses OpenFreeMap vector tiles from OpenStreetMap data.</p>
+<h2>Privacy</h2>
+<p>See the <a href="privacy.html">Privacy</a> page for what is stored on your device and which third-party requests the app makes.</p>
+<nav><a href="/">App</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="credits.html">Credits</a></nav>
+</main>
+</body>
+</html>

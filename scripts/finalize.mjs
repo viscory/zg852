@@ -44,6 +44,9 @@ const headers = `/*
 /credits.html
   Cache-Control: no-cache
 
+/process.html
+  Cache-Control: no-cache
+
 /sitemap.xml
   Cache-Control: public, max-age=3600
 

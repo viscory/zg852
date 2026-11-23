@@ -42,7 +42,6 @@ $('legalDone')?.addEventListener('click',()=>closeDialog($('legalDialog')));
 document.querySelectorAll('.legal-button[data-legal]').forEach(button=>{button.onclick=()=>openLegal(button.dataset.legal);});
 document.querySelectorAll('.chip').forEach(chip=>chip.onclick=()=>{chip.setAttribute('aria-pressed',String(chip.getAttribute('aria-pressed')!=='true'));clearError();readSettingsFromDom();});
 $('tolerance').oninput=readSettingsFromDom;
-$('budget').oninput=readSettingsFromDom;
 async function setBetaEnabled(enabled){
   store.settings.beta={vectors:!!enabled};
   save();
