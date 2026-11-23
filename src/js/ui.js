@@ -219,7 +219,7 @@ export function makeCard(person){
     if(q.length<2){sug.hidden=true;input.setAttribute('aria-expanded','false');return;}
     const local=dedupePlaces(searchPlaces(q,8),8);
     renderSuggestions(sug,local,person,input,false,false,cancelSearch);
-    if(q.length<3&&!/[^\u0000-\u007f]/.test(q))return;
+    if(q.length<3&&![...q].some(ch=>ch.charCodeAt(0)>127))return;
     const mine=++requestSeq;
     timer=setTimeout(async()=>{
       controller=new AbortController();
