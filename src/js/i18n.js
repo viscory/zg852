@@ -10,12 +10,19 @@ export function t(key,vars={}){
   for(const [k,v] of Object.entries(vars))value=value.replaceAll(`{${k}}`,String(v));
   return value;
 }
+const numberFormats=new Map(),pluralRules=new Map();
 export function tp(key,count,vars={}){
-  const category=new Intl.PluralRules(store.locale).select(count);
+  let rules=pluralRules.get(store.locale);
+  if(!rules){rules=new Intl.PluralRules(store.locale);pluralRules.set(store.locale,rules);}
+  const category=rules.select(count);
   const pluralKey=`${key}_${category}`;
   return t((store.I18N[store.locale]||store.EN)[pluralKey]?pluralKey:key,{count,...vars});
 }
-export function num(value){return new Intl.NumberFormat(store.locale,{maximumFractionDigits:1}).format(value);}
+export function num(value){
+  let format=numberFormats.get(store.locale);
+  if(!format){format=new Intl.NumberFormat(store.locale,{maximumFractionDigits:1});numberFormats.set(store.locale,format);}
+  return format.format(value);
+}
 export function minuteText(value){return `${num(value)} ${tp('unit.min',value)}`;}
 export function setDocumentLocale(){
   document.documentElement.lang=store.locale;

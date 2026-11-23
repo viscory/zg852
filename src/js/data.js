@@ -10,6 +10,7 @@ export async function loadNodes(){
   store.NODES=await fetch('data/nodes.json').then(r=>r.json());
   store.surface=[];
   for(let i=0;i<store.NODES.names.length;i++)if(store.NODES.kind[i]===1||store.NODES.kind[i]===3||store.NODES.kind[i]===4)store.surface.push(i);
+  store.lowerNames=store.NODES.names.map(name=>String(name).toLowerCase());
 }
 export async function loadNetwork(){
   if(store.NET)return store.NET;
@@ -44,24 +45,31 @@ export async function loadPoi(){
   })();
   try{return await store.poiLoading;}finally{store.poiLoading=null;}
 }
+const districtCache=new Map();
 export function districtFor(lat,lon){
   if(!store.DISTRICTS.length||!isNum(lat)||!isNum(lon))return t('district.unknown');
-  let best=store.DISTRICTS[0],bestD=Infinity;
-  for(const d of store.DISTRICTS){
-    const distance=haversine(lat,lon,d.lat,d.lon);
-    if(distance<bestD){best=d;bestD=distance;}
+  const key=`${lat},${lon}`;
+  let best=districtCache.get(key);
+  if(!best){
+    best=store.DISTRICTS[0];
+    let bestD=Infinity;
+    for(const d of store.DISTRICTS){
+      const distance=haversine(lat,lon,d.lat,d.lon);
+      if(distance<bestD){best=d;bestD=distance;}
+    }
+    districtCache.set(key,best);
   }
   return best.name[store.locale]||best.name.en||t('district.unknown');
 }
 export function findExact(name){
-  for(let i=0;i<store.NODES.names.length;i++)if(store.NODES.names[i].toLowerCase()===String(name).toLowerCase()&&store.NODES.kind[i]===1)return i;
+  for(let i=0;i<store.NODES.names.length;i++)if(store.lowerNames[i]===String(name).toLowerCase()&&store.NODES.kind[i]===1)return i;
   return null;
 }
 export function searchPlaces(q,limit=8){
   const ql=q.trim().toLowerCase();if(!ql||!store.NODES)return[];
   const exact=[],partial=[];
   for(const idx of store.surface){
-    const low=store.NODES.names[idx].toLowerCase();
+    const low=store.lowerNames[idx];
     if(low===ql)exact.push(idx);else if(low.includes(ql))partial.push(idx);
   }
   exact.sort((a,b)=>nodePriority(store.NODES.kind[a])-nodePriority(store.NODES.kind[b]));
