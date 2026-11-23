@@ -10,10 +10,11 @@ import zipfile
 from collections import defaultdict
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA = os.path.join(BASE, "data")
+DATA = os.path.join(BASE, "static", "data")
 RAW = os.path.join(DATA, "raw")
 FEED = os.path.join(RAW, "hk-community-gtfs.zip")
 OUT = os.path.join(DATA, "graph.json")
+
 
 WALK_SPEED_KMH = 4.5
 WALK_DETOUR = 1.3

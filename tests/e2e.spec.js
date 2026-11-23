@@ -100,7 +100,7 @@ test('map renders a keyless vector canvas with no API-key errors', async ({ page
 test('brand copy and MTR-facing labels use the Zak Geok identity', async ({ page }) => {
   const en = await catalog(page, 'en');
   await expect(page.locator('.brand .logo')).toHaveText('ZG');
-  await expect(page.locator('h1')).toHaveText('擇角 Zak Geok [zé jiǎo]');
+  await expect(page.locator('h1')).toHaveText('就腳 Zak Geok [zau6 goek3]');
   await expect(page.locator('h1')).toHaveText(en['app.title']);
   await expect(page.locator('.brand .sub')).toHaveText('Find the most convenient meeting point for everyone');
   await expect(page.locator('.brand .sub')).toHaveText(en['app.subtitle']);
@@ -129,47 +129,25 @@ test('robots, llms, sitemap and build headers expose the llms.txt endpoint', asy
   expect(await headers.text()).toContain('/llms.txt');
 });
 
-test('production module wiring avoids inline importmaps and CSP exceptions', async ({ page }) => {
+test('production bundle avoids importmaps and CSP exceptions', async ({ page }) => {
   const index = await page.evaluate(async () => (await (await fetch('index.html')).text()));
-  const sources = await page.evaluate(async () => {
-    const seen = new Map();
-    const queue = ['app.js'];
-    while (queue.length) {
-      const file = queue.shift();
-      if (seen.has(file) || file.startsWith('vendor/')) continue;
-      const text = await (await fetch(file)).text();
-      seen.set(file, text);
-      for (const match of text.matchAll(/(?:from|import)\s+['"](\.[^'"]+\.js)['"]/g)) {
-        const resolved = new URL(match[1], new URL(file, location.href));
-        queue.push(resolved.href.replace(location.origin + '/', ''));
-      }
-    }
-    return [...seen.entries()];
-  });
-  const app = sources.map(([file, text]) => text).join('\n');
-  const mapModule = sources.find(([file, text]) => text.includes('leaflet-src.esm.js'))?.[1];
-  const wrapper = await page.evaluate(async () => (await (await fetch('vendor/leaflet-maplibre-gl.mjs')).text()));
+  const app = await page.evaluate(async () => (await (await fetch('app.js')).text()));
   const headers = await page.evaluate(async () => (await (await fetch('_headers')).text()));
-  expect(sources.length).toBeGreaterThan(5);
   expect(index).not.toContain('importmap');
-  expect(index).toContain('<script type="module" src="app.js"></script>');
-  expect(mapModule).toContain("import * as L from '../vendor/leaflet-src.esm.js';");
-  expect(mapModule).toContain("import { maplibreGL } from '../vendor/leaflet-maplibre-gl.mjs';");
+  expect(index).toMatch(/<script type="module"[^>]*src="\/app\.js">/);
+  expect(app).toContain('tiles.openfreemap.org/planet');
   expect(app).not.toContain('style="');
   expect(app).not.toContain('.style.cssText');
-  expect(wrapper).toContain('from "./leaflet-src.esm.js"');
-  expect(wrapper).toContain('from "./maplibre-gl.mjs"');
   expect(headers).toContain("script-src 'self'");
   expect(headers).not.toContain('unsafe-inline');
 });
 
 test('clean basemap adds keyless place labels without raster tiles', async ({ page }) => {
-  const source = await page.evaluate(async () => (await (await fetch('js/map.js')).text()));
+  const source = await page.evaluate(async () => (await (await fetch('app.js')).text()));
   expect(source).not.toContain('tile.openstreetmap.org');
-  expect(source).toContain("type:'symbol'");
-  expect(source).toContain("glyphs:'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf'");
-  expect(source).toContain("'source-layer':'place'");
   expect(source).toContain('tiles.openfreemap.org/planet');
+  expect(source).toContain('/fonts/{fontstack}/{range}.pbf');
+  expect(source).toMatch(/source-layer['"]?\s*:\s*['"]place/);
 });
 
 test('defaults load and a two-person search draws fair map areas', async ({ page }) => {
@@ -494,7 +472,7 @@ test('all catalogues keep the same keys and avoid ranking wording', async ({ pag
     expect(Object.keys(catalogues[0])).toContain(key);
   }
   expect(Object.keys(catalogues[0])).not.toContain('app.meaning');
-  expect(catalogues[0]['app.title']).toBe('擇角 Zak Geok [zé jiǎo]');
+  expect(catalogues[0]['app.title']).toBe('就腳 Zak Geok [zau6 goek3]');
   expect(catalogues[0]['app.subtitle']).toBe('Find the most convenient meeting point for everyone');
   expect(catalogues[0]['options.rail']).toBe('MTR');
   expect(catalogues[0]['mode.rail']).toBe('MTR');
@@ -825,4 +803,26 @@ test('adding and removing a person recomputes without pressing search', async ({
   await expect(page.locator('.card')).toHaveCount(2);
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   await expect(page.locator('#error')).toBeHidden();
+});
+
+test('a Photon outage falls back to local stops with an inline notice', async ({ page }) => {
+  await page.route('**/photon.komoot.io/api/**', route => route.abort());
+  const third = page.locator('.card').nth(2);
+  await page.locator('#add').click();
+  await third.locator('.start-input').fill('3 Canton Road');
+  await page.waitForTimeout(600);
+  await expect(third.locator('.suggestion-error')).toBeVisible();
+  await expect(third.locator('.suggestion')).toHaveCount(0);
+  await expect(third.locator('.suggestion-error')).toContainText('Place search is unavailable');
+});
+
+test('changing the budget recomputes without pressing search', async ({ page }) => {
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+  await setRange(page, '#budget', '120');
+  await expect(page.locator('#budgetval')).toHaveText('120 min');
+  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+  await expect(page.locator('#error')).toBeHidden();
+  const stored = await page.evaluate(() => localStorage.getItem('hkfair.v2.settings'));
+  expect(stored).toContain('"budget":120');
 });

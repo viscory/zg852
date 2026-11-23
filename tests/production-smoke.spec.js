@@ -19,7 +19,7 @@ async function setup(page, { serviceWorker = false } = {}) {
   await expect(page.locator('#netstatus')).toHaveText('network ready');
 }
 
-test('production assets referenced by styles.css all load', async ({ page }) => {
+test('production stylesheet inlines icons and loads with no missing assets', async ({ page }) => {
   const failures = [];
   page.on('response', response => {
     if (isLocal(response.url()) && response.status() >= 400) failures.push(`${response.status()} ${response.url()}`);
@@ -30,11 +30,11 @@ test('production assets referenced by styles.css all load', async ({ page }) => 
 
   await setup(page);
 
-  const css = await (await page.request.get('styles.css')).text();
-  const assets = [...css.matchAll(/url\(\s*['"]?([^'")]+)['"]?\s*\)/g)].map(match => match[1]);
-  expect(assets.length).toBeGreaterThan(0);
+  const css = await (await page.request.get('app.css')).text();
+  expect(css).toContain('mask-image:url("data:image/svg+xml');
+  const assets = [...css.matchAll(/url\(\s*['"]?([^'")]+)['"]?\s*\)/g)].map(match => match[1])
+    .filter(asset => !/^(data:|https?:|blob:)/.test(asset));
   for (const asset of assets) {
-    if (/^(data:|https?:|blob:)/.test(asset)) continue;
     const response = await page.request.get(asset);
     expect(response.ok(), `${asset} should load`).toBeTruthy();
   }
@@ -56,7 +56,7 @@ test('production header copy is exact and no raw i18n keys leak into the UI', as
   await setup(page);
   await expect(page.locator('.brand .logo')).toHaveText('ZG');
   await expect(page.locator('.brand .logo')).toBeVisible();
-  await expect(page.locator('h1')).toHaveText('擇角 Zak Geok [zé jiǎo]');
+  await expect(page.locator('h1')).toHaveText('就腳 Zak Geok [zau6 goek3]');
   await expect(page.locator('h1')).toBeVisible();
   await expect(page.locator('.brand .sub')).toHaveText('Find the most convenient meeting point for everyone');
   await expect(page.locator('.brand .sub')).toBeVisible();
@@ -95,14 +95,14 @@ test('stale cached catalogs cannot resurrect raw i18n keys', async ({ page }) =>
   await setup(page, { serviceWorker: true });
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
-    const cache = await caches.open('zg852-v17');
+    const cache = await caches.open('zg852-v18');
     await cache.put('/i18n/en.json', new Response(JSON.stringify({ 'app.title': 'Stale title' }), {
       headers: { 'content-type': 'application/json' },
     }));
   });
   await page.reload();
   await expect(page.locator('#netstatus')).toHaveText('network ready');
-  await expect(page.locator('h1')).toHaveText('擇角 Zak Geok [zé jiǎo]');
+  await expect(page.locator('h1')).toHaveText('就腳 Zak Geok [zau6 goek3]');
   await expect(page.locator('.focus-option[data-focus="time"]').first()).toHaveText('Time');
   await expect(page.locator('[data-legal="privacy"]')).toHaveText('Privacy');
   expect(await page.locator('body').innerText()).not.toMatch(RAW_KEY);
@@ -119,4 +119,21 @@ test('recenter control sits on the map beside the zoom control', async ({ page }
   expect(recenter.y - (zoom.y + zoom.height)).toBeLessThan(12);
   await expect(page.locator('#recenter')).toHaveCount(0);
   await expect(page.locator('.map-recenter-control .map-recenter')).toHaveAttribute('aria-label', 'Recenter map');
+});
+
+test('service worker precaches the bundle, data, and catalogs for offline use', async ({ page }) => {
+  await setup(page, { serviceWorker: true });
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  const cached = await page.evaluate(async () => {
+    const cache = await caches.open('zg852-v18');
+    const entries = ['/app.js', '/app.css', '/index.html', '/data/nodes.json', '/i18n/en.json'];
+    return Object.fromEntries(await Promise.all(entries.map(async entry => [entry, !!(await cache.match(entry))])));
+  });
+  expect(cached).toEqual({
+    '/app.js': true,
+    '/app.css': true,
+    '/index.html': false,
+    '/data/nodes.json': true,
+    '/i18n/en.json': true,
+  });
 });

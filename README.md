@@ -1,4 +1,4 @@
-# 擇角 (Zak Geok)
+# 就腳 (Zak Geok)
 
 Client-side Hong Kong fair meeting-point finder. Pick two or more start places, set a travel budget, and see fair areas on the map with segmented walking, MTR, and bus routes. No account, no backend, no API keys.
 
@@ -6,24 +6,30 @@ Site: https://zg852.pages.dev/
 
 ## Repository layout
 
-- `src/` — every deployable page, style, script, icon, and SEO file. `src/app.js` is the entry module; `src/js/` holds focused modules (`config`, `store`, `util`, `i18n`, `data`, `vectors`, `routing`, `search`, `state`, `map`, `ui`, `engine`).
-- `i18n/` — user-facing copy for all 15 locales. Text in `src/index.html` is the no-JavaScript fallback only.
-- `data/` — generated transit graph, POI index, and district data. Raw feeds stay in `data/raw/` and are never committed or deployed.
-- `vendor/` — checked-in third-party libraries and icons.
-- `scripts/` — the static-site build (`build-pages.mjs`) and the Python data pipeline (`build_graph.py`, `build_poi_index.py`).
+- `src/` — application source. `src/index.html` is the entry page; `src/js/` holds focused modules (`config`, `store`, `util`, `i18n`, `data`, `vectors`, `routing`, `search`, `state`, `map`, `ui`, `engine`); `src/styles.css` and `src/legal.css` are the stylesheets.
+- `static/` — files served exactly as written: `data/` (generated transit graph and POI index), `i18n/` (all 15 locale catalogs), `sw.js`, SEO files, and icons. Raw feeds stay in `static/data/raw/` and are never committed or deployed.
+- `scripts/` — the data pipeline (`build_graph.py`, `build_poi_index.py`) and the post-build step (`finalize.mjs`) that writes `_headers` and patches `sw.js` for the deployed origin.
 - `tests/` — Playwright specs that always run against the built `public/` artifact.
+
+## Dependencies
+
+Libraries come from npm and are bundled by Vite: `leaflet`, `maplibre-gl`, `@maplibre/maplibre-gl-leaflet`, and `lucide-static` (icons are inlined into the stylesheet as data URIs). There are no vendored copies in the repository.
+
+The routing engine in `src/js/routing.js` stays hand-written on purpose. No widely adopted small library covers fair-area computation over a custom multi-modal HK graph, and a heavier routing stack would not fit a no-backend static site.
 
 ## Run locally
 
 ```sh
 npm install
+npm run dev
+```
+
+Or build and serve the production artifact:
+
+```sh
 npm run build
 npm run serve
 ```
-
-Open http://localhost:8765/
-
-`npm run serve` serves the built `public/` directory. Source changes need another `npm run build`.
 
 ## Tests and lint
 
@@ -34,18 +40,20 @@ npm run lint
 
 Playwright builds `public/` first and serves that directory at `http://127.0.0.1:8765`, so the tests exercise the same artifact that is deployed. Set `TEST_BASE_URL` to run the smoke spec against a deployed site instead, for example `TEST_BASE_URL=https://zg852.pages.dev npm test`.
 
-GitHub Actions runs lint, build, and the full Playwright suite on every push to `main` and every pull request (`.github/workflows/ci.yml`).
+## CI/CD
+
+`.github/workflows/ci.yml` runs lint, build, and the full Playwright suite on every push to `main` and every pull request. Every green push to `main` is then published to Cloudflare Pages with `wrangler pages deploy`. The deploy job needs two repository secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
 
 `npm install` activates the repository hooks in `.githooks/`. The pre-commit hook enforces that `observations.md` is prepend-only: every assistant turn adds a new block at the top, and existing lines must never be edited or removed.
 
-## Build and deploy
+## Build and manual deploy
 
 ```sh
 npm run build
 npm run pages:deploy
 ```
 
-The static site is written to `public/`. Cloudflare Pages uses the same directory via `wrangler.toml`. The build copies `src/` into `public/`, writes the `_headers` security and caching rules, and patches `sw.js` for the deployed origin. When you change a cached asset, bump the cache version in `src/sw.js` and keep the patch strings in `scripts/build-pages.mjs` in sync.
+Vite bundles and minifies `src/` into `public/` and copies `static/` alongside it. `scripts/finalize.mjs` then writes the `_headers` security and caching rules and patches `sw.js` for the deployed origin. When you change a cached asset, bump the cache version in `static/sw.js`, add any new asset to its precache list, and keep the patch strings in `scripts/finalize.mjs` in sync.
 
 ## Data and services
 
@@ -61,7 +69,7 @@ Inspired by [FairPin PH](https://fairpin.ph/). I have not used their service. Th
 
 ## Legal
 
-See `PRIVACY.md`, `TERMS.md`, `CREDITS.md`, and `THIRD_PARTY_NOTICES.md`. Published legal pages are in `src/privacy.html`, `src/terms.html`, and `src/credits.html`.
+See `PRIVACY.md`, `TERMS.md`, `CREDITS.md`, and `THIRD_PARTY_NOTICES.md`. Published legal pages are built from `src/privacy.html`, `src/terms.html`, and `src/credits.html`.
 
 ## License
 

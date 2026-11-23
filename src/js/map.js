@@ -1,5 +1,7 @@
-import * as L from '../vendor/leaflet-src.esm.js';
-import { maplibreGL } from '../vendor/leaflet-maplibre-gl.mjs';
+import * as L from 'leaflet';
+import { maplibreGL } from '@maplibre/maplibre-gl-leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,VECTOR_KEYS } from './config.js';
 import { store } from './store.js';
 import { $,esc,clamp,isNum,icon,initialsFor,avatarClass } from './util.js';
