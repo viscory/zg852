@@ -1,3 +1,10 @@
+## 2026-11-23T01:50:00Z
+
+- Committed and pushed the dead-code removal as `52ed9c2` on `main`. 20 files, 19 insertions, 202 deletions.
+- CI run `45095516256`: `test` job passed. `deploy` job failed. Root cause: the repo has no `CLOUDFLARE_API_TOKEN` or `CLOUDFLARE_ACCOUNT_ID` secrets, so wrangler cannot authenticate in Actions. This is the same failure as run `45094151842` at 01:21.
+- Deployed by hand instead: `npm run pages:deploy` with the locally authenticated wrangler. Upload succeeded, deployment `37d8bbff`.
+- Verified production at `zg852.pages.dev`: `sw.js` serves `zg852-v20`, `en.json` no longer holds any removed key, the bundle no longer holds `personColor`, and `/`, `/app.js`, `/i18n/en.json` all return 200.
+
 ## 2026-11-23T01:42:00Z
 
 - Executed the dead-code removal. Deleted `personColor` and 15 unused `ICONS` entries in `src/js/util.js`, `oldWeight` and `oldRecent` from `KEY` in `src/js/config.js`, and the `.icon-reset`, `.options-divider`, `.linkish` rules in `src/styles.css`.
