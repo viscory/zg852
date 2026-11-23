@@ -79,7 +79,7 @@ test.beforeEach(async ({ page }) => {
     body: JSON.stringify({ features: PHOTON_FEATURES }),
   }));
   await page.goto('/');
-  await expect(page.locator('#netstatus')).toHaveText('network ready');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
 });
 
 test('map renders a keyless vector canvas with no API-key errors', async ({ page }) => {
@@ -90,7 +90,7 @@ test('map renders a keyless vector canvas with no API-key errors', async ({ page
     if (/tile\.openstreetmap\.org/.test(req.url())) raster.push(req.url());
   });
   await page.reload();
-  await expect(page.locator('#netstatus')).toHaveText('network ready');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('.maplibregl-canvas')).toBeVisible();
   await expect(page.locator('body')).not.toContainText('API KEY');
   expect(blocked).toEqual([]);
@@ -445,7 +445,7 @@ test('settings, people, library and locale persist, and clearing storage restore
 
   await page.reload();
   await expect.poll(() => page.locator('html').getAttribute('lang')).toBe('zh-Hant');
-  await expect(page.locator('#netstatus')).toHaveText('時刻表就緒');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('.name-input').first()).toHaveValue('Alex');
   await expect(page.locator('.chip[data-mode="rail"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.chip[data-mode="bus"]')).toHaveAttribute('aria-pressed', 'false');
@@ -457,7 +457,7 @@ test('settings, people, library and locale persist, and clearing storage restore
 
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await expect(page.locator('#netstatus')).toHaveText('network ready');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('.card')).toHaveCount(2);
   await expect(page.locator('.name-input').first()).toHaveValue('Person A');
   await expect(page.locator('#tolerance')).toHaveValue('0.1');
@@ -587,7 +587,7 @@ test('migrates v1 people and modes into v2 storage', async ({ page }) => {
     localStorage.setItem('hkfair.v1.weight', '2');
   });
   await page.reload();
-  await expect(page.locator('#netstatus')).toHaveText('network ready');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('.card')).toHaveCount(2);
   await expect(page.locator('.name-input').first()).toHaveValue('Person A');
   await expect(page.locator('.start-input').first()).toHaveValue('Tsuen Wan');
@@ -732,7 +732,7 @@ test('per-person focus toggle persists through storage, reload and routes', asyn
   expect(stored).toMatch(/"focus"\s*:\s*"cost"/);
 
   await page.reload();
-  await expect(page.locator('#netstatus')).toHaveText('network ready');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('.card').first().locator('.focus-option[data-focus="cost"]')).toHaveAttribute('aria-pressed', 'true');
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
@@ -760,7 +760,7 @@ test('share links restore the current scenario', async ({ page }) => {
   expect(state.people[0].name).toBe('Alex');
   expect(state.people[0].focus).toBe('cost');
   await page.goto(sharedUrl);
-  await expect(page.locator('#netstatus')).toHaveText('network ready');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('.name-input').first()).toHaveValue('Alex');
   await expect(page.locator('#budget')).toHaveValue('75');
   await expect(page.locator('.card').first().locator('.focus-option[data-focus="cost"]')).toHaveAttribute('aria-pressed', 'true');

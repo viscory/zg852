@@ -1,8 +1,6 @@
 {
   "app.title": "就腳 zau6 goek3",
   "app.subtitle": "香港で公平な待ち合わせ場所を見つける",
-  "header.status": "ブラウザー側で経路検索。時刻表：",
-  "header.saved": "このデバイスに保存済みです。",
   "people.title": "メンバーと出発地",
   "people.count": "人",
   "sidebar.swap": "人と結果を切り替え",

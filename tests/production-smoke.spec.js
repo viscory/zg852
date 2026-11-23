@@ -20,7 +20,7 @@ async function setup(page, { serviceWorker = false } = {}) {
   }));
   if (!serviceWorker) await page.route('**/sw.js', route => route.abort());
   await page.goto('/');
-  await expect(page.locator('#netstatus')).toHaveText('network ready');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
 }
 
 test('production stylesheet inlines icons and loads with no missing assets', async ({ page }) => {
@@ -105,7 +105,7 @@ test('stale cached catalogs cannot resurrect raw i18n keys', async ({ page }) =>
     }));
   }, SW_CACHE_NAME);
   await page.reload();
-  await expect(page.locator('#netstatus')).toHaveText('network ready');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('h1')).toHaveText('就腳 zau6 goek3');
   await expect(page.locator('.focus-option[data-focus="time"]').first()).toHaveText('Time');
   await expect(page.locator('[data-legal="privacy"]')).toHaveText('Privacy');

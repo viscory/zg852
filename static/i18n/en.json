@@ -1,8 +1,6 @@
 {
   "app.title": "就腳 zau6 goek3",
   "app.subtitle": "Find the most convenient meeting point for everyone",
-  "header.status": "Browser-side routing. Timetable:",
-  "header.saved": "Saved on this device.",
   "people.title": "People and start places",
   "people.count": "people",
   "sidebar.swap": "Swap people and results",

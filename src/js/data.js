@@ -1,5 +1,5 @@
 import { store } from './store.js';
-import { $,isNum,haversine } from './util.js';
+import { isNum,haversine } from './util.js';
 import { t } from './i18n.js';
 import { betaVectorsEnabled } from './vectors.js';
 
@@ -24,7 +24,7 @@ export async function loadNetwork(){
     const node=line.s[i];store.nodeLines[node].push(li);
     if(i+1<line.s.length)store.rideAdj[node].push([li,line.s[i+1],line.e[i]]);
   }});
-  $('netstatus').textContent=t('status.ready');
+  document.documentElement.dataset.net='ready';
   return store.NET;
 }
 export async function loadDistricts(){

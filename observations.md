@@ -1,3 +1,10 @@
+## 2026-11-23T02:10:00Z
+
+- Removed the header line "Browser-side routing. Timetable: network ready Saved on this device."
+- Deleted `header.status` and `header.saved` from all 15 catalogues, and the `.status` CSS rules.
+- Network readiness is now `document.documentElement.dataset.net`. Tests wait on that attribute. Service-worker cache is `zg852-v23`.
+- `npm test` passed 43 tests.
+
 ## 2026-11-23T02:08:00Z
 
 - Committed the sidebar flip and the 13px Jyutping as `0c93edf` and pushed it to `main`.
