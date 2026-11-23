@@ -1,3 +1,7 @@
+## 2026-11-23T16:45:11Z
+
+- Committed and pushed the Parameters/footer fixes as `7d862b5` (`fix: tighten parameters copy and restore sticky footer`); `origin/main` is current and the working tree is clean.
+
 ## 2026-11-23T16:44:50Z
 
 - Reworked the Parameters block from user feedback: removed the headway help sentence entirely, moved the 300%/unlimited explanation into the tolerance label itself, and deleted the now-duplicated `options.headwayHelp` and `options.toleranceHelp` keys from FALLBACK and all 15 catalogues (155 keys).
