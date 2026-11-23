@@ -1,3 +1,7 @@
+## 2026-11-23T02:08:00Z
+
+- Committed the sidebar flip and the 13px Jyutping as `0c93edf` and pushed it to `main`.
+
 ## 2026-11-23T02:05:00Z
 
 - Made the Jyutping `zau6 goek3` 13px. It stays italic and uses the lighter `--subtle` color. The name 就腳 stays at 20px.
