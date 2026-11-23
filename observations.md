@@ -1,3 +1,7 @@
+## 2026-11-23T15:50:06Z
+
+- Committed the next-round feature set as `1c57238` (`feat: add ride diagnostics, free-point picking and transit link details`, 35 files) and pushed to `origin/main`; working tree clean.
+
 ## 2026-11-23T15:49:27Z
 
 - Implemented the full next-round feature set on top of `cfd22f5`: ride chips now render `from → to` with a red U+2192 arrow and wrap naturally; MTR legs carry a per-line colored dot via CSS `data-line` selectors; bus route numbers link to hkbus.app; the tolerance slider runs 5%–300% with 300% still using the normal filter and one extra 305% "Unlimited" stop that hides the heatmap and lets the user click any map point; pinned points route to the nearest reachable stop plus a localized final walk leg and have an explicit Clear button; a Download diagnostics control exports a timestamped JSON snapshot and copies the same text to the clipboard.
