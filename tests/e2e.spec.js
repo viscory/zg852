@@ -97,11 +97,29 @@ test('map renders a keyless vector canvas with no API-key errors', async ({ page
   expect(raster).toEqual([]);
 });
 
-test('brand copy and MTR-facing labels use the Zak Geok identity', async ({ page }) => {
+test('brand copy and MTR-facing labels use the 就腳 name', async ({ page }) => {
   const en = await catalog(page, 'en');
   await expect(page.locator('.brand .logo')).toHaveText('ZG');
-  await expect(page.locator('h1')).toHaveText('就腳 Zak Geok [zau6 goek3]');
+  await expect(page.locator('h1')).toHaveText('就腳 zau6 goek3');
   await expect(page.locator('h1')).toHaveText(en['app.title']);
+  await expect(page.locator('body')).not.toContainText('Zak Geok');
+  const jyutping = await page.locator('h1 .jyutping').evaluate(el => {
+    const style = getComputedStyle(el);
+    const parent = getComputedStyle(el.parentElement);
+    return { fontStyle: style.fontStyle, color: style.color, parentColor: parent.color };
+  });
+  expect(jyutping.fontStyle).toBe('italic');
+  expect(jyutping.color).not.toBe(jyutping.parentColor);
+  const sizes = await page.evaluate(() => {
+    const input = document.querySelector('.name-input').getBoundingClientRect();
+    const save = document.querySelector('.save-person').getBoundingClientRect();
+    const pin = document.querySelector('.pin').getBoundingClientRect();
+    return { input: input.height, save: save.height, saveWidth: save.width, pin: pin.height, pinWidth: pin.width };
+  });
+  expect(sizes.save).toBeCloseTo(sizes.input, 0);
+  expect(sizes.saveWidth).toBeCloseTo(sizes.input, 0);
+  expect(sizes.pin).toBeCloseTo(sizes.input, 0);
+  expect(sizes.pinWidth).toBeCloseTo(sizes.input, 0);
   await expect(page.locator('.brand .sub')).toHaveText('Find the most convenient meeting point for everyone');
   await expect(page.locator('.brand .sub')).toHaveText(en['app.subtitle']);
   await expect(page.locator('.brand .meaning')).toHaveCount(0);
@@ -118,7 +136,7 @@ test('robots, llms, sitemap and build headers expose the llms.txt endpoint', asy
 
   const llms = await page.request.get('/llms.txt');
   expect(llms.ok()).toBeTruthy();
-  expect(await llms.text()).toContain('Zak Geok');
+  expect(await llms.text()).toContain('就腳');
 
   const sitemap = await page.request.get('/sitemap.xml');
   expect(sitemap.ok()).toBeTruthy();
@@ -472,7 +490,7 @@ test('all catalogues keep the same keys and avoid ranking wording', async ({ pag
     expect(Object.keys(catalogues[0])).toContain(key);
   }
   expect(Object.keys(catalogues[0])).not.toContain('app.meaning');
-  expect(catalogues[0]['app.title']).toBe('就腳 Zak Geok [zau6 goek3]');
+  expect(catalogues[0]['app.title']).toBe('就腳 zau6 goek3');
   expect(catalogues[0]['app.subtitle']).toBe('Find the most convenient meeting point for everyone');
   expect(catalogues[0]['options.rail']).toBe('MTR');
   expect(catalogues[0]['mode.rail']).toBe('MTR');

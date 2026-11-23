@@ -18,4 +18,4 @@ The routing graph is generated from a community-maintained Hong Kong GTFS feed. 
 
 ## Application code
 
-就腳 (Zak Geok) application code is MIT licensed, see `LICENSE`. Third-party notices are in `THIRD_PARTY_NOTICES.md`.
+就腳 application code is MIT licensed, see `LICENSE`. Third-party notices are in `THIRD_PARTY_NOTICES.md`.

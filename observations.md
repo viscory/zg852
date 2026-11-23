@@ -1,3 +1,11 @@
+## 2026-11-23T01:46:00Z
+
+- Removed the English name "Zak Geok" from the header, page titles, meta tags, catalogues, legal pages, README, and `llms.txt`. The visible heading is now 就腳 plus the Jyutping `zau6 goek3`.
+- The Jyutping sits in `h1 .jyutping`. It is italic, weight 400, and uses the lighter `--subtle` color. `app.title` stays plain text because the document title cannot carry style.
+- Person-card icon buttons now use `--field` (39px), the same height and width as the text inputs. The pin column uses the same size.
+- Bumped the service-worker cache to `zg852-v21`.
+- `npx eslint .` is clean. `npm test` passed 43 tests, including the new heading style check and the input-to-icon size check.
+
 ## 2026-11-23T01:50:00Z
 
 - Committed and pushed the dead-code removal as `52ed9c2` on `main`. 20 files, 19 insertions, 202 deletions.

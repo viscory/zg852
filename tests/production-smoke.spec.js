@@ -60,7 +60,7 @@ test('production header copy is exact and no raw i18n keys leak into the UI', as
   await setup(page);
   await expect(page.locator('.brand .logo')).toHaveText('ZG');
   await expect(page.locator('.brand .logo')).toBeVisible();
-  await expect(page.locator('h1')).toHaveText('就腳 Zak Geok [zau6 goek3]');
+  await expect(page.locator('h1')).toHaveText('就腳 zau6 goek3');
   await expect(page.locator('h1')).toBeVisible();
   await expect(page.locator('.brand .sub')).toHaveText('Find the most convenient meeting point for everyone');
   await expect(page.locator('.brand .sub')).toBeVisible();
@@ -106,7 +106,7 @@ test('stale cached catalogs cannot resurrect raw i18n keys', async ({ page }) =>
   }, SW_CACHE_NAME);
   await page.reload();
   await expect(page.locator('#netstatus')).toHaveText('network ready');
-  await expect(page.locator('h1')).toHaveText('就腳 Zak Geok [zau6 goek3]');
+  await expect(page.locator('h1')).toHaveText('就腳 zau6 goek3');
   await expect(page.locator('.focus-option[data-focus="time"]').first()).toHaveText('Time');
   await expect(page.locator('[data-legal="privacy"]')).toHaveText('Privacy');
   expect(await page.locator('body').innerText()).not.toMatch(RAW_KEY);

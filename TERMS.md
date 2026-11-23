@@ -4,7 +4,7 @@ Effective 22 November 2026.
 
 ## Informational service
 
-就腳 (Zak Geok) provides estimates for meeting points and routes in Hong Kong. Timetables, stop locations, walking links, and travel times can be wrong, stale, or incomplete. Check official operator information before travelling. The app is not a navigation service and is not professional advice.
+就腳 provides estimates for meeting points and routes in Hong Kong. Timetables, stop locations, walking links, and travel times can be wrong, stale, or incomplete. Check official operator information before travelling. The app is not a navigation service and is not professional advice.
 
 ## No warranty
 
@@ -20,7 +20,7 @@ Place search uses Photon and the basemap uses OpenFreeMap vector tiles from Open
 
 ## Inspiration
 
-就腳 (Zak Geok) was inspired by FairPin PH. The author has not used FairPin PH. 就腳 (Zak Geok) is independent and is not affiliated with, endorsed by, or connected to FairPin PH.
+就腳 was inspired by FairPin PH. The author has not used FairPin PH. 就腳 is independent and is not affiliated with, endorsed by, or connected to FairPin PH.
 
 ## Licence
 
