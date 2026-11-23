@@ -1,0 +1,20 @@
+# Design critique
+
+This file records visual critiques of 就腳. The newest critique is first. Change `src/styles.css` so the page matches the newest sizes. Keep one size scale on `:root`.
+
+## 2026-11-23 Compact chrome
+
+The icons and boxes are too large. A 44px field and a 44px icon button fill the side panels.
+
+The compact scale is:
+
+- `--icon` is 12px. Header icon buttons use that size. Card action icons, chip icons, and the search icon are 14px. Legend key icons stay 12px.
+- `--field` is 36px. Text inputs, icon buttons, the locale control, focus options, the search button, directory action buttons, and the map zoom and recenter controls use this height.
+- `--header` is 52px. The logo is 28px. The title is 17px on a wide screen and 16px below 900px.
+- A person avatar is 24px. A card has 8px padding. A category chip is 32px tall. The full-width add control uses `--field`.
+- Body text stays 14px. The inline note icon button stays 24px.
+- Side column widths stay 360px and 340px.
+
+The page is a column. The header uses its content height. The layout fills the space that remains. A wrapped phone header does not use a fixed offset.
+
+Add the next critique above this section. Name the part that is wrong and the size you want.
