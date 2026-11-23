@@ -2,14 +2,15 @@ import * as L from 'leaflet';
 import { maplibreGL } from '@maplibre/maplibre-gl-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,VECTOR_KEYS } from './config.js';
+import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,VECTOR_KEYS,TRAVEL_BUDGET_MINUTES } from './config.js';
 import { store } from './store.js';
-import { $,esc,clamp,isNum,icon,initialsFor,avatarClass } from './util.js';
+import { $,esc,clamp,isNum,icon,initialsFor,avatarClass,haversine } from './util.js';
 import { t,num,intNum,minuteText } from './i18n.js';
 import { betaVectorsEnabled,preferenceText,cellVector,cellCount,cellTopNames,cellPreference } from './vectors.js';
 import { prepareRoutes,legLabel,fareMarkup,money,cellToResult,interchangeWaitText } from './routing.js';
+import { hkbusUrl,mtrLineCode,districtFor } from './data.js';
 import { displayName } from './state.js';
-import { markSelectedResult,setPinOrigin,setLabel,setSidebarFace } from './ui.js';
+import { markSelectedResult,setPinOrigin,setLabel,setSidebarFace,showError,applyUnboundedUi } from './ui.js';
 
 export const CLEAN_STYLE={
   version:8,
@@ -77,7 +78,10 @@ export function createMap(){
   map.createPane('pointPane').style.zIndex=460;
   cloudLayer=L.layerGroup().addTo(map);routeLayer=L.layerGroup({pane:'routePane'}).addTo(map);
   pointLayer=L.layerGroup({pane:'pointPane'}).addTo(map);originLayer=L.layerGroup({pane:'pointPane'}).addTo(map);
-  map.on('click',e=>{if(store.pinTarget)setPinOrigin(store.pinTarget,e.latlng.lat,e.latlng.lng);});
+  map.on('click',e=>{
+    if(store.pinTarget){setPinOrigin(store.pinTarget,e.latlng.lat,e.latlng.lng);return;}
+    if(store.unbounded)selectPoint(e.latlng.lat,e.latlng.lng);
+  });
   const glLayer=maplibreGL({style:CLEAN_STYLE,interactive:false,attributionControl:false});
   try{
     glLayer.addTo(map);
@@ -121,6 +125,7 @@ export function heatColor(cell,budget){
 export function drawCloud(budget){
   hideTooltip();
   cloudLayer.clearLayers();
+  if(store.unbounded)return;
   store.cloudCells.forEach(c=>{
     const lat0=c.cy*CELL_SIZE,lon0=c.cx*CELL_SIZE,color=heatColor(c,budget);
     const rect=L.rectangle([[lat0,lon0],[lat0+CELL_SIZE,lon0+CELL_SIZE]],{color,weight:0,fillColor:color,fillOpacity:.34,interactive:true,className:'heat-cell'});
@@ -190,6 +195,13 @@ export function applySelection(active=store.activePeople){
     if(cell){store.selection={kind:'cell',key:cell.key,node:cell.node};store.sharedSelection=null;renderSelection(buildResultFromCell(cell,active),active);return;}
     store.sharedSelection=null;
   }
+  if(store.selection?.kind==='point'){
+    if(store.unbounded&&Number.isFinite(store.selection.lat)&&Number.isFinite(store.selection.lon)){
+      selectPoint(store.selection.lat,store.selection.lon);
+      return;
+    }
+    store.selection={kind:'result',index:0};
+  }
   if(store.selection?.kind==='cell'){
     const cell=store.cloudCells.find(candidate=>candidate.key===store.selection.key);
     if(cell){renderSelection(buildResultFromCell(cell,active),active);return;}
@@ -200,11 +212,16 @@ function legChip(leg){
   if(leg.mode==='walk')return `<span class="walk-leg route-walk"><span class="ride-text">${esc(leg.text||legLabel(leg))}</span></span>`;
   const rail=leg.mode==='rail';
   const label=leg.lineName||String(leg.line).replace(/^MTR\s+/i,'');
-  const modeLabel=rail?label:`Bus ${leg.line}`;
+  const dot=rail?`<span class="mtr-dot" data-line="${esc(mtrLineCode(leg.line))}" aria-hidden="true"></span>`:'';
+  const number=String(leg.line||'');
+  const uri=rail?null:hkbusUrl(leg.lineIndex);
+  const numberMarkup=uri?`<a class="bus-link" href="${esc(uri)}" target="_blank" rel="noopener noreferrer" title="${esc(t('route.busLink'))}">${esc(number)}</a>`:esc(number);
+  const modeLabel=rail?`${dot}${esc(label)}`:`${esc(t('mode.bus'))} ${numberMarkup}`;
+  const stops=`<span class="leg-stops" aria-label="${esc(t('route.stops',{from:leg.from,to:leg.to}))}"><span class="leg-from">${esc(leg.from)}</span> <span class="leg-arrow" aria-hidden="true">→</span> <span class="leg-to">${esc(leg.to)}</span></span>`;
   const fare=leg.fare?`<span class="fare">${esc(t('results.fareTotal',{value:money(leg.fare)}))}</span>`:'';
   const wait=interchangeWaitText(leg);
   const waitNote=wait?`<span class="interchange-wait">${esc(wait)}</span>`:'';
-  return `<span class="ride-leg route-${leg.mode}"><span class="leg-mode"><span class="icon icon-${rail?'rail':'bus'}" aria-hidden="true"></span>${esc(modeLabel)}</span><span class="leg-stops">${esc(t('route.stops',{from:leg.from,to:leg.to}))}</span><span class="leg-meta"><span class="leg-time">${esc(minuteText(leg.minutes))}</span>${fare}${waitNote}</span></span>`;
+  return `<span class="ride-leg route-${leg.mode}"><span class="leg-mode"><span class="icon icon-${rail?'rail':'bus'}" aria-hidden="true"></span>${modeLabel}</span>${stops}<span class="leg-meta"><span class="leg-time">${esc(minuteText(leg.minutes))}</span>${fare}${waitNote}</span></span>`;
 }
 export function renderSelection(r,active=store.activePeople){
   if(!r)return;
@@ -241,4 +258,44 @@ export function selectResult(i,active=store.activePeople,reveal=false){
   store.selection={kind:'result',index:i};store.sharedSelection=null;
   if(reveal)setSidebarFace('detail');
   renderSelection(r,active);
+}
+// Free-point picking is only offered above 300% tolerance. The pin stays at
+// the exact click; routes end at the nearest reachable transit stop and gain
+// a short walking leg to the pin.
+export function selectPoint(lat,lon){
+  if(!store.unbounded||!store.NET||!store.effectiveGrids||!store.activePeople.length)return;
+  if(!isNum(lat)||!isNum(lon))return;
+  hideTooltip();
+  const grids=store.effectiveGrids,round=value=>Math.round(value*10)/10;
+  let nearest=-1,bestScore=Infinity;
+  for(const index of store.surface){
+    const times=grids.map(grid=>grid[index]);
+    if(times.some(value=>!isFinite(value)||value>TRAVEL_BUDGET_MINUTES))continue;
+    const distance=haversine(lat,lon,store.NODES.lat[index],store.NODES.lon[index]);
+    const score=distance+Math.max(...times)*10;
+    if(score<bestScore){bestScore=score;nearest=index;}
+  }
+  if(nearest<0){showError(t('error.noNearby'));return;}
+  const times=grids.map(grid=>round(grid[nearest]));
+  const slowest=Math.max(...times),fastest=Math.min(...times);
+  const label=t('map.pinnedPoint');
+  const result={
+    key:`point:${round(lat)},${round(lon)}`,node:nearest,label,
+    district:districtFor(lat,lon),lat,lon,cellLat:lat,cellLon:lon,
+    times,fastest:round(fastest),slowest:round(slowest),gap:round(slowest-fastest),
+    score:round(slowest*2),fit:null,vector:null,count:0,point:{lat,lon},
+  };
+  prepareRoutes(result,store.activePeople);
+  store.selection={kind:'point',lat,lon,node:nearest};
+  store.pointSelection={lat,lon,node:nearest,label};
+  store.sharedSelection=null;
+  setSidebarFace('detail');
+  applyUnboundedUi();
+  renderSelection(result,store.activePeople);
+}
+export function clearPoint(){
+  store.pointSelection=null;
+  store.selection={kind:'result',index:0};
+  applyUnboundedUi();
+  selectResult(0,store.activePeople);
 }

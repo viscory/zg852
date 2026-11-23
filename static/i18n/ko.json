@@ -143,5 +143,17 @@
   "search.none": "일치하는 장소가 없습니다. 역을 고르거나 지도에 핀을 놓으세요.",
   "mode.ferry": "페리",
   "mode.lightRail": "경전철",
-  "error.mapFailed": "지도를 시작하지 못했습니다. 검색은 계속 사용할 수 있습니다. {message}"
+  "error.mapFailed": "지도를 시작하지 못했습니다. 검색은 계속 사용할 수 있습니다. {message}",
+  "options.toleranceHelp": "300%까지 가장 느린 사람은 가장 빠른 사람의 그 배만큼 걸릴 수 있습니다. 300%를 넘으면 무제한 모드가 되어 지도의 아무 곳이나 눌러 지점을 고를 수 있습니다.",
+  "options.unbounded": "무제한",
+  "map.pickAnywhere": "무제한 모드가 켜졌습니다. 지도의 아무 곳이나 눌러 만남 지점을 고르세요.",
+  "map.pinnedPoint": "고정된 지점",
+  "map.clearPoint": "고정 지점 해제",
+  "route.busLink": "HK Bus ETA에서 이 버스 노선 보기",
+  "diag.button": "진단 데이터 다운로드",
+  "diag.help": "문제를 진단할 수 있도록 현재 시나리오와 경로를 내보냅니다.",
+  "diag.copied": "진단 데이터를 다운로드하고 복사했습니다",
+  "diag.downloaded": "진단 데이터를 다운로드했습니다",
+  "diag.failed": "진단 데이터를 내보낼 수 없습니다",
+  "route.walkTo": "{to}까지 도보 {time}"
 }

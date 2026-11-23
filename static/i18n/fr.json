@@ -143,5 +143,17 @@
   "search.none": "Aucun lieu ne correspond. Choisis un arrêt ou pose une épingle.",
   "mode.ferry": "Bac",
   "mode.lightRail": "Métro léger",
-  "error.mapFailed": "La carte n'a pas démarré. La recherche fonctionne encore. {message}"
+  "error.mapFailed": "La carte n'a pas démarré. La recherche fonctionne encore. {message}",
+  "options.toleranceHelp": "Jusqu'à 300 %, la personne la plus lente peut prendre autant de fois le temps de la plus rapide. Au-delà de 300 %, la carte est illimitée : touchez n'importe où pour choisir un point.",
+  "options.unbounded": "Illimité",
+  "map.pickAnywhere": "Mode illimité activé : touchez n'importe où sur la carte pour choisir un point de rencontre.",
+  "map.pinnedPoint": "Point épinglé",
+  "map.clearPoint": "Effacer l'épingle",
+  "route.busLink": "Voir cette ligne de bus sur HK Bus ETA",
+  "diag.button": "Télécharger le diagnostic",
+  "diag.help": "Exporte le scénario et les itinéraires actuels afin de diagnostiquer un problème.",
+  "diag.copied": "Diagnostic téléchargé et copié",
+  "diag.downloaded": "Diagnostic téléchargé",
+  "diag.failed": "Impossible d'exporter le diagnostic",
+  "route.walkTo": "Marcher {time} jusqu'à {to}"
 }

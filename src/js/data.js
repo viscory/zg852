@@ -1,3 +1,4 @@
+import { HKBUS_SEARCH_URL,MTR_LINE_COLORS,MTR_LINE_DEFAULT_COLOR } from './config.js';
 import { store } from './store.js';
 import { isNum,haversine } from './util.js';
 import { t } from './i18n.js';
@@ -5,6 +6,15 @@ import { betaVectorsEnabled } from './vectors.js';
 
 export function nodePriority(kind){return kind===1?0:kind===3?1:kind===4?2:3;}
 export function catKey(priority){return priority===0?'station':priority===1?'exit':'bus';}
+export function hkbusUrl(lineIndex){return store.HKBUS_URLS?.[lineIndex]||HKBUS_SEARCH_URL;}
+export function mtrLineCode(line){
+  const match=/^MTR\s+([A-Z]{3})$/.exec(String(line||''));
+  return match&&MTR_LINE_COLORS[match[1]]?match[1]:'';
+}
+export function mtrColor(line){
+  const code=mtrLineCode(line);
+  return code?MTR_LINE_COLORS[code]:MTR_LINE_DEFAULT_COLOR;
+}
 
 export async function loadNodes(){
   store.NODES=await fetch('data/nodes.json').then(r=>r.json());
@@ -15,6 +25,8 @@ export async function loadNodes(){
 export async function loadNetwork(){
   if(store.NET)return store.NET;
   store.NET=await fetch('data/network.json').then(r=>r.json());
+  try{store.HKBUS_URLS=await fetch('data/hkbus.json').then(r=>r.json());}
+  catch(err){console.error(err);store.HKBUS_URLS=[];}
   const n=store.NODES.names.length;
   store.walkAdj=Array.from({length:n},()=>[]);
   store.rideAdj=Array.from({length:n},()=>[]);

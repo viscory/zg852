@@ -143,5 +143,17 @@
   "search.none": "Tidak ada tempat yang cocok. Pilih halte atau pasang pin.",
   "mode.ferry": "Feri",
   "mode.lightRail": "Kereta ringan",
-  "error.mapFailed": "Peta gagal dimulai. Pencarian tetap bisa dipakai. {message}"
+  "error.mapFailed": "Peta gagal dimulai. Pencarian tetap bisa dipakai. {message}",
+  "options.toleranceHelp": "Hingga 300%, orang terpelan boleh mengambil masa sebanyak itu berbanding yang tercepat. Di atas 300%, peta tidak terhad: ketik di mana sahaja untuk memilih titik.",
+  "options.unbounded": "Tanpa batas",
+  "map.pickAnywhere": "Mod tanpa batas aktif: ketik di mana sahaja pada peta untuk memilih titik pertemuan.",
+  "map.pinnedPoint": "Titik disemat",
+  "map.clearPoint": "Hapus sematan",
+  "route.busLink": "Lihat laluan bas ini di HK Bus ETA",
+  "diag.button": "Muat turun diagnostik",
+  "diag.help": "Mengeksport senario dan laluan semasa supaya masalah boleh didiagnosis.",
+  "diag.copied": "Diagnostik dimuat turun dan disalin",
+  "diag.downloaded": "Diagnostik dimuat turun",
+  "diag.failed": "Gagal mengeksport diagnostik",
+  "route.walkTo": "Jalan {time} ke {to}"
 }

@@ -1,12 +1,12 @@
-import { MAX_CLOUD_CELLS,RECOMPUTE_DELAY,TRAVEL_BUDGET_MINUTES } from './config.js';
+import { MAX_CLOUD_CELLS,RECOMPUTE_DELAY,TRAVEL_BUDGET_MINUTES,travelTolerance,isUnboundedTolerance } from './config.js';
 import { store } from './store.js';
-import { $,clamp } from './util.js';
+import { $ } from './util.js';
 import { t,applyStaticText } from './i18n.js';
 import { districtFor,loadNetwork } from './data.js';
 import { cellFitScore } from './vectors.js';
 import { sourcesFor,solve,bestTimes,walkTimes,walkBudget,buildCells,prepareRoutes,cellToResult } from './routing.js';
 import { save } from './state.js';
-import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,renderCards,setWorking,setSidebarFace } from './ui.js';
+import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,renderCards,setWorking,setSidebarFace,applyUnboundedUi } from './ui.js';
 import { drawOrigins,drawCloud,applySelection,applyMapLabels } from './map.js';
 
 export function compute(reveal=false){
@@ -17,8 +17,12 @@ export function compute(reveal=false){
   if(store.activePeople.length<2){renderEmpty();showError(t('error.needTwo'));return;}
   const mask=store.settings.modes.reduce((m,mode)=>m|(mode==='rail'?1|(1<<3):mode==='bus'?2|(1<<2):0),0);
   if(!mask){renderEmpty();showError(t('error.noMode'));return;}
-  const tolerance=clamp(Number($('tolerance').value),0.05,0.5,0.1);
-  store.settings.tolerance=tolerance;save();
+  const tolerance=travelTolerance($('tolerance').value);
+  store.settings.tolerance=tolerance;
+  store.unbounded=isUnboundedTolerance(tolerance);
+  if(!store.unbounded)store.pointSelection=null;
+  applyUnboundedUi();
+  save();
   // solve() depends only on origins, the mode mask, the headway setting, and
   // the fixed travel cap. Tolerance and vector changes re-filter cells from
   // the cached solutions instead of re-running Dijkstra for every person.
@@ -37,7 +41,9 @@ export function compute(reveal=false){
     for(let idx=0;idx<grid.length;idx++){const walk=walkGrids[i][idx];out[idx]=isFinite(walk)&&walk<=limit?walk:grid[idx];}
     return out;
   });
-  const cells=buildCells(effectiveGrids,tolerance,TRAVEL_BUDGET_MINUTES);
+  store.effectiveGrids=effectiveGrids;
+  // Unbounded mode keeps every reachable node available for free-point picks.
+  const cells=buildCells(effectiveGrids,store.unbounded?Infinity:tolerance,TRAVEL_BUDGET_MINUTES);
   const ordered=cells.map(cell=>({cell,fitScore:cellFitScore(cell)})).sort((a,b)=>a.fitScore-b.fitScore||a.cell.score-b.cell.score||a.cell.key.localeCompare(b.cell.key));
   store.cloudCells=ordered.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
   store.results=ordered.slice(0,7).map(({cell:c})=>cellToResult(c));
@@ -83,6 +89,7 @@ export function rerender(){
   store.directory.forEach(p=>{p.district=districtFor(p.origin.lat,p.origin.lon);});
   store.results.forEach(r=>{r.district=districtFor(r.lat,r.lon);});
   updateSettingsLabels();
+  applyUnboundedUi();
   renderCards();
   if(store.results.length){renderResults(store.activePeople);drawOrigins(store.activePeople);drawCloud(TRAVEL_BUDGET_MINUTES);applySelection(store.activePeople);}
   else renderEmpty();

@@ -107,6 +107,14 @@
         <span class="icon icon-close" aria-hidden="true"></span>
       </button>
     </div>
+    <div class="point-banner" id="pointBanner" hidden>
+      <span class="icon icon-map-pin" aria-hidden="true"></span>
+      <span id="pointLabel" data-i18n="map.pinnedPoint">Pinned point</span>
+      <button class="icon-button" id="clearPoint" type="button" data-i18n-tooltip="map.clearPoint" data-i18n-aria-label="map.clearPoint" aria-label="Clear pinned point" title="Clear pinned point" data-tooltip="Clear pinned point">
+        <span class="icon icon-close" aria-hidden="true"></span>
+      </button>
+    </div>
+    <div class="unbounded-hint" id="unboundedHint" hidden data-i18n="map.pickAnywhere">Unlimited mode is on: tap anywhere on the map to choose a meeting point.</div>
     <div class="map-tooltip" id="mapTooltip" role="tooltip" hidden></div>
     <div class="legend">
       <div class="legend-head"><span class="icon icon-scan" aria-hidden="true"></span><span data-i18n="map.legend">Map key</span></div>
@@ -144,8 +152,11 @@
         <label for="tolerance" data-i18n="options.tolerance">Travel time disparity tolerance</label>
         <span class="value" id="tolval">10%</span>
       </div>
-      <input type="range" id="tolerance" min="0.05" max="0.5" step="0.05" value="0.1">
+      <input type="range" id="tolerance" min="0.05" max="3.05" step="0.05" value="0.1">
       <div class="slider-row ends"><span data-i18n="options.toleranceNear">Near equal</span><span data-i18n="options.toleranceFlexible">More flexible</span></div>
+      <p class="note tol-help" data-i18n="options.toleranceHelp">Up to 300% the slowest person may take that many times the fastest. Past 300% the map is unbounded: tap anywhere to pick a point.</p>
+      <button class="diag-button" id="exportDiagnostics" type="button" data-i18n="diag.button" data-i18n-tooltip="diag.help" data-i18n-aria-label="diag.button" aria-label="Download diagnostics" title="Download diagnostics" data-tooltip="Download diagnostics">Download diagnostics</button>
+      <output class="diag-status" id="diagStatus" role="status" aria-live="polite" hidden></output>
       <button class="go" id="go" type="button" data-i18n-tooltip="options.search" data-i18n-aria-label="options.search" aria-label="Find fair areas" title="Find fair areas" data-tooltip="Find fair areas">
         <span class="icon icon-search" aria-hidden="true"></span><span class="sr-only" id="goLabel" data-i18n="options.search">Find fair areas</span>
       </button>

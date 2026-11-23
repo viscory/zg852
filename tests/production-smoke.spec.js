@@ -144,7 +144,7 @@ test('service worker precaches the bundle, data, and catalogs for offline use', 
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   const cached = await page.evaluate(async name => {
     const cache = await caches.open(name);
-    const entries = ['/app.js', '/app.css', '/index.html', '/data/nodes.json', '/i18n/en.json'];
+    const entries = ['/app.js', '/app.css', '/index.html', '/data/nodes.json', '/data/hkbus.json', '/i18n/en.json'];
     return Object.fromEntries(await Promise.all(entries.map(async entry => [entry, !!(await cache.match(entry))])));
   }, SW_CACHE_NAME);
   expect(cached).toEqual({
@@ -152,6 +152,7 @@ test('service worker precaches the bundle, data, and catalogs for offline use', 
     '/app.css': true,
     '/index.html': true,
     '/data/nodes.json': true,
+    '/data/hkbus.json': true,
     '/i18n/en.json': true,
   });
 });

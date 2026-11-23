@@ -1,3 +1,17 @@
+## 2026-11-23T15:49:27Z
+
+- Implemented the full next-round feature set on top of `cfd22f5`: ride chips now render `from → to` with a red U+2192 arrow and wrap naturally; MTR legs carry a per-line colored dot via CSS `data-line` selectors; bus route numbers link to hkbus.app; the tolerance slider runs 5%–300% with 300% still using the normal filter and one extra 305% "Unlimited" stop that hides the heatmap and lets the user click any map point; pinned points route to the nearest reachable stop plus a localized final walk leg and have an explicit Clear button; a Download diagnostics control exports a timestamped JSON snapshot and copies the same text to the clipboard.
+- Generated `static/data/hkbus.json` from the public hk-bus-crawling route list with `scripts/build_hkbus_urls.py`; all 2,822 bus lines mapped, 65 fullwidth-slash slugs fall back to `/en/search` because hkbus.app publishes but 404s those pages. A 50-link random sample returned 48 HTTP 200 and only the two known fullwidth-slash failures before the fallback was applied.
+- Added config helpers/constants for tolerance normalization, unbounded mode, MTR line colors and the hkbus fallback; wired shared state so saved/shared tolerances above 50% are no longer clamped and free-point selection can be shared; added `src/js/diagnostics.js` with settings, people, solve key, hotspots, selected area and all route leg detail.
+- Added 12 localized keys across FALLBACK and all 15 catalogs (157 keys total), including tolerance help/unlimited labels, pinned-point copy, bus-link tooltip, diagnostics status text and `route.walkTo`; no raw i18n keys leak.
+- Bumped service-worker cache `zg852-v34` → `zg852-v35`, added `data/hkbus.json` to the precache list and to `scripts/finalize.mjs` deployed-data allowlist.
+- Extended Playwright coverage for arrow color/wrapping, MTR dots, hkbus links, the 5%/300%/Unlimited slider flow and free-pick clear, diagnostics download+clipboard, catalog parity and hkbus precache. Fixed one UX gap found by tests: the final walk to a pinned point now says "Walk N min to Pinned point" instead of a generic walk label.
+- Verification clean: `npm run lint` (157 keys × 15 catalogs, 108 literal keys), `npm test` 64/64 passed against built `public/`, `git diff --check`. Changes are staged in the working tree but not yet committed.
+
+## 2026-11-23T14:20:38Z
+
+- Committed the full Parameters/settings change set as `cfd22f5` (`feat: rename options to parameters and simplify trip settings`, 36 files) and pushed to `origin/main`; working tree clean.
+
 ## 2026-11-23T14:20:13Z
 
 - Tests/docs subagent finished: locale and add/remove-person tests now account for search revealing the detail face; all face/swap assumptions audited. Docs updated newest-first in DESIGN.md, README.md, process.html, PRIVACY.md and privacy.html.

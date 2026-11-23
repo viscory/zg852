@@ -143,5 +143,17 @@
   "search.none": "一致する場所がありません。駅を選ぶか、地図にピンを置いてください。",
   "mode.ferry": "フェリー",
   "mode.lightRail": "軽鉄",
-  "error.mapFailed": "地図を開始できませんでした。検索は使えます。{message}"
+  "error.mapFailed": "地図を開始できませんでした。検索は使えます。{message}",
+  "options.toleranceHelp": "300% まで、最も遅い人は最も速い人のその倍の時間がかかります。300% を超えると無制限モードになり、地図の任意の場所をタップして地点を選べます。",
+  "options.unbounded": "無制限",
+  "map.pickAnywhere": "無制限モード中：地図の任意の場所をタップして待ち合わせ地点を選べます。",
+  "map.pinnedPoint": "ピン留めした地点",
+  "map.clearPoint": "ピン留めを解除",
+  "route.busLink": "このバス路線を HK Bus ETA で見る",
+  "diag.button": "診断データをダウンロード",
+  "diag.help": "現在のシナリオとルートを書き出して、問題を診断できるようにします。",
+  "diag.copied": "診断データをダウンロードしてコピーしました",
+  "diag.downloaded": "診断データをダウンロードしました",
+  "diag.failed": "診断データを書き出せませんでした",
+  "route.walkTo": "{to}まで徒歩 {time}"
 }

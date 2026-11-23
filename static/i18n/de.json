@@ -143,5 +143,17 @@
   "search.none": "Kein Ort passt. Wähle eine Haltestelle oder setze eine Markierung.",
   "mode.ferry": "Fähre",
   "mode.lightRail": "Stadtbahn",
-  "error.mapFailed": "Die Karte konnte nicht starten. Die Suche funktioniert weiter. {message}"
+  "error.mapFailed": "Die Karte konnte nicht starten. Die Suche funktioniert weiter. {message}",
+  "options.toleranceHelp": "Bis 300 % darf die langsamste Person ein Vielfaches der schnellsten brauchen. Über 300 % ist die Karte unbegrenzt: Tippe auf eine beliebige Stelle, um einen Punkt zu wählen.",
+  "options.unbounded": "Unbegrenzt",
+  "map.pickAnywhere": "Unbegrenzter Modus aktiv: Tippe auf eine beliebige Stelle der Karte, um einen Treffpunkt zu wählen.",
+  "map.pinnedPoint": "Fixierter Punkt",
+  "map.clearPoint": "Fixierung aufheben",
+  "route.busLink": "Diese Buslinie auf HK Bus ETA ansehen",
+  "diag.button": "Diagnose herunterladen",
+  "diag.help": "Exportiert das aktuelle Szenario und die Routen, damit ein Problem diagnostiziert werden kann.",
+  "diag.copied": "Diagnose heruntergeladen und kopiert",
+  "diag.downloaded": "Diagnose heruntergeladen",
+  "diag.failed": "Diagnose konnte nicht exportiert werden",
+  "route.walkTo": "{time} zu Fuß bis {to}"
 }

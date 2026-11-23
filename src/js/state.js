@@ -1,4 +1,4 @@
-import { LOCALES,KEY,LETTERS,HK_BBOX } from './config.js';
+import { LOCALES,KEY,LETTERS,HK_BBOX,travelTolerance } from './config.js';
 import { store } from './store.js';
 import { isNum,clamp,clone,decodeBase64Url,encodeBase64Url,$ } from './util.js';
 import { t } from './i18n.js';
@@ -12,7 +12,7 @@ export const normIncludeHeadway=value=>value===false?false:true;
 export function nextSeq(people){return Math.max(1,...people.map(p=>Number(String(p.id).replace(/\D/g,''))||0))+1;}
 function buildSettings(stored,modes){
   stored=stored&&typeof stored==='object'?stored:{};
-  return{modes:Array.isArray(modes)&&modes.length?modes:['rail','bus'],tolerance:clamp(Number(stored.tolerance),0.05,0.5,0.1),includeHeadway:normIncludeHeadway(stored.includeHeadway),vectors:migrateVectors(stored.vectors),beta:{vectors:!!stored.beta?.vectors}};
+  return{modes:Array.isArray(modes)&&modes.length?modes:['rail','bus'],tolerance:travelTolerance(stored.tolerance),includeHeadway:normIncludeHeadway(stored.includeHeadway),vectors:migrateVectors(stored.vectors),beta:{vectors:!!stored.beta?.vectors}};
 }
 export function displayName(person,i){return (person?.name||'').trim()||defaultName(i);}
 export function profileLabel(profile){return profile.origin?.label||t('people.hintEmpty');}
@@ -83,7 +83,9 @@ export async function copyText(text){
 export async function shareScenario(){
   const selectedState=store.selection?.kind==='cell'
     ?{kind:'cell',key:store.selection.key,node:store.selection.node,lat:store.selection.lat,lon:store.selection.lon}
-    :{kind:'result',index:store.selected>=0?store.selected:0};
+    :store.selection?.kind==='point'
+      ?{kind:'point',node:store.selection.node,lat:store.selection.lat,lon:store.selection.lon}
+      :{kind:'result',index:store.selected>=0?store.selected:0};
   const settings=clone(store.settings);
   settings.includeHeadway=normIncludeHeadway(settings.includeHeadway);
   const state={v:1,people:store.people.map(p=>({id:p.id,name:p.name,origin:p.origin,walkMinutes:clamp(Number(p.walkMinutes),0,60,20)})),settings,locale:store.locale,selected:selectedState};

@@ -143,5 +143,17 @@
   "search.none": "找不到相符地点。请选择一个车站或在地图上标记。",
   "mode.ferry": "渡轮",
   "mode.lightRail": "轻铁",
-  "error.mapFailed": "地图未能启动。搜索仍然可用。{message}"
+  "error.mapFailed": "地图未能启动。搜索仍然可用。{message}",
+  "options.toleranceHelp": "300% 以内，最慢者的时间最多是最快者的相同倍数。超过 300% 即为无界限模式：在地图上任意位置点选即可选点。",
+  "options.unbounded": "无界限",
+  "map.pickAnywhere": "已开启无界限模式：在地图上任意位置点选即可选择会合点。",
+  "map.pinnedPoint": "已固定地点",
+  "map.clearPoint": "清除已固定地点",
+  "route.busLink": "在 HK Bus ETA 查看此公交线路",
+  "diag.button": "下载诊断数据",
+  "diag.help": "导出当前情境与路线，以便诊断问题。",
+  "diag.copied": "诊断数据已下载并复制",
+  "diag.downloaded": "诊断数据已下载",
+  "diag.failed": "无法导出诊断数据",
+  "route.walkTo": "步行 {time} 至{to}"
 }

@@ -143,5 +143,17 @@
   "search.none": "Walang tumugmang lugar. Pumili ng hintuan o maglagay ng pin.",
   "mode.ferry": "Lantsa",
   "mode.lightRail": "Magaan na riles",
-  "error.mapFailed": "Hindi nagsimula ang mapa. Gumagana pa rin ang paghahanap. {message}"
+  "error.mapFailed": "Hindi nagsimula ang mapa. Gumagana pa rin ang paghahanap. {message}",
+  "options.toleranceHelp": "Hanggang 300%, ang pinakamabagal ay maaaring tumagal nang ganon kadaming beses kaysa sa pinakamabilis. Lampas 300%, walang hanggan ang mapa: pindutin kahit saan upang pumili ng punto.",
+  "options.unbounded": "Walang hanggan",
+  "map.pickAnywhere": "Naka-on ang walang-hanggan na mode: pindutin kahit saan sa mapa upang pumili ng tagpuan.",
+  "map.pinnedPoint": "Naka-pin na punto",
+  "map.clearPoint": "Tanggalin ang pin",
+  "route.busLink": "Tingnan ang bus na ito sa HK Bus ETA",
+  "diag.button": "I-download ang diagnostics",
+  "diag.help": "Ine-export ang kasalukuyang senaryo at mga ruta upang masuri ang isang problema.",
+  "diag.copied": "Na-download at nakopya ang diagnostics",
+  "diag.downloaded": "Na-download ang diagnostics",
+  "diag.failed": "Hindi ma-export ang diagnostics",
+  "route.walkTo": "Lakad {time} patungong {to}"
 }

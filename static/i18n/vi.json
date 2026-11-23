@@ -143,5 +143,17 @@
   "search.none": "Không có địa điểm khớp. Hãy chọn một trạm hoặc ghim trên bản đồ.",
   "mode.ferry": "Phà",
   "mode.lightRail": "Tàu nhẹ",
-  "error.mapFailed": "Bản đồ không khởi động được. Tìm kiếm vẫn dùng được. {message}"
+  "error.mapFailed": "Bản đồ không khởi động được. Tìm kiếm vẫn dùng được. {message}",
+  "options.toleranceHelp": "Đến 300%, người chậm nhất có thể mất gấp bấy nhiêu thời gian người nhanh nhất. Trên 300%, bản đồ không giới hạn: chạm vào bất kỳ đâu để chọn một điểm.",
+  "options.unbounded": "Không giới hạn",
+  "map.pickAnywhere": "Đã bật chế độ không giới hạn: chạm vào bất kỳ đâu trên bản đồ để chọn điểm hẹn.",
+  "map.pinnedPoint": "Điểm đã ghim",
+  "map.clearPoint": "Xóa điểm ghim",
+  "route.busLink": "Xem tuyến xe buýt này trên HK Bus ETA",
+  "diag.button": "Tải dữ liệu chẩn đoán",
+  "diag.help": "Xuất kịch bản và các tuyến đường hiện tại để chẩn đoán sự cố.",
+  "diag.copied": "Đã tải và sao chép dữ liệu chẩn đoán",
+  "diag.downloaded": "Đã tải dữ liệu chẩn đoán",
+  "diag.failed": "Không thể xuất dữ liệu chẩn đoán",
+  "route.walkTo": "Đi bộ {time} đến {to}"
 }

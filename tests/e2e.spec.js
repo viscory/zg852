@@ -222,6 +222,11 @@ test('defaults load and a two-person search draws fair map areas', async ({ page
   const legStops = await page.locator('.ride-leg .leg-stops').allInnerTexts();
   expect(legStops.length).toBeGreaterThan(0);
   for (const text of legStops) expect(text).toMatch(/\s→\s/);
+  const arrows = await page.locator('.ride-leg .leg-arrow').allInnerTexts();
+  expect(arrows.length).toBe(legStops.length);
+  for (const text of arrows) expect(text).toBe('→');
+  await expect(page.locator('.ride-leg .leg-arrow').first()).toHaveCSS('color', 'rgb(211, 47, 47)');
+  await expect(page.locator('.ride-leg .leg-stops').first()).toHaveCSS('overflow-wrap', 'anywhere');
   await expect(page.locator('#steps')).not.toContainText('Get on:');
   await expect(page.locator('#steps')).not.toContainText('Get off:');
   await expect(page.locator('.ride-leg .leg-meta').first()).toContainText('min');
@@ -419,6 +424,14 @@ test('selected map area shows district subtitles and segmented routes', async ({
   await expect.poll(() => page.locator('path.route-line.route-bus').count()).toBeGreaterThan(0);
   await expect.poll(() => page.locator('#steps .walk-leg.route-walk').count()).toBeGreaterThan(0);
   await expect.poll(() => page.locator('#steps .ride-leg.route-bus').count()).toBeGreaterThan(0);
+  const busLinks = await page.locator('#steps .ride-leg.route-bus .bus-link').evaluateAll(links => links.map(link => ({ href: link.href, text: link.textContent.trim(), target: link.target, rel: link.rel })));
+  expect(busLinks.length).toBeGreaterThan(0);
+  for (const link of busLinks) {
+    expect(link.href).toMatch(/^https:\/\/hkbus\.app\/en\/(?:route|search)/);
+    expect(link.text).toMatch(/\d/);
+    expect(link.target).toBe('_blank');
+    expect(link.rel).toContain('noopener');
+  }
 });
 
 test('clicking a red area selects that map area', async ({ page }) => {
@@ -611,6 +624,63 @@ test('named people, Photon addresses and tolerance cloud work', async ({ page })
   await expect(page.locator('#goLabel')).toHaveText('Find fair areas');
 });
 
+test('tolerance runs from 5% to 300%, then opens free point picking', async ({ page }) => {
+  await expect(page.locator('#tolerance')).toHaveAttribute('min', '0.05');
+  await expect(page.locator('#tolerance')).toHaveAttribute('max', '3.05');
+  await expect(page.locator('#tolerance')).toHaveAttribute('step', '0.05');
+  await setRange(page, '#tolerance', '3');
+  await expect(page.locator('#tolval')).toHaveText('300%');
+  await expect(page.locator('#unboundedHint')).toBeHidden();
+
+  await setRange(page, '#tolerance', '3.05');
+  await expect(page.locator('#tolval')).toHaveText('Unlimited');
+  await expect(page.locator('#unboundedHint')).toBeVisible();
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('path.heat-cell')).toHaveCount(0);
+
+  const mapBox = await page.locator('#map').boundingBox();
+  expect(mapBox).not.toBeNull();
+  await page.mouse.click(mapBox.x + mapBox.width * 0.52, mapBox.y + mapBox.height * 0.55);
+  await expect(page.locator('#pointBanner')).toBeVisible();
+  await expect(page.locator('#detailTitle')).toHaveText('Pinned point');
+  await expect(page.locator('#steps')).toContainText('Pinned point');
+
+  await page.locator('#clearPoint').click();
+  await expect(page.locator('#pointBanner')).toBeHidden();
+  await expect(page.locator('#detailTitle')).not.toHaveText('Pinned point');
+
+  await setRange(page, '#tolerance', '3');
+  await expect(page.locator('#tolval')).toHaveText('300%');
+  await expect(page.locator('#unboundedHint')).toBeHidden();
+  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+});
+
+test('diagnostics dump downloads a timestamped JSON file and copies it', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#exportDiagnostics').click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^zg852-diagnostics-\d{8}-\d{4}\.json$/);
+
+  const file = JSON.parse(readFileSync(await download.path(), 'utf8'));
+  expect(file.schema).toBe(1);
+  expect(file.settings.includeHeadway).toBe(true);
+  expect(file.settings.toleranceLimited).toBe(true);
+  expect(file.settings.unbounded).toBe(false);
+  expect(file.people).toHaveLength(2);
+  expect(file.areas.length).toBeGreaterThan(0);
+  expect(file.areas[0].routes.length).toBe(2);
+  expect(file.areas[0].routes[0].legs.length).toBeGreaterThan(0);
+
+  const clipboard = await page.evaluate(() => navigator.clipboard.readText());
+  expect(JSON.parse(clipboard).schema).toBe(1);
+  await expect(page.locator('#diagStatus')).toHaveText('Diagnostics downloaded and copied');
+});
+
 test('settings, people, library and locale persist, and clearing storage restores defaults', async ({ page }) => {
   await page.locator('.card').nth(0).locator('.name-input').fill('Alex');
   await page.locator('.chip[data-mode="bus"]').click();
@@ -682,8 +752,8 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
-  expect(expected).toHaveLength(145);
-  for (const key of ['app.subtitle', 'options.includeHeadway', 'options.headwayHelp', 'options.tolerance', 'route.rideLeg', 'route.stops', 'route.interchangeWait', 'route.stopCount_other', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
+  expect(expected).toHaveLength(157);
+  for (const key of ['app.subtitle', 'options.includeHeadway', 'options.headwayHelp', 'options.tolerance', 'options.toleranceHelp', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
   for (const key of ['app.meaning', 'people.focusLabel', 'people.focusTime', 'people.focusCost']) {
@@ -1192,6 +1262,13 @@ test('MTR-only Central to Kowloon Tong names the full rail line', async ({ page 
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await expect(page.locator('#steps')).toContainText(/Tsuen Wan Line|Kwun Tong Line/);
   await expect(page.locator('#steps')).not.toContainText(/MTR\s+(TWL|KTL)\b/);
+  const dots = page.locator('#steps .ride-leg.route-rail .mtr-dot');
+  expect(await dots.count()).toBeGreaterThan(0);
+  for (const code of await dots.evaluateAll(nodes => nodes.map(node => node.dataset.line))) {
+    expect(code).toMatch(/^[A-Z]{3}$/);
+  }
+  const dotColors = await dots.evaluateAll(nodes => [...new Set(nodes.map(node => getComputedStyle(node).backgroundColor))]);
+  expect(dotColors.every(color => color !== 'rgb(138, 138, 138)')).toBe(true);
   await expect(page.locator('#error')).toBeHidden();
 });
 

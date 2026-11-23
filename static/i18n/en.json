@@ -143,5 +143,17 @@
   "search.none": "No places match. Pick a transit stop or use a map pin.",
   "mode.ferry": "Ferry",
   "mode.lightRail": "Light rail",
-  "error.mapFailed": "The map failed to start. Search still works. {message}"
+  "error.mapFailed": "The map failed to start. Search still works. {message}",
+  "options.toleranceHelp": "Up to 300% the slowest person may take that many times the fastest. Past 300% the map is unbounded: tap anywhere to pick a point.",
+  "options.unbounded": "Unlimited",
+  "map.pickAnywhere": "Unlimited mode is on: tap anywhere on the map to choose a meeting point.",
+  "map.pinnedPoint": "Pinned point",
+  "map.clearPoint": "Clear pinned point",
+  "route.busLink": "View this bus route on HK Bus ETA",
+  "diag.button": "Download diagnostics",
+  "diag.help": "Exports your current scenario and routes so a problem can be diagnosed.",
+  "diag.copied": "Diagnostics downloaded and copied",
+  "diag.downloaded": "Diagnostics downloaded",
+  "diag.failed": "Could not export diagnostics",
+  "route.walkTo": "Walk {time} to {to}"
 }

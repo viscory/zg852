@@ -1,4 +1,4 @@
-import { RAIL_FARE_BANDS,BUS_FARE_BANDS,AEL_FARES,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE,WALK_TOLERANCE_DEFAULT,WALK_TOLERANCE_MAX } from './config.js';
+import { RAIL_FARE_BANDS,BUS_FARE_BANDS,AEL_FARES,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE,WALK_TOLERANCE_DEFAULT,WALK_TOLERANCE_MAX,WALK_SPEED_KMH,WALK_DETOUR } from './config.js';
 import { store } from './store.js';
 import { isNum,haversine,walkMinutes,clamp,round1,esc } from './util.js';
 import { t,tp,num,minuteText } from './i18n.js';
@@ -62,7 +62,7 @@ export function routeFares(route){
 }
 export const walkBudget=person=>clamp(person?.walkMinutes,0,WALK_TOLERANCE_MAX,WALK_TOLERANCE_DEFAULT);
 export function prepareRoutes(result,active=store.activePeople){
-  result.routes=store.sols.map((solution,j)=>describe(solution,active[j].origin,result.node,walkBudget(active[j])));
+  result.routes=store.sols.map((solution,j)=>describe(solution,active[j].origin,result.node,walkBudget(active[j]),result.point||null));
   result.paths=result.routes.map(route=>route.path);
   return result;
 }
@@ -187,7 +187,7 @@ export function reconstructChain(sol,k){
   while(cur!==undefined&&cur!==sol.start&&chain.length<4000){chain.push(cur);cur=sol.prev.get(cur);}
   return chain.reverse();
 }
-export function describe(sol,origin,target,walkMinutes=WALK_TOLERANCE_DEFAULT){
+export function describe(sol,origin,target,walkMinutes=WALK_TOLERANCE_DEFAULT,targetPoint=null){
   const walkLimit=clamp(walkMinutes,0,WALK_TOLERANCE_MAX,WALK_TOLERANCE_DEFAULT),includeHeadway=store.settings.includeHeadway!==false,candidates=[];
   for(let l=-2;l<store.NET.lines.length;l++){
     const k=sol.key(target,l),d=sol.dist.get(k);
@@ -222,7 +222,7 @@ export function describe(sol,origin,target,walkMinutes=WALK_TOLERANCE_DEFAULT){
           // from solve(); the interchange half-headway h is charged there (and
           // reflected in stepT) for BOARDED boarding only when includeHeadway is on.
           const fromBoarded=pst!==sol.start&&(pst%sol.stride)===1;
-          current={mode,line:label,lineName:info.n||info.l,minutes:stepT,coords:[coord,coord],from:name,to:name,fromNode:node,toNode:node,stopCount:0,interchangeWait:includeHeadway&&fromBoarded&&isNum(info.h)?info.h:0};
+          current={mode,line:label,lineName:info.n||info.l,lineIndex:line,minutes:stepT,coords:[coord,coord],from:name,to:name,fromNode:node,toNode:node,stopCount:0,interchangeWait:includeHeadway&&fromBoarded&&isNum(info.h)?info.h:0};
         }else{
           current.minutes+=stepT;
           const fromNode=pst===sol.start?null:Math.floor(pst/sol.stride);
@@ -243,6 +243,19 @@ export function describe(sol,origin,target,walkMinutes=WALK_TOLERANCE_DEFAULT){
       lastCoord=coord;
     });
     close();
+    // In unbounded mode the selected point is not a transit node, so append a
+    // short walk from the last stop to the exact pin.
+    if(targetPoint&&isNum(targetPoint.lat)&&isNum(targetPoint.lon)){
+      const nodeCoord=[store.NODES.lat[target],store.NODES.lon[target]];
+      const pointCoord=[targetPoint.lat,targetPoint.lon];
+      const distance=haversine(nodeCoord[0],nodeCoord[1],pointCoord[0],pointCoord[1]);
+      if(distance>1){
+        const minutes=distance/1000/WALK_SPEED_KMH*60*WALK_DETOUR;
+        const finalWalk={mode:'walk',line:'',minutes,coords:[nodeCoord,pointCoord],from:stopName(store.NODES.names[target]),to:t('map.pinnedPoint'),fromNode:target,toNode:target,stopCount:0};
+        finalWalk.text=t('route.walkTo',{time:minuteText(minutes),to:t('map.pinnedPoint')});
+        legs.push(finalWalk);
+      }
+    }
     const fares=routeFares({legs});
     candidates.push({d,line:l,legs,fares,total:fares.total});
   }

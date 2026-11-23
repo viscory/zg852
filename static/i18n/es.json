@@ -143,5 +143,17 @@
   "search.none": "Ningún lugar coincide. Elige una parada o pon un marcador.",
   "mode.ferry": "Transbordador",
   "mode.lightRail": "Tren ligero",
-  "error.mapFailed": "El mapa no pudo iniciarse. La búsqueda sigue disponible. {message}"
+  "error.mapFailed": "El mapa no pudo iniciarse. La búsqueda sigue disponible. {message}",
+  "options.toleranceHelp": "Hasta el 300 %, la persona más lenta puede tardar ese múltiplo respecto a la más rápida. Por encima del 300 % el mapa es ilimitado: toca cualquier lugar para elegir un punto.",
+  "options.unbounded": "Ilimitado",
+  "map.pickAnywhere": "Modo ilimitado activado: toca cualquier lugar del mapa para elegir un punto de encuentro.",
+  "map.pinnedPoint": "Punto fijado",
+  "map.clearPoint": "Quitar el punto fijado",
+  "route.busLink": "Ver esta ruta de autobús en HK Bus ETA",
+  "diag.button": "Descargar diagnóstico",
+  "diag.help": "Exporta el escenario y las rutas actuales para poder diagnosticar un problema.",
+  "diag.copied": "Diagnóstico descargado y copiado",
+  "diag.downloaded": "Diagnóstico descargado",
+  "diag.failed": "No se pudo exportar el diagnóstico",
+  "route.walkTo": "Caminar {time} hasta {to}"
 }

@@ -1,4 +1,4 @@
-import { LETTERS,VECTOR_KEYS } from './config.js';
+import { LETTERS,VECTOR_KEYS,travelTolerance,isUnboundedTolerance } from './config.js';
 import { store } from './store.js';
 import { $,esc,clamp,icon,initialsFor,avatarClass,clone } from './util.js';
 import { t,tp,num,intNum,minuteText } from './i18n.js';
@@ -40,10 +40,16 @@ export function flashTooltip(element,message){
   element.tooltipTimer=setTimeout(()=>setLabel(element,original),1600);
 }
 export function updateSettingsLabels(){
-  $('tolval').textContent=`${Math.round(store.settings.tolerance*100)}%`;
+  const tolerance=travelTolerance(store.settings.tolerance);
+  $('tolval').textContent=isUnboundedTolerance(tolerance)?t('options.unbounded'):`${Math.round(tolerance*100)}%`;
   $('includeHeadway').checked=store.settings.includeHeadway!==false;
   store.settings.vectors=normalizeVectors(store.settings.vectors);
   VECTOR_KEYS.forEach(key=>{const label=$(`vec-${key}-val`);if(label)label.textContent=vectorLabel(store.settings.vectors[key]);});
+}
+export function applyUnboundedUi(){
+  const hint=$('unboundedHint');if(hint)hint.hidden=!store.unbounded;
+  const banner=$('pointBanner');if(banner)banner.hidden=!store.pointSelection;
+  const label=$('pointLabel');if(label&&store.pointSelection)label.textContent=t('map.pinnedPoint');
 }
 export function applyBetaFeatures(){
   const enabled=betaVectorsEnabled();
@@ -57,6 +63,9 @@ export function applySettingsToDom(){
   const headway=$('includeHeadway');
   if(headway)headway.onchange=()=>{clearError();readSettingsFromDom();};
   $('tolerance').value=store.settings.tolerance;
+  store.unbounded=isUnboundedTolerance(store.settings.tolerance);
+  if(!store.unbounded)store.pointSelection=null;
+  applyUnboundedUi();
   store.settings.vectors=normalizeVectors(store.settings.vectors);
   document.querySelectorAll('[data-vector]').forEach(input=>{input.value=store.settings.vectors[input.dataset.vector];});
   applyBetaFeatures();
@@ -65,7 +74,10 @@ export function applySettingsToDom(){
 export function readSettingsFromDom(){
   store.settings.modes=[...document.querySelectorAll('.chip[aria-pressed="true"]')].map(c=>c.dataset.mode);
   store.settings.includeHeadway=$('includeHeadway')?.checked!==false;
-  store.settings.tolerance=clamp(Number($('tolerance').value),0.05,0.5,0.1);
+  store.settings.tolerance=travelTolerance($('tolerance').value);
+  store.unbounded=isUnboundedTolerance(store.settings.tolerance);
+  if(!store.unbounded)store.pointSelection=null;
+  applyUnboundedUi();
   const vectors=normalizeVectors(store.settings.vectors);
   document.querySelectorAll('[data-vector]').forEach(input=>{vectors[input.dataset.vector]=Number(input.value);});
   store.settings.vectors=vectors;

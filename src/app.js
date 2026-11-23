@@ -7,7 +7,9 @@ import { betaVectorsEnabled } from './js/vectors.js';
 import { defaultName,applySharedState,restoreState,restoreDirectory,shareScenario,readHashState,save } from './js/state.js';
 import { triggerSearch } from './js/engine.js';
 import { createMap,drawOrigins } from './js/map.js';
-import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,commitPeople,setSidebarFace } from './js/ui.js';
+import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,commitPeople,setSidebarFace,flashTooltip } from './js/ui.js';
+import { exportDiagnostics } from './js/diagnostics.js';
+import { clearPoint } from './js/map.js';
 
 async function init(){
   let mapError=null;
@@ -57,6 +59,15 @@ $('go').onclick=()=>triggerSearch(true);
 $('emptyRun').onclick=()=>triggerSearch(true);
 $('share').onclick=shareScenario;
 $('cancelPin').onclick=clearPinMode;
+$('clearPoint').onclick=clearPoint;
+$('exportDiagnostics').onclick=async event=>{
+  const button=event.currentTarget;
+  const result=await exportDiagnostics();
+  const message=result.ok===false?'diag.failed':result.copied?'diag.copied':'diag.downloaded';
+  const status=$('diagStatus');
+  if(status){status.textContent=t(message);status.hidden=false;}
+  flashTooltip(button,t(message));
+};
 document.addEventListener('click',e=>{document.querySelectorAll('.suggestions').forEach(s=>{if(!s.hidden&&!s.contains(e.target)){s.hidden=true;const input=s.parentElement.querySelector('.start-input');input?.setAttribute('aria-expanded','false');}});});
 document.addEventListener('keydown',e=>{
   if(store.pinTarget&&e.key==='Escape'){
