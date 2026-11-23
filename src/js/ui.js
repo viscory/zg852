@@ -6,18 +6,19 @@ import { normalizeVectors,vectorLabel,betaVectorsEnabled } from './vectors.js';
 import { searchPlaces,districtFor } from './data.js';
 import { dedupePlaces,photonSearch } from './search.js';
 import { fareMarkup } from './routing.js';
-import { displayName,save,saveDirectory,profileFromPerson,profileLabel,profileDistrict } from './state.js';
+import { displayName,save,saveDirectory,profileFromPerson,profileLabel,profileDistrict,normFocus } from './state.js';
 import { scheduleRecompute } from './engine.js';
 import { hideTooltip,clearMapOutput,selectResult } from './map.js';
 
 export function showError(message){const el=$('error');el.textContent=message;el.hidden=false;}
 export function clearError(){const el=$('error');el.textContent='';el.hidden=true;}
+export function setLabel(el,value){if(!el)return;el.setAttribute('aria-label',value);el.title=value;el.dataset.tooltip=value;}
 export function flashTooltip(element,message){
   if(!element)return;
   const original=element.dataset.tooltip||element.getAttribute('aria-label')||'';
-  element.dataset.tooltip=message;element.title=message;element.setAttribute('aria-label',message);
+  setLabel(element,message);
   clearTimeout(element.tooltipTimer);
-  element.tooltipTimer=setTimeout(()=>{element.dataset.tooltip=original;element.title=original;element.setAttribute('aria-label',original);},1600);
+  element.tooltipTimer=setTimeout(()=>setLabel(element,original),1600);
 }
 export function updateSaveSummary(){
   const el=$('saveSummary');if(!el)return;
@@ -208,7 +209,7 @@ export function makeCard(person){
     },350);
   });
   card.querySelector('.save-person').onclick=()=>savePersonToDirectory(person);
-  card.querySelector('.remove').onclick=()=>{store.people=store.people.filter(p=>p.id!==id);renderCards();save();scheduleRecompute();};
+  card.querySelector('.remove').onclick=()=>{store.people=store.people.filter(p=>p.id!==id);commitPeople();};
   card.querySelector('.move.up').onclick=()=>movePerson(id,-1);
   card.querySelector('.move.down').onclick=()=>movePerson(id,1);
   card.querySelector('.pin').onclick=()=>startPinMode(id,hint,input,sug);
@@ -226,7 +227,7 @@ export function movePerson(id,delta){
   const i=store.people.findIndex(p=>p.id===id),j=i+delta;
   if(i<0||j<0||j>=store.people.length)return;
   [store.people[i],store.people[j]]=[store.people[j],store.people[i]];
-  renderCards();save();scheduleRecompute();
+  commitPeople();
   document.querySelector(`.card[data-id="${CSS.escape(id)}"] .name-input`)?.focus();
 }
 export function renderCards(){
@@ -245,16 +246,16 @@ export function refreshMeta(){
     const nameLabel=card.querySelector('label[for^="name-"]');if(nameLabel)nameLabel.textContent=t('people.name',{letter});
     const nameInput=card.querySelector('.name-input');if(nameInput)nameInput.placeholder=t('people.name',{letter});
     const startInput=card.querySelector('.start-input');if(startInput)startInput.placeholder=t('people.startPlaceholder');
-    const setTooltip=(el,value)=>{if(!el)return;el.setAttribute('aria-label',value);el.title=value;el.dataset.tooltip=value;};
-    const remove=card.querySelector('.remove');remove.hidden=store.people.length<=1;setTooltip(remove,t('people.remove',{letter}));
-    setTooltip(card.querySelector('.pin'),t('people.pin'));
+    const remove=card.querySelector('.remove');remove.hidden=store.people.length<=1;setLabel(remove,t('people.remove',{letter}));
+    setLabel(card.querySelector('.pin'),t('people.pin'));
     const up=card.querySelector('.move.up'),down=card.querySelector('.move.down');
-    if(up){up.disabled=idx===0;setTooltip(up,t('people.moveUp',{name:displayName(person,idx)}));}
-    if(down){down.disabled=idx===store.people.length-1;setTooltip(down,t('people.moveDown',{name:displayName(person,idx)}));}
-    setTooltip(card.querySelector('.save-person'),t('people.save'));
+    if(up){up.disabled=idx===0;setLabel(up,t('people.moveUp',{name:displayName(person,idx)}));}
+    if(down){down.disabled=idx===store.people.length-1;setLabel(down,t('people.moveDown',{name:displayName(person,idx)}));}
+    setLabel(card.querySelector('.save-person'),t('people.save'));
   });
   updateSaveSummary();
 }
+export function commitPeople(){renderCards();save();scheduleRecompute();}
 export function clearPinMode(){
   store.pinTarget=null;
   $('map')?.classList.remove('pinning');
@@ -277,12 +278,12 @@ export function setPinOrigin(id,lat,lon){
   const idx=store.people.findIndex(p=>p.id===id);if(idx<0)return;
   store.people[idx].origin={kind:'coords',source:'pin',label:`${t('people.pin')} ${num(lat)}, ${num(lon)}`,lat,lon,district:districtFor(lat,lon)};
   clearPinMode();
-  renderCards();clearError();save();scheduleRecompute();
+  clearError();commitPeople();
 }
 export function savePersonToDirectory(person){
   if(!person.origin){showError(t('people.hintEmpty'));return;}
   const existing=store.directory.find(d=>d.id===person.directoryId)||store.directory.find(d=>d.name===person.name&&d.origin?.label===person.origin.label);
-  if(existing){existing.name=person.name;existing.origin=clone(person.origin);existing.focus=person.focus==='cost'?'cost':'time';existing.updated=Date.now();person.directoryId=existing.id;}
+  if(existing){existing.name=person.name;existing.origin=clone(person.origin);existing.focus=normFocus(person.focus);existing.updated=Date.now();person.directoryId=existing.id;}
   else{const profile=profileFromPerson(person);store.directory.push(profile);person.directoryId=profile.id;}
   saveDirectory();save();renderDirectoryList();flashSaved(person.id);
 }
@@ -299,14 +300,14 @@ export function deleteDirectoryPerson(id){
 }
 export function addDirectoryPerson(profile){
   if(store.people.length>=8||!profile)return;
-  store.people.push({id:`p${store.seq++}`,name:profile.name,origin:clone(profile.origin),directoryId:profile.id,focus:profile.focus==='cost'?'cost':'time'});
-  renderCards();save();scheduleRecompute();
+  store.people.push({id:`p${store.seq++}`,name:profile.name,origin:clone(profile.origin),directoryId:profile.id,focus:normFocus(profile.focus)});
+  commitPeople();
 }
 export function editDirectoryPerson(profile){
   let person=store.people.find(p=>p.directoryId===profile.id);
   if(!person&&store.people.length<8){addDirectoryPerson(profile);person=store.people[store.people.length-1];}
-  if(person){person.name=profile.name;person.origin=clone(profile.origin);person.focus=profile.focus==='cost'?'cost':'time';}
-  renderCards();save();scheduleRecompute();
+  if(person){person.name=profile.name;person.origin=clone(profile.origin);person.focus=normFocus(profile.focus);}
+  commitPeople();
 }
 export function renderDirectoryList(){
   const list=$('directoryList');if(!list)return;

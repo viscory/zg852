@@ -5,9 +5,9 @@ import { t,ensureCatalog,detectLocale,setDocumentLocale,changeLocale,applyStatic
 import { loadNodes,loadDistricts,loadNetwork,loadPoi } from './js/data.js';
 import { betaVectorsEnabled } from './js/vectors.js';
 import { defaultName,applySharedState,restoreState,restoreDirectory,shareScenario,readHashState,save } from './js/state.js';
-import { scheduleRecompute,triggerSearch } from './js/engine.js';
+import { triggerSearch } from './js/engine.js';
 import { createMap,drawOrigins } from './js/map.js';
-import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError } from './js/ui.js';
+import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,commitPeople } from './js/ui.js';
 
 async function init(){
   createMap();
@@ -29,7 +29,7 @@ async function init(){
   loadNetwork().catch(err=>{console.error(err);showError(t('error.timetableFailed',{message:err.message}));});
 }
 
-$('add').onclick=()=>{if(store.people.length<8){store.people.push({id:`p${store.seq++}`,name:defaultName(store.people.length),origin:null,focus:'time'});renderCards();save();scheduleRecompute();}};
+$('add').onclick=()=>{if(store.people.length<8){store.people.push({id:`p${store.seq++}`,name:defaultName(store.people.length),origin:null,focus:'time'});commitPeople();}};
 $('library').onclick=openDirectory;
 $('libraryClose').onclick=()=>closeDialog($('peopleDialog'));
 $('directorySearch').oninput=renderDirectoryList;

@@ -8,6 +8,12 @@ import { findExact,districtFor } from './data.js';
 import { updateSaveSummary,applySettingsToDom,flashTooltip } from './ui.js';
 
 export function defaultName(i){return t('people.defaultName',{letter:LETTERS[i%8]});}
+export const normFocus=value=>value==='cost'?'cost':'time';
+export function nextSeq(people){return Math.max(1,...people.map(p=>Number(String(p.id).replace(/\D/g,''))||0))+1;}
+function buildSettings(stored,modes){
+  stored=stored&&typeof stored==='object'?stored:{};
+  return{modes:Array.isArray(modes)&&modes.length?modes:['rail','bus'],tolerance:clamp(Number(stored.tolerance),0.05,0.5,0.1),budget:clamp(Number(stored.budget),15,180,60),vectors:migrateVectors(stored.vectors),beta:{vectors:!!stored.beta?.vectors}};
+}
 export function displayName(person,i){return (person?.name||'').trim()||defaultName(i);}
 export function profileLabel(profile){return profile.origin?.label||t('people.hintEmpty');}
 export function profileDistrict(profile){return profile.origin?.district||districtFor(profile.origin?.lat,profile.origin?.lon);}
@@ -17,7 +23,7 @@ export function normalizePerson(raw,i){
   const validNode=origin&&origin.kind==='node'&&Number.isInteger(origin.node)&&origin.node>=0&&store.NODES&&origin.node<store.NODES.names.length;
   const validCoords=origin&&origin.kind==='coords'&&isNum(origin.lat)&&isNum(origin.lon);
   if(!validNode&&!validCoords)return null;
-  return{id:raw.id||`p${i+1}`,name:raw.name||defaultName(i),origin,directoryId:raw.directoryId||null,focus:raw.focus==='cost'?'cost':'time'};
+  return{id:raw.id||`p${i+1}`,name:raw.name||defaultName(i),origin,directoryId:raw.directoryId||null,focus:normFocus(raw.focus)};
 }
 export function defaultPeople(){
   return ['Tsuen Wan','North Point'].map((name,i)=>{
@@ -26,14 +32,14 @@ export function defaultPeople(){
   }).filter(p=>p.origin);
 }
 export function save(){
-  localStorage.setItem(KEY.people,JSON.stringify(store.people.map(p=>({id:p.id,name:p.name,origin:p.origin,directoryId:p.directoryId||null,focus:p.focus==='cost'?'cost':'time'}))));
+  localStorage.setItem(KEY.people,JSON.stringify(store.people.map(p=>({id:p.id,name:p.name,origin:p.origin,directoryId:p.directoryId||null,focus:normFocus(p.focus)}))));
   localStorage.setItem(KEY.settings,JSON.stringify(store.settings));
   localStorage.setItem(KEY.locale,store.locale);
   updateSaveSummary();
 }
 export function saveDirectory(){localStorage.setItem(KEY.directory,JSON.stringify(store.directory));}
 export function profileFromPerson(person){
-  return{id:person.directoryId||`d${store.directorySeq++}`,name:person.name||defaultName(0),origin:clone(person.origin),focus:person.focus==='cost'?'cost':'time',updated:Date.now()};
+  return{id:person.directoryId||`d${store.directorySeq++}`,name:person.name||defaultName(0),origin:clone(person.origin),focus:normFocus(person.focus),updated:Date.now()};
 }
 export function restoreState(){
   loadGeoCache();
@@ -49,20 +55,19 @@ export function restoreState(){
     }catch(e){}
   }
   if(store.people.length<2)store.people=defaultPeople();
-  store.seq=Math.max(1,...store.people.map(p=>Number(String(p.id).replace(/\D/g,''))||0))+1;
+  store.seq=nextSeq(store.people);
   let stored=null;
   try{stored=JSON.parse(localStorage.getItem(KEY.settings));}catch(e){}
-  if(!stored||typeof stored!=='object')stored={};
-  let modes=Array.isArray(stored.modes)?stored.modes:null;
+  let modes=Array.isArray(stored?.modes)?stored.modes:null;
   if(!modes){try{const m=JSON.parse(localStorage.getItem(KEY.oldModes));if(Array.isArray(m))modes=m;}catch(e){}}
-  store.settings={modes:modes||['rail','bus'],tolerance:clamp(Number(stored.tolerance),0.05,0.5,0.1),budget:clamp(Number(stored.budget),15,180,60),vectors:migrateVectors(stored.vectors),beta:{vectors:!!stored.beta?.vectors}};
+  store.settings=buildSettings(stored,modes);
   applySettingsToDom();
   save();
 }
 export function restoreDirectory(){
   try{
     const raw=JSON.parse(localStorage.getItem(KEY.directory));
-    if(Array.isArray(raw))store.directory=raw.filter(p=>p&&p.origin).map(p=>({id:p.id||`d${Date.now()}`,name:p.name||defaultName(0),origin:p.origin,focus:p.focus==='cost'?'cost':'time',updated:p.updated||Date.now()}));
+    if(Array.isArray(raw))store.directory=raw.filter(p=>p&&p.origin).map(p=>({id:p.id||`d${Date.now()}`,name:p.name||defaultName(0),origin:p.origin,focus:normFocus(p.focus),updated:p.updated||Date.now()}));
   }catch(e){}
   if(!store.directory.length)store.directory=store.people.map(profileFromPerson);
   saveDirectory();
@@ -79,7 +84,7 @@ export async function shareScenario(){
   const selectedState=store.selection?.kind==='cell'
     ?{kind:'cell',key:store.selection.key,node:store.selection.node,lat:store.selection.lat,lon:store.selection.lon}
     :{kind:'result',index:store.selected>=0?store.selected:0};
-  const state={v:1,people:store.people.map(p=>({id:p.id,name:p.name,origin:p.origin,focus:p.focus==='cost'?'cost':'time'})),settings:clone(store.settings),locale:store.locale,selected:selectedState};
+  const state={v:1,people:store.people.map(p=>({id:p.id,name:p.name,origin:p.origin,focus:normFocus(p.focus)})),settings:clone(store.settings),locale:store.locale,selected:selectedState};
   const url=`${location.origin}${location.pathname}${location.search}#s=${encodeBase64Url(state)}`;
   const button=$('share');
   try{await copyText(url);flashTooltip(button,t('share.copied'));}
@@ -98,11 +103,11 @@ export function applySharedState(){
   const sharedPeople=state.people.map(normalizePerson).filter(Boolean);
   if(sharedPeople.length<2)return false;
   store.people=sharedPeople;
-  const modes=Array.isArray(state.settings?.modes)?state.settings.modes.filter(m=>m==='rail'||m==='bus'):['rail','bus'];
-  store.settings={modes:modes.length?modes:['rail','bus'],tolerance:clamp(Number(state.settings?.tolerance),0.05,0.5,0.1),budget:clamp(Number(state.settings?.budget),15,180,60),vectors:migrateVectors(state.settings?.vectors),beta:{vectors:!!state.settings?.beta?.vectors}};
+  const modes=Array.isArray(state.settings?.modes)?state.settings.modes.filter(m=>m==='rail'||m==='bus'):null;
+  store.settings=buildSettings(state.settings,modes);
   if(LOCALES.includes(state.locale))store.locale=state.locale;
   store.sharedSelection=state.selected&&typeof state.selected==='object'?state.selected:null;
-  store.seq=Math.max(1,...store.people.map(p=>Number(String(p.id).replace(/\D/g,''))||0))+1;
+  store.seq=nextSeq(store.people);
   history.replaceState(null,'',location.pathname+location.search);
   return true;
 }

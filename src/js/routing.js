@@ -2,7 +2,8 @@ import { RAIL_FARE_BANDS,BUS_FARE_BANDS,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RAD
 import { store } from './store.js';
 import { isNum,haversine,walkMinutes,round1,esc } from './util.js';
 import { t,tp,num,minuteText } from './i18n.js';
-import { nodePriority,catKey } from './data.js';
+import { nodePriority,catKey,districtFor } from './data.js';
+import { cellVector,cellCount,cellPreference } from './vectors.js';
 
 // The routing engine: multi-source Dijkstra over the walk+ride graph, fare
 // estimation, leg narration, and fair-cell construction. Pure with respect to
@@ -34,7 +35,6 @@ export function routeFares(route){
 }
 export function prepareRoutes(result,active=store.activePeople){
   result.routes=store.sols.map((solution,j)=>describe(solution,active[j].origin,result.node,active[j].focus));
-  result.routes.forEach(route=>{route.fares=routeFares(route);});
   result.paths=result.routes.map(route=>route.path);
   return result;
 }
@@ -176,14 +176,15 @@ export function describe(sol,origin,target,focus='time'){
       lastCoord=coord;
     });
     close();
-    candidates.push({d,legs,total:routeFares({legs}).total});
+    const fares=routeFares({legs});
+    candidates.push({d,legs,fares,total:fares.total});
   }
-  if(!candidates.length)return{text:t('route.unreachable'),legs:[],path:[[origin.lat,origin.lon]]};
+  if(!candidates.length)return{text:t('route.unreachable'),legs:[],path:[[origin.lat,origin.lon]],fares:{rail:0,bus:0,total:0}};
   candidates.sort((a,b)=>focus==='cost'?a.total-b.total||a.d-b.d:a.d-b.d||a.total-b.total);
   const best=candidates[0],legs=best.legs;
   const text=legs.map(leg=>leg.text).join(' -> ')||t('route.already');
   const path=dedupePath(legs.flatMap(leg=>leg.coords));
-  return{text,legs,path,fares:routeFares({legs})};
+  return{text,legs,path,fares:best.fares};
 }
 export function buildCells(grids,tolerance,budget){
   const cells=new Map();
@@ -200,4 +201,13 @@ export function buildCells(grids,tolerance,budget){
     if(score<cell.score||score===cell.score&&slowest-fastest<cell.gap){cell.node=idx;cell.times=times;cell.fastest=fastest;cell.slowest=slowest;cell.gap=slowest-fastest;cell.score=score;}
   }
   return[...cells.values()].sort((a,b)=>a.score-b.score||a.gap-b.gap||a.key.localeCompare(b.key));
+}
+export function cellToResult(cell){
+  const lat=store.NODES.lat[cell.node],lon=store.NODES.lon[cell.node],round=v=>Math.round(v*10)/10;
+  return{
+    key:cell.key,node:cell.node,label:cell.label,catKey:cell.keyCat,district:districtFor(lat,lon),lat,lon,
+    cellLat:cell.cy*CELL_SIZE+CELL_SIZE/2,cellLon:cell.cx*CELL_SIZE+CELL_SIZE/2,
+    times:cell.times.map(round),fastest:round(cell.fastest),slowest:round(cell.slowest),gap:round(cell.gap),score:round(cell.score),
+    fit:cellPreference(cell),vector:cellVector(cell),count:cellCount(cell),
+  };
 }

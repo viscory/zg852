@@ -1,3 +1,29 @@
+## 2026-11-23T01:32:00Z
+
+- Executed the audit plan: deleted the dead `/vendor/lucide/` service-worker branch and the stale `vendor/**` eslint ignore.
+- Added caches: `Intl.NumberFormat`/`PluralRules` per locale, lowercase node names from `loadNodes`, and a memoized `districtFor`.
+- Deduplicated: one `cellToResult` for engine and map, one `buildSettings`/`nextSeq` for restore paths, one `commitPeople` for the six render-save-recompute sites, one `setLabel` for the tooltip trio, one `normFocus`.
+- Fares now compute once per route inside `describe`; `prepareRoutes` no longer recomputes.
+- Cached Dijkstra solutions keyed by origins, mode mask, and budget; tolerance-only changes skip `solve`.
+- Measured with an interleaved Playwright probe (7 runs per side): tolerance recompute p50 191 ms to 42 ms; budget recompute p50 191 ms, unchanged. Control path confirms Dijkstra was the limiter.
+- Baseline and post-change Playwright suites both green at 43 passed.
+
+## 2026-11-23T09:27:00+08:00
+
+- Read README, CREDITS.md, tests, and static layout to learn the live surface of zg852.pages.dev.
+- Wrote a long audit system prompt for a fresh agent to report all live-deploy issues.
+- Prompt covers A–O audit areas: load, core journey, routing sanity, search, i18n (15 locales), PWA/sw, performance, a11y, mobile, SEO, legal, data integrity, console sweep, storage.
+- Prompt enforces evidence rules, severity + confidence scale, fixed report format, read-only repo access, and the TEST_BASE_URL smoke run.
+
+## 2026-11-23T01:30:00Z
+
+- Ran a read-only Investigation sweep of the whole app: every module in `src/js/`, `app.js`, `index.html`, `sw.js`, and `finalize.mjs`, with call paths traced across modules.
+- Found the duplicate cell-to-result mapping in `engine.js` compute and `map.js` buildResultFromCell; extraction into one helper is the top dedup candidate.
+- Found fares computed three times per route: twice inside `describe` and once more in `prepareRoutes`.
+- Found the biggest latency win: a tolerance-slider change re-runs Dijkstra `solve`, but `solve` depends only on sources, mode mask, and budget, not tolerance, so cached grids could skip it.
+- Found easy wins: cache `Intl.NumberFormat`/`PluralRules` per locale, precompute lowercase node names for `searchPlaces`, memoize `districtFor`, debounce `localStorage` writes, and remove the dead `/vendor/lucide/` branch in `sw.js`.
+- Confirmed existing caches work well: Photon geoCache, network and POI load guards, i18n catalogs.
+
 ## 2026-11-23T01:26:00Z
 
 - Learned the brand's Chinese name is 就腳 (Jyutping zau6 goek3), not 擇角; replaced it and the Mandarin pinyin bracket across all 15 catalogs, pages, legal documents, SEO files, and tests.

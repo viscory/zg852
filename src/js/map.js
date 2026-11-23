@@ -6,11 +6,10 @@ import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,VECTOR_KEYS } from './config
 import { store } from './store.js';
 import { $,esc,clamp,isNum,icon,initialsFor,avatarClass } from './util.js';
 import { t,num,minuteText } from './i18n.js';
-import { districtFor } from './data.js';
 import { betaVectorsEnabled,preferenceText,cellVector,cellCount,cellTopNames,cellPreference } from './vectors.js';
-import { prepareRoutes,legLabel,fareMarkup } from './routing.js';
+import { prepareRoutes,legLabel,fareMarkup,cellToResult } from './routing.js';
 import { displayName } from './state.js';
-import { markSelectedResult,setPinOrigin } from './ui.js';
+import { markSelectedResult,setPinOrigin,setLabel } from './ui.js';
 
 export const CLEAN_STYLE={
   version:8,
@@ -54,9 +53,7 @@ export function createMap(){
       const button=L.DomUtil.create('button','map-recenter',container);
       button.type='button';
       button.innerHTML=icon('centre');
-      button.setAttribute('aria-label','Recenter map');
-      button.title='Recenter map';
-      button.dataset.tooltip='Recenter map';
+      setLabel(button,'Recenter map');
       button.setAttribute('data-i18n-aria-label','map.recenter');
       button.setAttribute('data-i18n-tooltip','map.recenter');
       L.DomEvent.disableClickPropagation(button);
@@ -150,14 +147,7 @@ export function resultMatches(result,sel){
     (Number.isFinite(sel.lat)&&Number.isFinite(sel.lon)&&Math.abs(result.lat-sel.lat)<1e-5&&Math.abs(result.lon-sel.lon)<1e-5);
 }
 export function buildResultFromCell(cell,active=store.activePeople){
-  const node=cell.node,lat=store.NODES.lat[node],lon=store.NODES.lon[node],round=v=>Math.round(v*10)/10;
-  const result={
-    key:cell.key,node,label:cell.label,catKey:cell.keyCat,district:districtFor(lat,lon),lat,lon,
-    cellLat:cell.cy*CELL_SIZE+CELL_SIZE/2,cellLon:cell.cx*CELL_SIZE+CELL_SIZE/2,
-    times:cell.times.map(round),fastest:round(cell.fastest),slowest:round(cell.slowest),gap:round(cell.gap),score:round(cell.score),
-    fit:cellPreference(cell),vector:cellVector(cell),count:cellCount(cell),
-  };
-  return prepareRoutes(result,active);
+  return prepareRoutes(cellToResult(cell),active);
 }
 export function selectCell(cell){
   hideTooltip();

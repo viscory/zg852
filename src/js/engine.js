@@ -1,10 +1,10 @@
-import { CELL_SIZE,MAX_CLOUD_CELLS,RECOMPUTE_DELAY } from './config.js';
+import { MAX_CLOUD_CELLS,RECOMPUTE_DELAY } from './config.js';
 import { store } from './store.js';
-import { $,clamp,round1 } from './util.js';
+import { $,clamp } from './util.js';
 import { t,applyStaticText } from './i18n.js';
 import { districtFor,loadNetwork } from './data.js';
-import { cellFitScore,cellVector,cellCount,cellPreference } from './vectors.js';
-import { sourcesFor,solve,bestTimes,buildCells,prepareRoutes } from './routing.js';
+import { cellFitScore } from './vectors.js';
+import { sourcesFor,solve,bestTimes,buildCells,prepareRoutes,cellToResult } from './routing.js';
 import { save } from './state.js';
 import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,renderCards,setWorking } from './ui.js';
 import { drawOrigins,drawCloud,applySelection } from './map.js';
@@ -19,19 +19,21 @@ export function compute(){
   if(!mask){renderEmpty();showError(t('error.noMode'));return;}
   const tolerance=clamp(Number($('tolerance').value),0.05,0.5,0.1),budget=Number($('budget').value);
   store.settings.tolerance=tolerance;store.settings.budget=budget;save();
-  const sources=store.activePeople.map(p=>sourcesFor(p.origin,budget));
-  if(sources.some(s=>!s.length)){renderEmpty();showError(t('error.noNearby'));return;}
-  store.sols=sources.map(s=>solve(s,mask,budget));
+  // solve() depends only on origins, the mode mask, and the budget. Tolerance
+  // and vector changes re-filter cells from the cached solutions instead of
+  // re-running Dijkstra for every person.
+  const solveKey=`${mask}:${budget}:${store.activePeople.map(p=>{const o=p.origin;return o.kind==='node'?`n${o.node}`:`c${o.lat},${o.lon}`;}).join('|')}`;
+  if(store.solveKey!==solveKey){
+    store.solveKey=solveKey;
+    const sources=store.activePeople.map(p=>sourcesFor(p.origin,budget));
+    if(sources.some(s=>!s.length)){renderEmpty();showError(t('error.noNearby'));return;}
+    store.sols=sources.map(s=>solve(s,mask,budget));
+  }
   if(store.sols.some(s=>!s.dist.size)){renderEmpty();showError(t('error.noReach'));return;}
   const grids=store.sols.map(bestTimes),cells=buildCells(grids,tolerance,budget);
   const ordered=cells.map(cell=>({cell,fitScore:cellFitScore(cell)})).sort((a,b)=>a.fitScore-b.fitScore||a.cell.score-b.cell.score||a.cell.key.localeCompare(b.cell.key));
   store.cloudCells=ordered.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
-  store.results=ordered.slice(0,7).map(({cell:c})=>({
-    key:c.key,node:c.node,label:c.label,catKey:c.keyCat,district:districtFor(store.NODES.lat[c.node],store.NODES.lon[c.node]),
-    lat:store.NODES.lat[c.node],lon:store.NODES.lon[c.node],cellLat:c.cy*CELL_SIZE+CELL_SIZE/2,cellLon:c.cx*CELL_SIZE+CELL_SIZE/2,
-    times:c.times.map(round1),fastest:round1(c.fastest),slowest:round1(c.slowest),gap:round1(c.gap),score:round1(c.score),
-    fit:cellPreference(c),vector:cellVector(c),count:cellCount(c),
-  }));
+  store.results=ordered.slice(0,7).map(({cell:c})=>cellToResult(c));
   store.results.forEach(r=>prepareRoutes(r,store.activePeople));
   if(!store.results.length){
     renderEmpty();
