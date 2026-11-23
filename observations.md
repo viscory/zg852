@@ -1,3 +1,11 @@
+## 2026-11-23T16:15:57Z
+
+- User reported the social thumbnail still showed "Zak Geok". Confirmed the text was baked into `static/og-image.png` (OCR found title at x504–816, y306–359 and stale subtitle "Fair Hong Kong meeting points by travel time and cost."), not present in HTML or i18n.
+- Image-generation service failed with `Invalid credential`, so edited the PNG directly with PIL after locating exact text bounds via Tesseract.js OCR. Replaced the dark-panel text block with title `就腳 zau6 goek3` and subtitle `Find the most convenient meeting point / for everyone`, preserving the 1200×630 size, dark background, red left panel and all untouched pixels.
+- Added `?v=2` to the `og:image` and `twitter:image` URLs in all five HTML pages so social crawlers that cached the old thumbnail fetch the new one; added regression assertions to the brand and legal-page tests.
+- Bumped service-worker cache `zg852-v35` → `zg852-v36` because the cached OG image changed.
+- Verified post-edit OCR no longer finds "Zak Geok"; `static/og-image.png` and built `public/og-image.png` have identical SHA-256. `npm run lint`, `npm test` 64/64, and `git diff --check` all pass. Changes are in the working tree but not yet committed.
+
 ## 2026-11-23T15:50:06Z
 
 - Committed the next-round feature set as `1c57238` (`feat: add ride diagnostics, free-point picking and transit link details`, 35 files) and pushed to `origin/main`; working tree clean.

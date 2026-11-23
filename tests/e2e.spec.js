@@ -135,6 +135,7 @@ test('brand copy and MTR-facing labels use the 就腳 name', async ({ page }) =>
   await expect(page.locator('.route-key [data-i18n="map.railKey"]')).toHaveText('MTR');
   await expect(page.locator('#tolerance')).toHaveAttribute('min', '0.05');
   await expect(page.locator('label[for="tolerance"]')).toHaveText('Travel time disparity tolerance');
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', 'https://zg852.pages.dev/og-image.png?v=2');
 });
 
 test('robots, llms, sitemap and build headers expose the llms.txt endpoint', async ({ page }) => {
@@ -1381,6 +1382,7 @@ test('legal pages include social preview tags', async ({ page }) => {
     const body = await (await page.request.get(`/${name}.html`)).text();
     expect(body).toContain('property="og:title"');
     expect(body).toContain('name="twitter:card"');
+    expect(body).toContain('content="https://zg852.pages.dev/og-image.png?v=2"');
   }
 });
 
