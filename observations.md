@@ -1,3 +1,7 @@
+## 2026-11-23T16:16:30Z
+
+- Removed two accidental `chi_tra.traineddata` / `eng.traineddata` files that the temporary Tesseract.js OCR run cached in the repo root and that were included in `73f6fa2`; these are tooling artifacts, not app assets.
+
 ## 2026-11-23T16:15:57Z
 
 - User reported the social thumbnail still showed "Zak Geok". Confirmed the text was baked into `static/og-image.png` (OCR found title at x504–816, y306–359 and stale subtitle "Fair Hong Kong meeting points by travel time and cost."), not present in HTML or i18n.
