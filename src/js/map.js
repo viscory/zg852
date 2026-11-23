@@ -40,12 +40,22 @@ export const CLEAN_STYLE={
   ]
 };
 
-let map,cloudLayer,routeLayer,pointLayer,originLayer;
+let map,cloudLayer,routeLayer,pointLayer,originLayer,vectorLayer;
+const LABEL_LAYERS=['place-label','poi-label','road-label'];
+export function placeNameField(){
+  const local=store.locale&&store.locale!=='en'?['get',`name:${store.locale}`]:null;
+  return ['coalesce',...(local?[local]:[]),['get','name:en'],['get','name']];
+}
+export function applyMapLabels(){
+  const gl=vectorLayer?.getMaplibreMap?.();
+  if(!gl?.getLayer)return;
+  for(const id of LABEL_LAYERS)if(gl.getLayer(id))gl.setLayoutProperty(id,'text-field',placeNameField());
+}
 
 export function createMap(){
   map=L.map('map',{zoomControl:false,keyboard:true,minZoom:1,maxBounds:[[180,-Infinity],[-180,Infinity]],maxBoundsViscosity:1,attributionControl:true}).setView([22.31,114.17],12);
   map.attributionControl.setPrefix('');
-  map.attributionControl.addAttribution('© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>, <a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>, © OpenMapTiles · <a href="https://github.com/viscory/zg852/issues" target="_blank" rel="noopener noreferrer">Report a map issue</a>');
+  map.attributionControl.addAttribution('© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>, <a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>, © OpenMapTiles · <a id="mapIssue" href="https://github.com/viscory/zg852/issues" target="_blank" rel="noopener noreferrer">Report a map issue</a>');
   const RecenterControl=L.Control.extend({
     options:{position:'bottomright'},
     onAdd(){
@@ -65,7 +75,8 @@ export function createMap(){
   L.control.zoom({position:'bottomright'}).addTo(map);
   map.createPane('routePane').style.zIndex=450;
   map.createPane('pointPane').style.zIndex=460;
-  maplibreGL({style:CLEAN_STYLE,interactive:false,attributionControl:false}).addTo(map);
+  vectorLayer=maplibreGL({style:CLEAN_STYLE,interactive:false,attributionControl:false}).addTo(map);
+  vectorLayer.on?.('load',applyMapLabels);
   cloudLayer=L.layerGroup().addTo(map);routeLayer=L.layerGroup({pane:'routePane'}).addTo(map);
   pointLayer=L.layerGroup({pane:'pointPane'}).addTo(map);originLayer=L.layerGroup({pane:'pointPane'}).addTo(map);
   map.on('click',e=>{if(store.pinTarget)setPinOrigin(store.pinTarget,e.latlng.lat,e.latlng.lng);});
@@ -198,9 +209,10 @@ export function renderSelection(r,active=store.activePeople){
   $('detailDistrict').textContent=r.district;
   const preference=betaVectorsEnabled()?` ${preferenceText(r.fit)}`:'';
   $('detailSub').textContent=`${t('results.spread',{value:num(r.gap)})} ${t('results.longest',{value:num(r.slowest)})}${preference}`;
+  const already=r.times.every(value=>value<=0.5);
   $('steps').innerHTML=legCount?r.routes.map((route,j)=>`<div class="step">
     <span class="dot ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>
-    <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(leg=>`<span class="${leg.mode==='walk'?'walk-leg':'ride-leg'} route-${leg.mode}"><span class="ride-text">${esc(leg.text||legLabel(leg))}</span></span>`).join('')}</span><span class="muted">${esc(minuteText(r.times[j]))}</span>${fareMarkup(route)}</span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t('results.noRoutes'))}</span></span></div>`;
+    <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(leg=>`<span class="${leg.mode==='walk'?'walk-leg':'ride-leg'} route-${leg.mode}"><span class="ride-text">${esc(leg.text||legLabel(leg))}</span></span>`).join('')}</span><span class="muted">${esc(minuteText(r.times[j]))}</span>${fareMarkup(route)}</span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t(already?'route.already':'results.noRoutes'))}</span></span></div>`;
   const pts=r.paths.flat().concat(active.map(p=>[p.origin.lat,p.origin.lon]));
   if(pts.length)map.fitBounds(pts,{padding:[60,60],maxZoom:14});
 }

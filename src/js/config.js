@@ -18,5 +18,15 @@ export const VECTOR_KEYS=['food','drinks','activities','culture','outdoors','sho
 export const VECTOR_BONUS_MINUTES=6;
 export const RECOMPUTE_DELAY=500;
 export const RAIL_FARE_BANDS=[[2,4.9],[5,6.5],[9,8.2],[14,10.6],[20,13.2],[30,16.8],[Infinity,20.5]];
+// Adult Octopus fares for the Airport Express. The shared rail band tops out at HK$20.5.
+export const AEL_FARES=[
+  ['Airport','Tsing Yi',64.5],
+  ['Airport','Kowloon',100],
+  ['Airport','Hong Kong',115],
+  ['Airport','AsiaWorld-Expo',6.5],
+  ['AsiaWorld-Expo','Tsing Yi',70],
+  ['AsiaWorld-Expo','Kowloon',105],
+  ['AsiaWorld-Expo','Hong Kong',120],
+];
 export const BUS_FARE_BANDS=[[4,5.5],[8,7.2],[15,9.6],[25,13.2],[Infinity,17.7]];
 export const FARE_INTERCHANGE_WALK_MINUTES=15;

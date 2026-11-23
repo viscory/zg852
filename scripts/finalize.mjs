@@ -64,16 +64,9 @@ const headers = `/*
 `;
 
 function patchServiceWorker(source) {
-  const removals = ["'./index.html',", "'./sw.js',"];
-  let result = source;
-  for (const token of removals) {
-    if (!result.includes(token)) throw new Error(`Expected service worker asset entry not found: ${token}`);
-    result = result.replace(token, '');
-  }
-  const originalGuard = "  if(e.request.method!=='GET'||new URL(e.request.url).origin!==self.location.origin)return;";
-  const patchedGuard = "  const path=new URL(e.request.url).pathname;\n  if(e.request.method!=='GET'||new URL(e.request.url).origin!==self.location.origin||path==='/'||path==='/index.html'||path==='/sw.js')return;";
-  if (!result.includes(originalGuard)) throw new Error('Expected service worker fetch guard not found');
-  return result.replace(originalGuard, patchedGuard);
+  const token = "'./sw.js',";
+  if (!source.includes(token)) throw new Error(`Expected service worker asset entry not found: ${token}`);
+  return source.replace(token, '');
 }
 
 for (const name of ['README.md', 'LICENSE', 'PRIVACY.md', 'TERMS.md', 'CREDITS.md', 'THIRD_PARTY_NOTICES.md']) {
@@ -98,6 +91,8 @@ await cp(workerSource, join(out, 'maplibre-gl-worker.mjs'));
 
 const swPath = join(out, 'sw.js');
 await writeFile(swPath, patchServiceWorker(await readFile(swPath, 'utf8')));
+const strayStyles = join(out, 'styles.css');
+if (existsSync(strayStyles)) await rm(strayStyles);
 await writeFile(join(out, '_headers'), headers);
 
 console.log(`Finalized ${out}`);

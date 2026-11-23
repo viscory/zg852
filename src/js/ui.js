@@ -136,7 +136,7 @@ export function setOrigin(person,place,hint,input,sug){
   if(sug){sug.hidden=true;input?.setAttribute('aria-expanded','false');input?.removeAttribute('aria-activedescendant');}
   clearError();save();scheduleRecompute();
 }
-export function renderSuggestions(sug,entries,person,input,failed=false){
+export function renderSuggestions(sug,entries,person,input,failed=false,settled=false){
   const items=dedupePlaces(entries,8);
   sug.innerHTML='';
   let active=-1;
@@ -148,8 +148,8 @@ export function renderSuggestions(sug,entries,person,input,failed=false){
     all[active].scrollIntoView({block:'nearest'});
     input.setAttribute('aria-activedescendant',all[active].id);
   };
-  if(failed){
-    const d=document.createElement('div');d.className='suggestion-error';d.textContent=t('search.unavailable');sug.appendChild(d);
+  if(failed||(settled&&!items.length)){
+    const d=document.createElement('div');d.className='suggestion-error';d.textContent=t(failed?'search.unavailable':'search.none');sug.appendChild(d);
   }
   items.forEach((place,i)=>{
     const d=document.createElement('div');d.className='suggestion';d.id=`${sug.id}-option-${i}`;
@@ -159,7 +159,7 @@ export function renderSuggestions(sug,entries,person,input,failed=false){
     d.onclick=choose;
     sug.appendChild(d);
   });
-  sug.hidden=!items.length&&!failed;
+  sug.hidden=!items.length&&!failed&&!(settled&&!items.length);
   input.setAttribute('aria-expanded',String(!sug.hidden));
   input.onkeydown=e=>{
     if(e.key==='ArrowDown'){e.preventDefault();if(sug.hidden){sug.hidden=false;input.setAttribute('aria-expanded','true');}highlight(active+1);}
@@ -223,8 +223,8 @@ export function makeCard(person){
       controller=new AbortController();
       try{
         const remote=await photonSearch(q,controller.signal);
-        if(mine===requestSeq)renderSuggestions(sug,local.concat(remote),person,input,false);
-      }catch(e){if(mine===requestSeq&&e.name!=='AbortError')renderSuggestions(sug,local,person,input,true);}
+        if(mine===requestSeq)renderSuggestions(sug,local.concat(remote),person,input,false,true);
+      }catch(e){if(mine===requestSeq&&e.name!=='AbortError')renderSuggestions(sug,local,person,input,true,true);}
     },350);
   });
   card.querySelector('.save-person').onclick=()=>savePersonToDirectory(person);

@@ -7,7 +7,7 @@ import { cellFitScore } from './vectors.js';
 import { sourcesFor,solve,bestTimes,buildCells,prepareRoutes,cellToResult } from './routing.js';
 import { save } from './state.js';
 import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,renderCards,setWorking } from './ui.js';
-import { drawOrigins,drawCloud,applySelection } from './map.js';
+import { drawOrigins,drawCloud,applySelection,applyMapLabels } from './map.js';
 
 export function compute(){
   clearError();
@@ -15,7 +15,7 @@ export function compute(){
   if(store.people.some(p=>!p.origin)){renderEmpty();showError(t('error.missingOrigins'));return;}
   store.activePeople=store.people.filter(p=>p.origin);
   if(store.activePeople.length<2){renderEmpty();showError(t('error.needTwo'));return;}
-  const mask=store.settings.modes.reduce((m,mode)=>m|(1<<(mode==='rail'?0:1)),0);
+  const mask=store.settings.modes.reduce((m,mode)=>m|(mode==='rail'?1|(1<<3):mode==='bus'?2|(1<<2):0),0);
   if(!mask){renderEmpty();showError(t('error.noMode'));return;}
   const tolerance=clamp(Number($('tolerance').value),0.05,0.5,0.1),budget=Number($('budget').value);
   store.settings.tolerance=tolerance;store.settings.budget=budget;save();
@@ -70,6 +70,7 @@ export function triggerSearch(){
 }
 export function rerender(){
   applyStaticText();
+  applyMapLabels();
   store.people.forEach(p=>{if(p.origin)p.origin.district=districtFor(p.origin.lat,p.origin.lon);});
   store.directory.forEach(p=>{p.district=districtFor(p.origin.lat,p.origin.lon);});
   store.results.forEach(r=>{r.district=districtFor(r.lat,r.lon);});

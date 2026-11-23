@@ -136,7 +136,7 @@ test('service worker precaches the bundle, data, and catalogs for offline use', 
   expect(cached).toEqual({
     '/app.js': true,
     '/app.css': true,
-    '/index.html': false,
+    '/index.html': true,
     '/data/nodes.json': true,
     '/i18n/en.json': true,
   });

@@ -1,4 +1,4 @@
-import { RAIL_FARE_BANDS,BUS_FARE_BANDS,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE } from './config.js';
+import { RAIL_FARE_BANDS,BUS_FARE_BANDS,AEL_FARES,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE } from './config.js';
 import { store } from './store.js';
 import { isNum,haversine,walkMinutes,round1,esc } from './util.js';
 import { t,tp,num,minuteText } from './i18n.js';
@@ -18,6 +18,14 @@ export function legDistanceKm(leg){
   }
   return metres/1000;
 }
+const RIDE_MODES=['rail','bus','ferry','lightRail'];
+export function rideMode(code){return RIDE_MODES[code]||'bus';}
+export function aelFare(from,to){
+  const ends=new Set([stopName(from),stopName(to)]);
+  if(ends.size<2)return 0;
+  for(const [a,b,fare] of AEL_FARES)if(ends.has(a)&&ends.has(b))return fare;
+  return 64.5;
+}
 export function routeFares(route){
   let rail=0,bus=0,railKm=0;
   const flushRail=()=>{if(railKm>0){rail+=bandFare(railKm,RAIL_FARE_BANDS);railKm=0;}};
@@ -26,8 +34,9 @@ export function routeFares(route){
       if(leg.minutes>FARE_INTERCHANGE_WALK_MINUTES)flushRail();
       continue;
     }
+    if(leg.mode==='rail'&&String(leg.line).startsWith('MTR AEL')){flushRail();rail+=aelFare(leg.from,leg.to);continue;}
     const km=legDistanceKm(leg);
-    if(leg.mode==='rail')railKm+=km;
+    if(leg.mode==='rail'||leg.mode==='lightRail')railKm+=km;
     else{flushRail();bus+=bandFare(km,BUS_FARE_BANDS);}
   }
   flushRail();
@@ -165,7 +174,7 @@ export function describe(sol,origin,target,focus='time'){
         }
         current.minutes+=stepT;current.coords.push(coord);current.to=name;current.toNode=node;
       }else{
-        const mode=store.NET.lines[line].c===0?'rail':'bus',label=store.NET.lines[line].l,name=mode==='rail'?stopName(rawName):rawName;
+        const mode=rideMode(store.NET.lines[line].c),label=store.NET.lines[line].l,name=mode==='rail'||mode==='lightRail'?stopName(rawName):rawName;
         if(!current||current.mode!==mode||current.line!==label){
           close();
           current={mode,line:label,minutes:stepT,coords:[coord,coord],from:name,to:name,fromNode:node,toNode:node,stopCount:0};
@@ -191,8 +200,9 @@ export function buildCells(grids,tolerance,budget){
   for(const idx of store.surface){
     const times=grids.map(g=>g[idx]);
     if(times.some(v=>!isFinite(v)))continue;
-    const fastest=Math.min(...times),slowest=Math.max(...times);
-    if(slowest>budget||slowest>Math.max(fastest,5)*(1+tolerance))continue;
+    const fastest=Math.min(...times),slowest=Math.max(...times),station=store.NODES.kind[idx]===1;
+    const overBand=station?slowest-fastest>Math.max(fastest*tolerance,8):slowest>Math.max(fastest,5)*(1+tolerance);
+    if(slowest>budget||overBand)continue;
     const cy=Math.floor(store.NODES.lat[idx]/CELL_SIZE),cx=Math.floor(store.NODES.lon[idx]/CELL_SIZE),cellKey=`${cy},${cx}`;
     const score=slowest+(slowest-fastest),priority=nodePriority(store.NODES.kind[idx]);
     let cell=cells.get(cellKey);

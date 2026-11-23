@@ -135,5 +135,16 @@
   "legal.credits": "Credits",
   "legal.close": "Close",
   "legal.loading": "Loading",
-  "legal.failed": "Could not load this document."
+  "legal.failed": "Could not load this document.",
+  "options.budgetMin": "15 min",
+  "options.budgetMax": "180 min",
+  "credit.inspired": "Inspired by",
+  "credit.unused": "I have not used their service.",
+  "map.zoomIn": "Zoom in",
+  "map.zoomOut": "Zoom out",
+  "map.reportIssue": "Report a map issue",
+  "search.none": "No places match. Pick a transit stop or use a map pin.",
+  "mode.ferry": "Ferry",
+  "mode.lightRail": "Light rail",
+  "error.mapFailed": "The map failed to start. Search still works. {message}"
 }

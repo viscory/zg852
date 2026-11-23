@@ -21,7 +21,8 @@ WALK_DETOUR = 1.3
 WALK_RADIUS_M = 400
 WALK_NEIGHBOURS = 6
 MAX_WAIT_MIN = 20.0
-BOARD_PENALTY = {"rail": 1.0, "bus": 2.0}
+BOARD_PENALTY = {"rail": 1.0, "bus": 2.0, "ferry": 2.0, "lightRail": 1.0}
+CAT_CODE = {"rail": 0, "bus": 1, "ferry": 2, "lightRail": 3}
 
 BIG_INTERCHANGES = {"ADM": 2.0, "CEN": 1.5, "MOK": 1.0, "KOT": 1.0, "TSY": 0.5, "TAW": 0.5}
 
@@ -102,7 +103,8 @@ def main():
 
         route_cat = {}
         for row in read_table(zf, "routes.txt"):
-            route_cat[row["route_id"]] = "rail" if row["agency_id"] == "MTRR" else "bus"
+            agency = row["agency_id"]
+            route_cat[row["route_id"]] = "rail" if agency == "MTRR" else "ferry" if agency == "FERRY" else "lightRail" if agency == "LR" else "bus"
 
         trip_route = {}
         for row in read_table(zf, "trips.txt"):
@@ -160,6 +162,8 @@ def main():
             "stops": list(pattern),
             "edges": [round(statistics.median(vals), 2) for _, vals in sorted(edge_map.items())],
         }
+
+    adjust_edges(lines, nodes)
 
     station_platforms = defaultdict(list)
     station_exits = defaultdict(list)
@@ -237,6 +241,40 @@ def main():
           f"walk_edges={len(walk)} size={os.path.getsize(OUT)/1e6:.1f}MB")
 
 
+def station_name(node):
+    name = node["name"]
+    for sep in (" · Platform ", " · Exit "):
+        if sep in name:
+            return name.split(sep)[0]
+    return name
+
+
+def adjust_edges(lines, nodes):
+    """Correct feed clocks that are a flat 45 km/h, and layovers stored as rides."""
+    pair = defaultdict(list)
+    for line in lines.values():
+        stops, edges = line["stops"], line["edges"]
+        if len(edges) != len(stops) - 1:
+            continue
+        for i, dt in enumerate(edges):
+            dist = haversine(nodes[stops[i]], nodes[stops[i + 1]])
+            if line["cat"] == "rail" and dist > 3000:
+                synthetic = dist / 1000 / 45 * 60
+                if abs(dt - synthetic) < 0.4:
+                    dt = dist / 1000 / 80 * 60
+            if dist < 800 and dt >= 15:
+                dt = max(1, dist / 1000 / 12 * 60)
+            edges[i] = round(dt, 2)
+            if line["cat"] in ("rail", "lightRail"):
+                pair[tuple(sorted((station_name(nodes[stops[i]]), station_name(nodes[stops[i + 1]]))))].append((edges, i))
+    for items in pair.values():
+        times = [bucket[index] for bucket, index in items]
+        short, long = min(times), max(times)
+        if short > 0 and long > short * 2:
+            for bucket, index in items:
+                bucket[index] = round(short, 2)
+
+
 def line_label(line_id):
     route = line_id.split("#")[0]
     if route.startswith("MTR-"):
@@ -261,7 +299,7 @@ def export_client(nodes, lines, walk):
     for lid, line in lines.items():
         line_data.append({
             "l": line_label(lid),
-            "c": 0 if line["cat"] == "rail" else 1,
+            "c": CAT_CODE[line["cat"]],
             "w": line["wait"],
             "s": [index[n] for n in line["stops"]],
             "e": line["edges"],

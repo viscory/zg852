@@ -1,4 +1,11 @@
 const { test, expect } = require('@playwright/test');
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
+
+function deployedPolicy(response) {
+  return response.headers()['content-security-policy']
+    || readFileSync(join(__dirname, '..', 'public', '_headers'), 'utf8');
+}
 
 const PHOTON_FEATURES = [
   {
@@ -143,22 +150,26 @@ test('robots, llms, sitemap and build headers expose the llms.txt endpoint', asy
   expect(sitemap.ok()).toBeTruthy();
   expect(await sitemap.text()).toContain('/llms.txt');
 
-  const headers = await page.request.get('/_headers');
-  expect(headers.ok()).toBeTruthy();
-  expect(await headers.text()).toContain('/llms.txt');
+  const home = await page.request.get('/');
+  const policy = deployedPolicy(home);
+  expect(policy).toContain("script-src 'self'");
+  expect(policy).not.toContain('unsafe-inline');
+  const llmsHeaders = await page.request.get('/llms.txt');
+  const cache = llmsHeaders.headers()['cache-control'] || policy;
+  expect(cache).toContain('max-age=3600');
 });
 
 test('production bundle avoids importmaps and CSP exceptions', async ({ page }) => {
   const index = await page.evaluate(async () => (await (await fetch('index.html')).text()));
   const app = await page.evaluate(async () => (await (await fetch('app.js')).text()));
-  const headers = await page.evaluate(async () => (await (await fetch('_headers')).text()));
+  const policy = deployedPolicy(await page.request.get('/'));
   expect(index).not.toContain('importmap');
   expect(index).toMatch(/<script type="module"[^>]*src="\/app\.js">/);
   expect(app).toContain('tiles.openfreemap.org/planet');
   expect(app).not.toContain('style="');
   expect(app).not.toContain('.style.cssText');
-  expect(headers).toContain("script-src 'self'");
-  expect(headers).not.toContain('unsafe-inline');
+  expect(policy).toContain("script-src 'self'");
+  expect(policy).not.toContain('unsafe-inline');
 });
 
 test('clean basemap adds keyless place labels without raster tiles', async ({ page }) => {
@@ -841,6 +852,105 @@ test('a Photon outage falls back to local stops with an inline notice', async ({
   await expect(third.locator('.suggestion-error')).toBeVisible();
   await expect(third.locator('.suggestion')).toHaveCount(0);
   await expect(third.locator('.suggestion-error')).toContainText('Place search is unavailable');
+});
+
+async function pickStation(page, index, name) {
+  const card = page.locator('.card').nth(index);
+  await card.locator('.start-input').fill(name);
+  const row = card.locator('.suggestion').filter({ hasText: name }).first();
+  await expect(row).toBeVisible();
+  await row.click();
+}
+
+test('empty place search shows a no-match message', async ({ page }) => {
+  await page.route('**/photon.komoot.io/api/**', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ features: [] }),
+  }));
+  await page.locator('#start-p1').fill('zzzzqqqq');
+  await expect(page.locator('.card').first().locator('.suggestion-error')).toHaveText('No places match. Pick a transit stop or use a map pin.');
+});
+
+test('identical station starts say the person is already there', async ({ page }) => {
+  await pickStation(page, 0, 'Central');
+  await pickStation(page, 1, 'Central');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('#steps')).toContainText('Already there');
+});
+
+test('MTR-only Central to Kowloon Tong names a rail line', async ({ page }) => {
+  await pickStation(page, 0, 'Central');
+  await pickStation(page, 1, 'Kowloon Tong');
+  await page.locator('.chip[data-mode="bus"]').click();
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('#steps')).toContainText(/MTR (TWL|KTL)/);
+  await expect(page.locator('#error')).toBeHidden();
+});
+
+test('Airport Express fare is above the shared rail band', async ({ page }) => {
+  await pickStation(page, 0, 'Tsim Sha Tsui');
+  await pickStation(page, 1, 'Airport');
+  await page.locator('.chip[data-mode="bus"]').click();
+  await setRange(page, '#budget', '90');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  const fares = await page.locator('.fare.total').allInnerTexts();
+  const amounts = fares.map(text => Number(text.replace(/[^0-9.]/g, ''))).filter(value => Number.isFinite(value));
+  expect(Math.max(...amounts)).toBeGreaterThan(40);
+});
+
+test('MTR-only Nam Cheong and Tuen Mun still returns an area', async ({ page }) => {
+  await pickStation(page, 0, 'Nam Cheong');
+  await pickStation(page, 1, 'Tuen Mun');
+  await setRange(page, '#budget', '90');
+  await page.locator('.chip[data-mode="bus"]').click();
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('#error')).toBeHidden();
+});
+
+test('Urdu puts the people panel on the right', async ({ page }) => {
+  await page.locator('#locale').selectOption('ur');
+  await expect.poll(() => page.locator('html').getAttribute('dir')).toBe('rtl');
+  const boxes = await page.evaluate(() => ({
+    people: document.querySelector('.side-left').getBoundingClientRect().x,
+    options: document.querySelector('.side-right').getBoundingClientRect().x,
+  }));
+  expect(boxes.people).toBeGreaterThan(boxes.options);
+});
+
+test('shipped graph keeps plausible hop times', async ({ page }) => {
+  const report = await page.evaluate(async () => {
+    const net = await (await fetch('data/network.json')).json();
+    const nodes = await (await fetch('data/nodes.json')).json();
+    const hav = (i, j) => {
+      const r = Math.PI / 180;
+      const dlat = (nodes.lat[j] - nodes.lat[i]) * r;
+      const dlon = (nodes.lon[j] - nodes.lon[i]) * r;
+      const h = Math.sin(dlat / 2) ** 2 + Math.cos(nodes.lat[i] * r) * Math.cos(nodes.lat[j] * r) * Math.sin(dlon / 2) ** 2;
+      return 2 * 6371000 * Math.asin(Math.sqrt(h));
+    };
+    const base = name => String(name).split(' · ')[0];
+    let airportTsingYi = null;
+    let shortSlow = 0;
+    for (const line of net.lines) {
+      if (line.e.length !== line.s.length - 1) continue;
+      for (let i = 0; i < line.e.length; i++) {
+        const dist = hav(line.s[i], line.s[i + 1]);
+        if (dist < 800 && line.e[i] >= 15) shortSlow += 1;
+        if (line.l === 'MTR AEL') {
+          const ends = new Set([base(nodes.names[line.s[i]]), base(nodes.names[line.s[i + 1]])]);
+          if (ends.has('Airport') && ends.has('Tsing Yi')) airportTsingYi = line.e[i];
+        }
+      }
+    }
+    return { airportTsingYi, shortSlow };
+  });
+  expect(report.airportTsingYi).toBeLessThan(16);
+  expect(report.shortSlow).toBe(0);
 });
 
 test('changing the budget recomputes without pressing search', async ({ page }) => {

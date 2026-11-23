@@ -24,7 +24,7 @@ The app makes these third-party requests from your browser:
 
 - `photon.komoot.io` for place search. The text you type is sent as a search query.
 - `tiles.openfreemap.org` for vector map tiles.
-- Font glyph or sprite files are not requested. Icons are bundled locally.
+- Font glyph files from `tiles.openfreemap.org` for map labels. Icons are bundled locally.
 
 These providers may see your IP address and standard request metadata and may keep logs under their own policies. 就腳 does not receive those logs.
 

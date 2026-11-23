@@ -1,3 +1,86 @@
+## 2026-11-23T02:57:00Z
+
+- The live Playwright job finished with 50 failed and 0 passed. The live journey probe finished with exit 0. Both results are already in the 02:54 UTC section of `AUDIT-REPORT.md`.
+
+## 2026-11-23T02:56:00Z
+
+- Ran the live audit skill against `https://zg852.pages.dev/`. Appended the section to `AUDIT-REPORT.md`.
+- The local graph script printed `ISSUE_COUNT 0`. The live graph is the old one. Airport to Tsing Yi is 24.47 minutes, and 40 short hops take 15 minutes or more. The live worker is `zg852-v21`.
+- `TEST_BASE_URL=https://zg852.pages.dev npm test` failed 50 tests. Each one waited for `html[data-net=ready]`, and the live tag has no `data-net`.
+- Browser checks: Nam Cheong and Tuen Mun with MTR only returned no areas twice. Two Central starts said there are no route legs, twice. `zzzzqqqq` hid the list. Urdu left the people panel at x=0.
+
+## 2026-11-23T02:52:00Z
+
+- The graph check matched the earlier measurements. Airport to Tsing Yi is 13.63 minutes, short slow hops are 0, and the Airport Express fare pair is HK$64.5. It edited nothing.
+
+## 2026-11-23T02:50:00Z
+
+- The source check of the non-graph fixes agreed with the test run. It edited nothing. Live remains `zg852-v21`.
+
+## 2026-11-23T02:46:00Z
+
+- Re-checked the audit fixes. `npm test` passed 50 tests. The shipped graph has Airport to Tsing Yi at 13.63 minutes, zero hops under 800 m that take 15 minutes, and both Yau Ma Tei to Jordan directions at 1.3 minutes.
+- Live `https://zg852.pages.dev/sw.js` is still `zg852-v21`. The fixes are in the tree and are not on the public site.
+
+## 2026-11-23T02:44:00Z
+
+- The catalog pass left all 15 files with 148 keys. No non-English file still uses the English attribution sentence. No further edit.
+
+## 2026-11-23T02:43:00Z
+
+- The live route matrix on the old deployment agreed that MTR-only returns areas for the default pair and for Central to Sha Tin. That run did not change the tree.
+- The MTR fare page download returned an empty file, so the Airport Express table already in `src/js/config.js` was left as it is. The fare test still checks that a Tsim Sha Tsui to Airport result is above HK$40.
+
+## 2026-11-23T02:42:00Z
+
+- Added a Playwright check that an MTR-only Tsim Sha Tsui to Airport search shows a fare above HK$40. The test passed. The full suite before that was 49 passed.
+
+## 2026-11-23T02:40:00Z
+
+- Implemented the audit fixes in the tree. No deploy and no commit.
+- The graph builder retimes long 45 km/h rail hops at 80 km/h, caps hops under 800 m that take 15 minutes or more, and labels ferry and light rail separately. Airport to Tsing Yi is 13.63 minutes. The 51 minute bus hop is gone.
+- MTR-only Nam Cheong and Tuen Mun now returns an area because a station may have an 8 minute gap. Identical Central starts say "Already there". An empty Photon result shows a no-match line.
+- The service worker is `zg852-v24`. It keeps the shell and uses the network first for data. A missing WebGL map no longer stops the rest of startup. `--subtle` contrast is 7.06:1. Controls are 44px. Urdu puts the people panel on the right.
+- `npm test` passed 49 tests.
+
+## 2026-11-23T02:36:00Z
+
+- Added the repo skill `.cursor/skills/audit-live-zg852/`. It audits https://zg852.pages.dev/ the same way as the live QA pass: evidence twice, live origin only, and a graph script for Airport Express speed, short bus hops, and station positions.
+- `python .cursor/skills/audit-live-zg852/scripts/graph_sanity.py` exits 0. On the current tree it printed `ISSUE_COUNT 0` and line codes 0, 1, 2, and 3.
+
+## 2026-11-23T02:42:00Z
+
+- Translated the catalog strings for attribution, empty routes, budget ends, credits, zoom, map reports, empty search, ferry, light rail, and map start failure.
+- All 15 catalogs have 148 keys. The key set matches `en.json`. No non-English file keeps the English attribution sentence.
+- French and Spanish budget ends stay `15 min` and `180 min` because those catalogs already use `min`.
+
+## 2026-11-23T02:28:00Z
+
+- The MTR cell trace finished. Fair areas are stations, exits, and bus stops. MTR lines stop on platforms, which are not candidates. For Nam Cheong and Tuen Mun at 90 minutes and 10% tolerance, rail reaches 85 stations and the closest pair still fails the band, so MTR-only is empty. Both modes still finds bus-stop cells.
+- Added that keep-test change to the fix plan. Kind 1 stations may have a gap of up to 8 minutes. Exits and bus stops stay on the old rule.
+
+## 2026-11-23T02:26:00Z
+
+- The live MTR matrix command finished with exit 0. It wrote 14 result rows. Those rows are already in the data-correctness section of `AUDIT-REPORT.md`.
+
+## 2026-11-23T02:25:00Z
+
+- Checked whether live trip results are true, and appended that pass to `AUDIT-REPORT.md`.
+- MTR-only is not empty. Twice each, Tsuen Wan plus North Point, Central plus Sha Tin, and Central plus Kowloon Tong returned five areas whose steps are MTR.
+- Station coordinates for 22 known stations are within 400 m. Island, Tsuen Wan, Kwun Tong, and East Rail station order matches the real lines.
+- The Airport Express error is in the GTFS feed. Trip `MTR-AEL-DT` clocks AsiaWorld-Expo at 00:00:00 and Hong Kong at 00:40:27. The shipped Airport to Tsing Yi edge is 24.47 min. 156 of 256 rail edges match 45 km/h.
+- Forty bus edges are under 800 m and at least 15 min. The worst is route 88R, 51.1 min for 270 m. Ferry route 7006 is stored as a bus.
+- The existing MTR-only end-to-end test only checks that heat cells appear. It does not check a time or a line.
+
+## 2026-11-23T02:18:00Z
+
+- Audited the live site `https://zg852.pages.dev/` only. Wrote the report to `AUDIT-REPORT.md`. No source fix, commit, or deploy.
+- Production at 02:13 UTC was still service worker `zg852-v21` with the header status line. The later `zg852-v23` notes in this file were not on the origin yet.
+- `TEST_BASE_URL=https://zg852.pages.dev npm test`: 41 passed, 2 failed. Both failures fetch `/_headers`, which returns the home page with status 200.
+- Highest live defects: unknown URLs return the home page at 200; no WebGL2 aborts startup on "loading" with zero person cards; an offline reload fails because `/` is not handled by the worker; Airport Express Airport to Tsing Yi is shown as 30.5 min and HK$13.2.
+- Also confirmed: empty Photon success is silent; English attribution, credit line, "15 min"/"180 min", and "Zoom in" remain in all 15 locales; Urdu sidebars stay in the left-to-right places; `--subtle` contrast is 3.54:1; several targets are under 44px; `PRIVACY.md` denies the font glyph request that cold loads make to `tiles.openfreemap.org`.
+- Cold Fast 3G plus 4× CPU, cache off, twice: map ready at 11.1 s and 11.2 s, about 1.29 MB on the wire. `network.json` is 589 KB and takes 6.6 s. Lighthouse 12.8.2 scores: performance 86, accessibility 96, best practices 96, SEO 100. That Lighthouse run hit the WebGL2 failure and did not load the graph.
+
 ## 2026-11-23T02:10:00Z
 
 - Removed the header line "Browser-side routing. Timetable: network ready Saved on this device."

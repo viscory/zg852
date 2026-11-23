@@ -37,6 +37,11 @@ export function applyStaticText(){
   document.querySelectorAll('[data-i18n-aria-label]').forEach(el=>{el.setAttribute('aria-label',t(el.dataset.i18nAriaLabel));});
   document.querySelectorAll('[data-i18n-title]').forEach(el=>{el.title=t(el.dataset.i18nTitle);});
   document.querySelectorAll('[data-i18n-tooltip]').forEach(el=>{const value=t(el.dataset.i18nTooltip);el.dataset.tooltip=value;el.title=value;});
+  const zoomIn=document.querySelector('.leaflet-control-zoom-in');
+  const zoomOut=document.querySelector('.leaflet-control-zoom-out');
+  if(zoomIn)zoomIn.setAttribute('aria-label',t('map.zoomIn'));
+  if(zoomOut)zoomOut.setAttribute('aria-label',t('map.zoomOut'));
+  const issue=$('mapIssue');if(issue)issue.textContent=t('map.reportIssue');
   setDocumentLocale();
 }
 export function detectLocale(){

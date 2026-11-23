@@ -10,7 +10,8 @@ import { createMap,drawOrigins } from './js/map.js';
 import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,commitPeople,setSidebarFace } from './js/ui.js';
 
 async function init(){
-  createMap();
+  let mapError=null;
+  try{createMap();}catch(err){console.error(err);mapError=err;}
   await Promise.all([loadNodes(),loadDistricts(),ensureCatalog('en')]);
   store.EN=store.I18N.en;
   const hashLocale=readHashState()?.locale;
@@ -22,10 +23,11 @@ async function init(){
   if(betaVectorsEnabled())await loadPoi();
   restoreDirectory();
   applyStaticText();
+  if(mapError)showError(t('error.mapFailed',{message:mapError.message||String(mapError)}));
   renderCards();
   renderEmpty();
   renderDirectoryList();
-  drawOrigins();
+  try{drawOrigins();}catch(err){console.error(err);}
   loadNetwork().catch(err=>{console.error(err);showError(t('error.timetableFailed',{message:err.message}));});
 }
 
