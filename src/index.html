@@ -36,7 +36,10 @@
       <button class="icon-button" id="library" type="button" data-i18n-tooltip="people.library" data-i18n-aria-label="people.library" aria-label="Saved people" title="Saved people" data-tooltip="Saved people">
         <span class="icon icon-library" aria-hidden="true"></span>
       </button>
-      <label class="locale" for="locale" data-i18n-tooltip="locale.label" title="Language" data-tooltip="Language">
+      <button class="icon-button" id="share" type="button" data-i18n-tooltip="share.title" data-i18n-aria-label="share.title" aria-label="Share scenario" title="Share scenario" data-tooltip="Share scenario">
+        <span class="icon icon-share" aria-hidden="true"></span>
+      </button>
+      <label class="locale icon-button" for="locale" data-i18n-tooltip="locale.label" title="Language" data-tooltip="Language">
         <span class="sr-only" data-i18n="locale.label">Language</span>
         <span class="icon icon-globe" aria-hidden="true"></span>
         <select id="locale" data-i18n-aria-label="locale.label" aria-label="Language">
@@ -147,11 +150,6 @@
     <button class="go" id="go" type="button" data-i18n-tooltip="options.search" data-i18n-aria-label="options.search" aria-label="Find fair areas" title="Find fair areas" data-tooltip="Find fair areas">
       <span class="icon icon-search" aria-hidden="true"></span><span class="sr-only" id="goLabel" data-i18n="options.search">Find fair areas</span>
     </button>
-    <div class="utility-actions">
-      <button class="icon-button" id="share" type="button" data-i18n-tooltip="share.title" data-i18n-aria-label="share.title" aria-label="Share scenario" title="Share scenario" data-tooltip="Share scenario">
-        <span class="icon icon-share" aria-hidden="true"></span>
-      </button>
-    </div>
     <div class="error" id="error" role="alert" hidden></div>
     <section class="beta-section">
       <div class="section-title beta-title" data-i18n="beta.title">Beta features</div>

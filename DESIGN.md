@@ -2,6 +2,14 @@
 
 This file records visual critiques of 就腳. The newest critique is first. Change `src/styles.css` so the page matches the newest sizes. Keep one size scale on `:root`.
 
+## 2026-11-23 Header icons
+
+The language control shows the language name and is wider than the saved-people button. Share sits under the search button.
+
+The header has three buttons of one size. They are saved people, share, and language. Each button is `--field` on both sides. Each icon is 12px. The language button shows the globe only. The language name stays in the open menu. Share is not in a sidebar.
+
+The left sidebar does not scroll sideways. Tooltips on the right edge of a panel open toward the inside, so they do not widen the panel. A text field uses `min-width: 0` so the field can shrink inside the panel.
+
 ## 2026-11-23 Compact chrome
 
 The icons and boxes are too large. A 44px field and a 44px icon button fill the side panels.
