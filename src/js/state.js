@@ -1,18 +1,18 @@
-import { LOCALES,KEY,LETTERS,HK_BBOX,DEFAULT_FAIRNESS_METRIC } from './config.js';
+import { LOCALES,KEY,LETTERS,HK_BBOX } from './config.js';
 import { store } from './store.js';
 import { isNum,clamp,clone,decodeBase64Url,encodeBase64Url,$ } from './util.js';
 import { t } from './i18n.js';
 import { migrateVectors } from './vectors.js';
 import { loadGeoCache } from './search.js';
 import { findExact,districtFor } from './data.js';
-import { updateSaveSummary,applySettingsToDom,flashTooltip } from './ui.js';
+import { applySettingsToDom,flashTooltip } from './ui.js';
 
 export function defaultName(i){return t('people.defaultName',{letter:LETTERS[i%8]});}
-export const normFairnessMetric=value=>value==='fare'?'fare':DEFAULT_FAIRNESS_METRIC;
+export const normIncludeHeadway=value=>value===false?false:true;
 export function nextSeq(people){return Math.max(1,...people.map(p=>Number(String(p.id).replace(/\D/g,''))||0))+1;}
 function buildSettings(stored,modes){
   stored=stored&&typeof stored==='object'?stored:{};
-  return{modes:Array.isArray(modes)&&modes.length?modes:['rail','bus'],tolerance:clamp(Number(stored.tolerance),0.05,0.5,0.1),fairnessMetric:normFairnessMetric(stored.fairnessMetric),vectors:migrateVectors(stored.vectors),beta:{vectors:!!stored.beta?.vectors}};
+  return{modes:Array.isArray(modes)&&modes.length?modes:['rail','bus'],tolerance:clamp(Number(stored.tolerance),0.05,0.5,0.1),includeHeadway:normIncludeHeadway(stored.includeHeadway),vectors:migrateVectors(stored.vectors),beta:{vectors:!!stored.beta?.vectors}};
 }
 export function displayName(person,i){return (person?.name||'').trim()||defaultName(i);}
 export function profileLabel(profile){return profile.origin?.label||t('people.hintEmpty');}
@@ -33,10 +33,9 @@ export function defaultPeople(){
 }
 export function save(){
   localStorage.setItem(KEY.people,JSON.stringify(store.people.map(p=>({id:p.id,name:p.name,origin:p.origin,directoryId:p.directoryId||null,walkMinutes:clamp(Number(p.walkMinutes),0,60,20)}))));
-  store.settings.fairnessMetric=normFairnessMetric(store.settings.fairnessMetric);
+  store.settings.includeHeadway=normIncludeHeadway(store.settings.includeHeadway);
   localStorage.setItem(KEY.settings,JSON.stringify(store.settings));
   localStorage.setItem(KEY.locale,store.locale);
-  updateSaveSummary();
 }
 export function saveDirectory(){localStorage.setItem(KEY.directory,JSON.stringify(store.directory));}
 export function profileFromPerson(person){
@@ -86,7 +85,7 @@ export async function shareScenario(){
     ?{kind:'cell',key:store.selection.key,node:store.selection.node,lat:store.selection.lat,lon:store.selection.lon}
     :{kind:'result',index:store.selected>=0?store.selected:0};
   const settings=clone(store.settings);
-  settings.fairnessMetric=normFairnessMetric(settings.fairnessMetric);
+  settings.includeHeadway=normIncludeHeadway(settings.includeHeadway);
   const state={v:1,people:store.people.map(p=>({id:p.id,name:p.name,origin:p.origin,walkMinutes:clamp(Number(p.walkMinutes),0,60,20)})),settings,locale:store.locale,selected:selectedState};
   const url=`${location.origin}${location.pathname}${location.search}#s=${encodeBase64Url(state)}`;
   const button=$('share'),status=$('shareStatus');
@@ -115,7 +114,7 @@ export function applySharedState(){
   if(sharedPeople.length<2)return false;
   store.people=sharedPeople;
   const modes=Array.isArray(state.settings?.modes)?state.settings.modes.filter(m=>m==='rail'||m==='bus'):null;
-  store.settings=buildSettings({...state.settings,fairnessMetric:normFairnessMetric(state.settings?.fairnessMetric)},modes);
+  store.settings=buildSettings({...state.settings,includeHeadway:normIncludeHeadway(state.settings?.includeHeadway)},modes);
   if(LOCALES.includes(state.locale))store.locale=state.locale;
   store.sharedSelection=state.selected&&typeof state.selected==='object'?state.selected:null;
   store.seq=nextSeq(store.people);

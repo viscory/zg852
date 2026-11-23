@@ -5,7 +5,7 @@ import { t,tp,num,intNum,minuteText } from './i18n.js';
 import { normalizeVectors,vectorLabel,betaVectorsEnabled } from './vectors.js';
 import { searchPlaces,districtFor } from './data.js';
 import { dedupePlaces,photonSearch } from './search.js';
-import { fareMarkup,money } from './routing.js';
+import { fareMarkup } from './routing.js';
 import { displayName,save,saveDirectory,profileFromPerson,profileLabel,profileDistrict } from './state.js';
 import { scheduleRecompute } from './engine.js';
 import { hideTooltip,clearMapOutput,selectResult } from './map.js';
@@ -39,14 +39,9 @@ export function flashTooltip(element,message){
   clearTimeout(element.tooltipTimer);
   element.tooltipTimer=setTimeout(()=>setLabel(element,original),1600);
 }
-export function updateSaveSummary(){
-  const el=$('saveSummary');if(!el)return;
-  el.textContent=t('people.summary',{count:store.people.length,names:store.people.map((p,i)=>displayName(p,i)).join(', ')});
-}
 export function updateSettingsLabels(){
   $('tolval').textContent=`${Math.round(store.settings.tolerance*100)}%`;
-  const fairness=store.settings.fairnessMetric==='fare'?'fare':'time';
-  document.querySelectorAll('.fairness-option').forEach(option=>option.setAttribute('aria-pressed',String(option.dataset.fairness===fairness)));
+  $('includeHeadway').checked=store.settings.includeHeadway!==false;
   store.settings.vectors=normalizeVectors(store.settings.vectors);
   VECTOR_KEYS.forEach(key=>{const label=$(`vec-${key}-val`);if(label)label.textContent=vectorLabel(store.settings.vectors[key]);});
 }
@@ -59,14 +54,8 @@ export function applyBetaFeatures(){
 }
 export function applySettingsToDom(){
   document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',String(store.settings.modes.includes(c.dataset.mode))));
-  document.querySelectorAll('.fairness-option').forEach(option=>{
-    option.setAttribute('aria-pressed',String(option.dataset.fairness===(store.settings.fairnessMetric==='fare'?'fare':'time')));
-    option.onclick=()=>{
-      option.parentElement.querySelectorAll('.fairness-option').forEach(button=>button.setAttribute('aria-pressed',String(button===option)));
-      clearError();
-      readSettingsFromDom();
-    };
-  });
+  const headway=$('includeHeadway');
+  if(headway)headway.onchange=()=>{clearError();readSettingsFromDom();};
   $('tolerance').value=store.settings.tolerance;
   store.settings.vectors=normalizeVectors(store.settings.vectors);
   document.querySelectorAll('[data-vector]').forEach(input=>{input.value=store.settings.vectors[input.dataset.vector];});
@@ -75,8 +64,7 @@ export function applySettingsToDom(){
 }
 export function readSettingsFromDom(){
   store.settings.modes=[...document.querySelectorAll('.chip[aria-pressed="true"]')].map(c=>c.dataset.mode);
-  const fairness=document.querySelector('.fairness-option[aria-pressed="true"]')?.dataset.fairness;
-  store.settings.fairnessMetric=fairness==='fare'?'fare':'time';
+  store.settings.includeHeadway=$('includeHeadway')?.checked!==false;
   store.settings.tolerance=clamp(Number($('tolerance').value),0.05,0.5,0.1);
   const vectors=normalizeVectors(store.settings.vectors);
   document.querySelectorAll('[data-vector]').forEach(input=>{vectors[input.dataset.vector]=Number(input.value);});
@@ -100,10 +88,9 @@ export function renderResults(active=store.activePeople){
   state.hidden=true;
   if(emptyRun)emptyRun.hidden=true;
   count.textContent=t('results.areas',{count:store.results.length});
-  const fareMetric=store.settings.fairnessMetric==='fare';
   list.innerHTML=store.results.map((r,i)=>`<button class="result-row" type="button" data-index="${i}" aria-label="${esc(`${t('results.selectTitle')}: ${r.label}`)}">
     <span class="result-head"><b>${esc(r.label)}</b><span class="tag">${esc(t('cat.'+r.catKey))}</span><span class="district">${esc(r.district)}</span></span>
-    <span class="result-times"><span>${esc(fareMetric?t('results.fareSpread',{value:money(r.gap)}):t('results.spread',{value:intNum(r.gap)}))}</span><span>${esc(fareMetric?t('results.fareLongest',{value:money(r.slowest)}):t('results.longest',{value:intNum(r.slowest)}))}</span></span>
+    <span class="result-times"><span>${esc(t('results.spread',{value:intNum(r.gap)}))}</span><span>${esc(t('results.longest',{value:intNum(r.slowest)}))}</span></span>
     <span class="result-people">${r.routes.map((route,j)=>`<span class="result-person"><span class="avatar ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span><span class="person-name">${esc(displayName(active[j],j))}</span>${fareMarkup(route)}</span>`).join('')}</span>
   </button>`).join('');
   list.querySelectorAll('.result-row').forEach(row=>{row.onclick=()=>selectResult(Number(row.dataset.index),active,true);});
@@ -257,7 +244,6 @@ export function refreshMeta(){
     setLabel(card.querySelector('.pin'),t('people.pin'));
     setLabel(card.querySelector('.save-person'),t('people.save'));
   });
-  updateSaveSummary();
 }
 export function commitPeople(){renderCards();save();scheduleRecompute();}
 export function clearPinMode(){

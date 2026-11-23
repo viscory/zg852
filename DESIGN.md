@@ -2,6 +2,22 @@
 
 This file records visual critiques of 就腳. The newest critique is first. Change `src/styles.css` so the page matches the newest sizes. Keep one size scale on `:root`.
 
+## 2026-11-23 Parameters, time-only ranking and headway control
+
+The right sidebar's options panel is now the **Parameters** panel, and the sidebar itself is labelled "Parameters and results". The global Time/Fare fairness metric is gone: there is no fairness toggle, no `fairnessMetric` in settings or share links, no fare-based spread or longest value, and no fare-based ranking. Areas are ranked by travel time only; the spread and longest values stay whole minutes. Fares are still estimated and shown for comparison in results and route steps, but they never affect which area appears first.
+
+Parameters gain one global checkbox, `Include average headway` (`#includeHeadway`, i18n keys `options.includeHeadway` and `options.headwayHelp`). It defaults to on and is saved in `hkfair.v2.settings` and share links as `settings.includeHeadway`. When it is off, the average headway is neither charged at interchanges nor shown anywhere; when it is on, the existing interchange-only rule applies: every boarding pays the fixed line penalty, and half the day-average headway is added only when a ride follows another transit leg. The `Interchange wait N min` note appears only for those charged transfers.
+
+Journey chips show one `route.stops` span per ride leg: the boarded and alighted stops joined by a Unicode arrow, `Start → End`. Full MTR line names remain (Tuen Ma Line, Tsuen Wan Line), and the old "Get on: X" / "Get off: Y" wording and three-letter codes are gone.
+
+Pressing Find fair areas — either `#go` in the parameters panel or the empty-state button `#emptyRun` — reveals the leftbar's detail face as soon as a search succeeds, without clicking a result. Automatic recomputes still leave the current face untouched, and `#swapFace` still flips between the people list and route detail explicitly.
+
+The saved-people summary line is removed: `#saveSummary` and the `people.summary` key no longer exist. The saved-people library button in the header stays.
+
+The sticky parameters panel in the right sidebar no longer leaves a scroll gap above the results: the results scroll directly beneath the solid sticky panel.
+
+Unchanged from earlier critiques: per-person walk tolerance, whole-minute times everywhere, full MTR line names, the sticky rightbar two-column layout with the people/detail swap, and the interchange-note format and timing whenever the headway parameter is on. This section supersedes the older time-versus-fare fairness and save-summary notes below.
+
 ## 2026-11-23 Interchange-only headway waits
 
 The wait model now has two parts. Each line in `network.json` carries `w`, a fixed boarding penalty (one minute on rail, two minutes on bus), and `h`, the duration-weighted average headway across the operating day, halved and capped at a sensible maximum. The solver charges `w` at every boarding, including the first. It charges `h` only when a ride is boarded after another transit leg — an interchange. The first transit boarding pays no headway wait because the traveller can time themselves rather than arrive at a random point in the headway. A leg therefore shows both its fixed boarding penalty and, after an interchange, its `interchangeWait` in minutes.

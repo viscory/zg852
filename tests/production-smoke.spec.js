@@ -78,25 +78,34 @@ test('production header copy is exact and no raw i18n keys leak into the UI', as
   await expect(page.locator('[data-legal="process"]')).toHaveText('Process');
   await expect(page.locator('#budget')).toHaveCount(0);
   await expect(page.locator('#shareStatus')).toBeAttached();
-  await expect(page.locator('.fairness-option[data-fairness="time"]').first()).toHaveText('Time');
-  await expect(page.locator('.fairness-option[data-fairness="fare"]').first()).toHaveText('Fare');
+  await expect(page.locator('aside.side-right')).toHaveAttribute('aria-label', 'Parameters and results');
+  await expect(page.locator('.options-title').first()).toHaveText('Parameters');
+  await expect(page.locator('label[for="includeHeadway"]')).toHaveText('Include average headway');
   expect(await page.locator('body').innerText()).not.toMatch(RAW_KEY);
 });
 
-test('production fairness controls and fare output are visible', async ({ page }) => {
+test('production headway parameter and fare output are visible', async ({ page }) => {
   await setup(page);
   await expect(page.locator('.card')).toHaveCount(2);
-  await expect(page.locator('.fairness-label').first()).toBeVisible();
-  await expect(page.locator('.fairness-option[data-fairness="time"]').first()).toBeVisible();
-  await expect(page.locator('.fairness-option[data-fairness="fare"]').first()).toBeVisible();
+  await expect(page.locator('#includeHeadway')).toBeVisible();
+  await expect(page.locator('#includeHeadway')).toBeChecked();
+  await expect(page.locator('label[for="includeHeadway"]')).toHaveText('Include average headway');
+  await expect(page.locator('#saveSummary')).toHaveCount(0);
+  // The face swap still works; searching now reveals the detail face itself.
+  await page.locator('#swapFace').click();
+  await expect(page.locator('.side-left .face[data-face="detail"]')).toBeVisible();
+  await page.locator('#swapFace').click();
+  await expect(page.locator('.side-left .face[data-face="people"]')).toBeVisible();
 
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   await expect(page.locator('.result-row').first().locator('.fare.total').first()).toBeVisible();
   await expect(page.locator('.result-row').first().locator('.fare.total').first()).toContainText('Fare HK$');
-  await page.locator('#swapFace').click();
+  await expect(page.locator('.side-left .face[data-face="detail"]')).toBeVisible();
   await expect(page.locator('.fare-note')).toBeVisible();
   await expect(page.locator('.fare-note')).toContainText('Total adult Octopus fare estimate');
+  await expect(page.locator('#steps')).not.toContainText('Get on:');
+  await expect(page.locator('#steps')).not.toContainText('Get off:');
 });
 
 test('stale cached catalogs cannot resurrect raw i18n keys', async ({ page }) => {
@@ -111,7 +120,8 @@ test('stale cached catalogs cannot resurrect raw i18n keys', async ({ page }) =>
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('h1')).toHaveText('就腳 zau6 goek3');
-  await expect(page.locator('.fairness-option[data-fairness="time"]').first()).toHaveText('Time');
+  await expect(page.locator('.options-title').first()).toHaveText('Parameters');
+  await expect(page.locator('label[for="includeHeadway"]')).toHaveText('Include average headway');
   await expect(page.locator('[data-legal="privacy"]')).toHaveText('Privacy');
   expect(await page.locator('body').innerText()).not.toMatch(RAW_KEY);
 });

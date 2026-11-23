@@ -194,10 +194,13 @@ test('defaults load and a two-person search draws fair map areas', async ({ page
   await expect(page.locator('#resultsList')).toBeEmpty();
   await expect(page.locator('#resultState')).toBeVisible();
   await expect(page.locator('#nres')).toBeEmpty();
+  await expect(page.locator('#saveSummary')).toHaveCount(0);
 
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  // Searching reveals the detail face directly; no result click is needed.
+  await expect(page.locator('.side-left .face[data-face="detail"]')).toBeVisible();
   await expect(page.locator('.result-row.selected')).toHaveCount(1);
   await expect(page.locator('.result-row').first().locator('.fare.total').first()).toContainText('Fare HK$');
   await expect(page.locator('.result-row').first()).not.toContainText('MTR HK$');
@@ -216,8 +219,11 @@ test('defaults load and a two-person search draws fair map areas', async ({ page
   await expect(page.locator('.step').first()).not.toContainText('Bus HK$');
   await expect(page.locator('.ride-leg .leg-mode').first()).not.toBeEmpty();
   await expect(page.locator('.ride-leg .leg-mode').first()).not.toContainText(/MTR\s+[A-Z]{3}\b/);
-  await expect(page.locator('.ride-leg .leg-board').first()).toContainText('Get on:');
-  await expect(page.locator('.ride-leg .leg-alight').first()).toContainText('Get off:');
+  const legStops = await page.locator('.ride-leg .leg-stops').allInnerTexts();
+  expect(legStops.length).toBeGreaterThan(0);
+  for (const text of legStops) expect(text).toMatch(/\s→\s/);
+  await expect(page.locator('#steps')).not.toContainText('Get on:');
+  await expect(page.locator('#steps')).not.toContainText('Get off:');
   await expect(page.locator('.ride-leg .leg-meta').first()).toContainText('min');
   await expect(page.locator('.ride-leg .leg-meta').first()).toContainText('Fare HK$');
   const minuteTexts = await page.locator('.result-times span, .leg-time').allInnerTexts();
@@ -242,7 +248,18 @@ test('defaults load and a two-person search draws fair map areas', async ({ page
   expect(errors).toEqual([]);
 });
 
+test('empty-state search also reveals the route detail face', async ({ page }) => {
+  await expect(page.locator('#emptyRun')).toBeVisible();
+  await expect(page.locator('.side-left .face[data-face="detail"]')).toBeHidden();
+  await page.locator('#emptyRun').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('.side-left .face[data-face="detail"]')).toBeVisible();
+  await expect(page.locator('#detail')).toBeVisible();
+});
+
 test('interchange waits are charged only after the first transit leg', async ({ page }) => {
+  // The wait note is a headway feature, so this scenario needs the default on.
+  await expect(page.locator('#includeHeadway')).toBeChecked();
   // One `.step` is one person's route; ride legs inside it are in travel order.
   // Return the interchange notes attached to each ride leg of each route.
   const routeWaits = () => page.locator('#steps .step').evaluateAll(steps => steps.map(step => {
@@ -493,8 +510,10 @@ test('scenario removal works down to one and card controls are icon-only', async
   await expect(page.locator('#error')).toHaveText('Add at least two people with a start place.');
 });
 
-test('people and routes share the leftbar, options and results stay right, and the map fills the middle', async ({ page }) => {
+test('people and routes share the leftbar, parameters and results stay right, and the map fills the middle', async ({ page }) => {
   await expect(page.locator('.layout > .side')).toHaveCount(2);
+  await expect(page.locator('aside.side-right')).toHaveAttribute('aria-label', 'Parameters and results');
+  await expect(page.locator('.options-title').first()).toHaveText('Parameters');
   await expect(page.locator('.side-left .card')).toHaveCount(2);
   await expect(page.locator('.side-left #add')).toBeVisible();
   await expect(page.locator('.side-left #detail')).toBeAttached();
@@ -647,10 +666,10 @@ test('locale switching translates static text and enables RTL layout', async ({ 
   await expect.poll(() => page.locator('#detailDistrict').textContent()).not.toBe(englishDistrict);
   await expect(page.locator('#detailSub')).toContainText('差距');
   await expect(page.locator('#detailSub')).toContainText('最長');
-
-  await page.locator('#swapFace').click();
+  // The search itself revealed the detail face; swap back to people for #add.
   await expect(page.locator('.side-left .face[data-face="detail"]')).toBeVisible();
   await page.locator('#swapFace').click();
+  await expect(page.locator('.side-left .face[data-face="people"]')).toBeVisible();
   await page.locator('#add').click();
   await page.locator('#locale').selectOption('ur');
   await expect.poll(() => page.locator('html').getAttribute('dir')).toBe('rtl');
@@ -663,7 +682,8 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
-  for (const key of ['app.subtitle', 'options.fairnessLabel', 'options.fairnessTime', 'options.fairnessFare', 'options.fairnessHelp', 'options.tolerance', 'route.rideLeg', 'route.getOn', 'route.getOff', 'route.interchangeWait', 'route.stopCount_other', 'results.fareTotal', 'results.fareSpread', 'results.fareLongest', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
+  expect(expected).toHaveLength(145);
+  for (const key of ['app.subtitle', 'options.includeHeadway', 'options.headwayHelp', 'options.tolerance', 'route.rideLeg', 'route.stops', 'route.interchangeWait', 'route.stopCount_other', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
   for (const key of ['app.meaning', 'people.focusLabel', 'people.focusTime', 'people.focusCost']) {
@@ -901,36 +921,97 @@ test('heat cells reveal delayed interest tooltips and open a breakdown', async (
   await expect(page.locator('#detailTitle')).not.toBeEmpty();
 });
 
-test('trip fairness metric persists through storage, reload and routes', async ({ page }) => {
-  const time = page.locator('.fairness-option[data-fairness="time"]');
-  const fare = page.locator('.fairness-option[data-fairness="fare"]');
-  await expect(time).toHaveAttribute('aria-pressed', 'true');
-  await expect(fare).toHaveAttribute('aria-pressed', 'false');
-  await fare.click();
-  await expect(fare).toHaveAttribute('aria-pressed', 'true');
-  await expect(time).toHaveAttribute('aria-pressed', 'false');
+// Leaves the page on a result whose route really has an interchange, so tests
+// about the wait note cannot pass on a single-leg route by accident.
+async function selectAnInterchange(page) {
+  const pairs = [
+    null,
+    ['Tsim Sha Tsui', 'Airport'],
+    ['Lo Wu', 'Airport'],
+    ['Lo Wu', 'Tsim Sha Tsui'],
+  ];
+  for (const pair of pairs) {
+    if (pair) {
+      if (!await page.locator('.face[data-face="people"]').isVisible()) {
+        await page.locator('#swapFace').click();
+      }
+      await expect(page.locator('.face[data-face="people"]')).toBeVisible();
+      await pickStation(page, 0, pair[0]);
+      await pickStation(page, 1, pair[1]);
+    }
+    await page.locator('#go').click();
+    try {
+      await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+    } catch {
+      continue;
+    }
+    const rows = page.locator('.result-row');
+    const rowCount = Math.min(await rows.count(), 24);
+    for (let i = 0; i < rowCount; i++) {
+      await rows.nth(i).click();
+      if (await page.locator('#steps .ride-leg .interchange-wait').count() > 0) return true;
+    }
+  }
+  return false;
+}
 
-  const stored = await page.evaluate(() => localStorage.getItem('hkfair.v2.settings'));
-  expect(stored).toContain('"fairnessMetric":"fare"');
+test('headway parameter persists through storage, reload and routes', async ({ page }) => {
+  const headway = page.locator('#includeHeadway');
+  await expect(headway).toBeChecked();
+  await expect(page.locator('label[for="includeHeadway"]')).toHaveText('Include average headway');
+  // Establish an interchange scenario while the parameter is still on.
+  expect(await selectAnInterchange(page)).toBe(true);
+
+  await headway.uncheck();
+  await expect(headway).not.toBeChecked();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('hkfair.v2.settings'))).toContain('"includeHeadway":false');
 
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
-  await expect(page.locator('.fairness-option[data-fairness="fare"]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('.fairness-option[data-fairness="time"]')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('#includeHeadway')).not.toBeChecked();
 
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
-  await expect.poll(() => page.locator('.ride-leg.route-rail').count()).toBeGreaterThan(0);
-  await expect(page.locator('.ride-leg .leg-board').first()).toContainText('Get on:');
-  await expect(page.locator('.ride-leg .leg-alight').first()).toContainText('Get off:');
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  const rows = page.locator('.result-row');
+  const offCount = Math.min(await rows.count(), 24);
+  let sawInterchange = false;
+  for (let i = 0; i < offCount; i++) {
+    await rows.nth(i).click();
+    await expect(page.locator('#steps .ride-leg .interchange-wait')).toHaveCount(0);
+    const multiRide = await page.locator('#steps .step').evaluateAll(steps => steps.some(step => step.querySelectorAll('.ride-leg').length >= 2));
+    if (multiRide) sawInterchange = true;
+  }
+  expect(sawInterchange).toBe(true);
+
+  await page.locator('#includeHeadway').check();
+  await expect(page.locator('#includeHeadway')).toBeChecked();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('hkfair.v2.settings'))).toContain('"includeHeadway":true');
+  // A fresh search is the deterministic sync point: the debounced automatic
+  // recompute can finish before a "Working" label is ever observed.
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+  await expect.poll(() => page.locator('#goLabel').textContent()).toBe('Find fair areas');
+  const onCount = Math.min(await rows.count(), 24);
+  let notesReturned = false;
+  for (let i = 0; i < onCount; i++) {
+    await rows.nth(i).click();
+    if (await page.locator('#steps .ride-leg .interchange-wait').count() > 0) {
+      notesReturned = true;
+      break;
+    }
+  }
+  expect(notesReturned).toBe(true);
+  for (const note of await page.locator('.ride-leg .interchange-wait').allInnerTexts()) {
+    expect(note).toMatch(/^Interchange wait\s+\d+\s+min$/);
+  }
   // A contiguous rail group books its fare on the last rail leg, so check any
   // leg rather than assuming the first one carries the fare.
   const legMetas = await page.locator('.ride-leg .leg-meta').allInnerTexts();
   expect(legMetas.some(text => text.includes('Fare HK$'))).toBeTruthy();
   const railChips = await page.locator('.ride-leg.route-rail .leg-mode').allInnerTexts();
-  expect(railChips.length).toBeGreaterThan(0);
-  expect(railChips.some(chip => /[A-Z][a-z]+\s+(?:[A-Z][a-z]+\s+)?(?:Line|Express)\b/.test(chip))).toBeTruthy();
   for (const chip of railChips) {
+    expect(chip).toMatch(/[A-Z][a-z]+\s+(?:[A-Z][a-z]+\s+)?(?:Line|Express)\b/);
     expect(chip).not.toMatch(/MTR\s+[A-Z]{3}\b/);
   }
   const legTimes = await page.locator('.leg-time').allInnerTexts();
@@ -970,7 +1051,7 @@ test('share links restore the current scenario', async ({ page }) => {
     });
   });
   await page.locator('.card').first().locator('.name-input').fill('Alex');
-  await page.locator('.fairness-option[data-fairness="fare"]').click();
+  await page.locator('#includeHeadway').uncheck();
   await page.locator('.card').first().locator('[data-walk]').evaluate(el => {
     el.value = '10';
     el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -987,11 +1068,11 @@ test('share links restore the current scenario', async ({ page }) => {
   expect(state.people[0].name).toBe('Alex');
   expect(state.people[0]).not.toHaveProperty('focus');
   expect(state.people[0].walkMinutes).toBe(10);
-  expect(state.settings.fairnessMetric).toBe('fare');
+  expect(state.settings.includeHeadway).toBe(false);
   await page.goto(sharedUrl);
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('.name-input').first()).toHaveValue('Alex');
-  await expect(page.locator('.fairness-option[data-fairness="fare"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#includeHeadway')).not.toBeChecked();
   await expect(page.locator('.card').first().locator('[data-walk]')).toHaveValue('10');
 });
 
@@ -1044,11 +1125,16 @@ test('changing a start place recomputes without pressing search', async ({ page 
   await page.locator('.card').first().locator('.suggestion').first().click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   await expect(page.locator('#error')).toBeHidden();
+  // Only an explicit search flips the face; a recompute leaves it alone.
+  await expect(page.locator('.side-left .face[data-face="detail"]')).toBeHidden();
 });
 
 test('adding and removing a person recomputes without pressing search', async ({ page }) => {
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+  await expect(page.locator('.side-left .face[data-face="detail"]')).toBeVisible();
+  await page.locator('#swapFace').click();
+  await expect(page.locator('.side-left .face[data-face="people"]')).toBeVisible();
 
   await page.locator('#add').click();
   await expect(page.locator('.card')).toHaveCount(3);

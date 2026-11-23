@@ -4,12 +4,12 @@ import { $,clamp } from './util.js';
 import { t,applyStaticText } from './i18n.js';
 import { districtFor,loadNetwork } from './data.js';
 import { cellFitScore } from './vectors.js';
-import { sourcesFor,solve,bestTimes,fareTimes,walkTimes,walkBudget,buildCells,prepareRoutes,cellToResult } from './routing.js';
+import { sourcesFor,solve,bestTimes,walkTimes,walkBudget,buildCells,prepareRoutes,cellToResult } from './routing.js';
 import { save } from './state.js';
-import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,renderCards,setWorking } from './ui.js';
+import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,renderCards,setWorking,setSidebarFace } from './ui.js';
 import { drawOrigins,drawCloud,applySelection,applyMapLabels } from './map.js';
 
-export function compute(){
+export function compute(reveal=false){
   clearError();
   if(!store.NET){renderEmpty();showError(t('error.loading'));return;}
   if(store.people.some(p=>!p.origin)){renderEmpty();showError(t('error.missingOrigins'));return;}
@@ -19,36 +19,29 @@ export function compute(){
   if(!mask){renderEmpty();showError(t('error.noMode'));return;}
   const tolerance=clamp(Number($('tolerance').value),0.05,0.5,0.1);
   store.settings.tolerance=tolerance;save();
-  // solve() depends only on origins, the mode mask, and the fixed travel cap.
-  // Tolerance and vector changes re-filter cells from the cached solutions
-  // instead of re-running Dijkstra for every person.
-  const solveKey=`${mask}:${TRAVEL_BUDGET_MINUTES}:${store.activePeople.map(p=>{const o=p.origin;return o.kind==='node'?`n${o.node}`:`c${o.lat},${o.lon}`;}).join('|')}`;
+  // solve() depends only on origins, the mode mask, the headway setting, and
+  // the fixed travel cap. Tolerance and vector changes re-filter cells from
+  // the cached solutions instead of re-running Dijkstra for every person.
+  const solveKey=`${mask}:${TRAVEL_BUDGET_MINUTES}:${store.activePeople.map(p=>{const o=p.origin;return o.kind==='node'?`n${o.node}`:`c${o.lat},${o.lon}`;}).join('|')}:h${store.settings.includeHeadway===false?0:1}`;
   if(store.solveKey!==solveKey){
     store.solveKey=solveKey;
     const sources=store.activePeople.map(p=>sourcesFor(p.origin,TRAVEL_BUDGET_MINUTES));
     if(sources.some(s=>!s.length)){renderEmpty();showError(t('error.noNearby'));return;}
     store.sols=sources.map(s=>solve(s,mask,TRAVEL_BUDGET_MINUTES));
-    store.fareSols=sources.map(s=>solve(s,mask,TRAVEL_BUDGET_MINUTES,'fare'));
   }
-  if(store.sols.some(s=>!s.dist.size)||store.fareSols.some(s=>!s.dist.size)){renderEmpty();showError(t('error.noReach'));return;}
-  const metric=store.settings.fairnessMetric==='fare'?'fare':'time';
-  const grids=store.sols.map(bestTimes),walkGrids=store.sols.map(walkTimes),fareGrids=store.fareSols.map(fareTimes);
+  if(store.sols.some(s=>!s.dist.size)){renderEmpty();showError(t('error.noReach'));return;}
+  const grids=store.sols.map(bestTimes),walkGrids=store.sols.map(walkTimes);
   // Walk budgets only re-weight the cached solutions; Dijkstra and solveKey stay untouched.
   const effectiveGrids=grids.map((grid,i)=>{
     const limit=walkBudget(store.activePeople[i]),out=new Float64Array(grid.length);
     for(let idx=0;idx<grid.length;idx++){const walk=walkGrids[i][idx];out[idx]=isFinite(walk)&&walk<=limit?walk:grid[idx];}
     return out;
   });
-  const effectiveFareGrids=fareGrids.map((grid,i)=>{
-    const limit=walkBudget(store.activePeople[i]),out=new Float64Array(grid.length);
-    for(let idx=0;idx<grid.length;idx++){const walk=walkGrids[i][idx];out[idx]=isFinite(walk)&&walk<=limit?0:grid[idx];}
-    return out;
-  });
-  const cells=buildCells(effectiveGrids,tolerance,TRAVEL_BUDGET_MINUTES,metric,effectiveFareGrids);
+  const cells=buildCells(effectiveGrids,tolerance,TRAVEL_BUDGET_MINUTES);
   const ordered=cells.map(cell=>({cell,fitScore:cellFitScore(cell)})).sort((a,b)=>a.fitScore-b.fitScore||a.cell.score-b.cell.score||a.cell.key.localeCompare(b.cell.key));
   store.cloudCells=ordered.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
   store.results=ordered.slice(0,7).map(({cell:c})=>cellToResult(c));
-  store.results.forEach(r=>prepareRoutes(r,store.activePeople,metric));
+  store.results.forEach(r=>prepareRoutes(r,store.activePeople));
   if(!store.results.length){
     renderEmpty();
     const mode=store.settings.modes.length===1?store.settings.modes[0]:null;
@@ -57,19 +50,20 @@ export function compute(){
   }
   renderResults(store.activePeople);
   drawOrigins(store.activePeople);drawCloud(TRAVEL_BUDGET_MINUTES);applySelection(store.activePeople);
+  if(reveal===true)setSidebarFace('detail');
 }
 export function scheduleRecompute(){
   clearTimeout(store.recomputeTimer);
   store.recomputeTimer=setTimeout(()=>{store.recomputeTimer=null;triggerSearch();},RECOMPUTE_DELAY);
 }
-export function triggerSearch(){
+export function triggerSearch(reveal=false){
   clearTimeout(store.recomputeTimer);store.recomputeTimer=null;
   const token=++store.workSeq;
   if(!store.NET){
     setWorking(true);
     loadNetwork().then(()=>{
       if(token!==store.workSeq)return;
-      setWorking(false);compute();
+      setWorking(false);compute(reveal);
     }).catch(err=>{
       if(token!==store.workSeq)return;
       console.error(err);setWorking(false);renderEmpty();showError(t('error.timetableFailed',{message:err.message}));
@@ -79,7 +73,7 @@ export function triggerSearch(){
   setWorking(true);
   setTimeout(()=>{
     if(token!==store.workSeq)return;
-    try{setWorking(false);compute();}catch(err){console.error(err);setWorking(false);renderEmpty();showError(t('error.searchFailed',{message:err.message}));}
+    try{setWorking(false);compute(reveal);}catch(err){console.error(err);setWorking(false);renderEmpty();showError(t('error.searchFailed',{message:err.message}));}
   },30);
 }
 export function rerender(){

@@ -122,9 +122,9 @@
       <div class="recenter-key"><span class="icon icon-scan" aria-hidden="true"></span><span data-i18n="map.recenterKey">Recenter fits fair areas; starts stay put</span></div>
     </div>
   </main>
-  <aside class="side side-right" aria-label="Options and results">
+  <aside class="side side-right" aria-label="Parameters and results">
     <div class="options-panel" id="optionsPanel">
-      <div class="section-title options-title" data-i18n="options.title">Options</div>
+      <div class="section-title options-title" data-i18n="options.title">Parameters</div>
       <div class="chips" role="group" aria-label="Transport modes" data-i18n-aria-label="options.modes">
         <button class="chip" type="button" aria-pressed="true" data-mode="rail" data-i18n-tooltip="options.rail" data-i18n-aria-label="options.rail" aria-label="MTR" title="MTR" data-tooltip="MTR">
           <span class="icon icon-rail" aria-hidden="true"></span><span class="sr-only" data-i18n="options.rail">MTR</span>
@@ -133,13 +133,12 @@
           <span class="icon icon-bus" aria-hidden="true"></span><span class="sr-only" data-i18n="options.bus">Bus / minibus</span>
         </button>
       </div>
-      <div class="fairness-section">
-        <div class="slider-row"><label class="fairness-label" data-i18n="options.fairnessLabel">Fairness metric</label></div>
-        <div class="focus-toggle fairness-toggle" role="group" aria-label="Fairness metric" data-i18n-aria-label="options.fairnessLabel">
-          <button class="focus-option fairness-option" type="button" data-fairness="time" aria-pressed="true" data-i18n="options.fairnessTime">Time</button>
-          <button class="focus-option fairness-option" type="button" data-fairness="fare" aria-pressed="false" data-i18n="options.fairnessFare">Fare</button>
-        </div>
-        <p class="note fairness-help" data-i18n="options.fairnessHelp">Choose whether the tolerance compares travel time or fare.</p>
+      <div class="headway-section">
+        <label class="toggle-row" for="includeHeadway">
+          <input type="checkbox" id="includeHeadway" data-i18n-aria-label="options.includeHeadway">
+          <span data-i18n="options.includeHeadway">Include average headway</span>
+        </label>
+        <p class="note headway-help" data-i18n="options.headwayHelp">Add half the average wait when changing between bus and MTR.</p>
       </div>
       <div class="slider-row">
         <label for="tolerance" data-i18n="options.tolerance">Travel time disparity tolerance</label>
@@ -176,7 +175,6 @@
         <span class="icon icon-search" aria-hidden="true"></span><span class="sr-only" id="emptyRunLabel" data-i18n="results.emptyRun">Find fair areas</span>
       </button>
     </section>
-    <p class="save-summary" id="saveSummary"></p>
     <footer class="rightbar-footer">
       <p class="note"><span data-i18n="note.attribution">Routing runs in this browser. Place search uses keyless Photon and the map uses OpenFreeMap vector tiles from OpenStreetMap data. Your people and settings stay on this device.</span></p>
       <p class="note credit-note"><span data-i18n="credit.inspired">Inspired by</span> <a href="https://fairpin.ph/" target="_blank" rel="noopener noreferrer">FairPin PH</a>. <span data-i18n="credit.unused">I have not used their service.</span></p>

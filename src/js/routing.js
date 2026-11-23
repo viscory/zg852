@@ -61,8 +61,8 @@ export function routeFares(route){
   return{rail:round1(rail),bus:round1(bus),total:round1(rail+bus)};
 }
 export const walkBudget=person=>clamp(person?.walkMinutes,0,WALK_TOLERANCE_MAX,WALK_TOLERANCE_DEFAULT);
-export function prepareRoutes(result,active=store.activePeople,metric='time'){
-  result.routes=store.sols.map((solution,j)=>describe(solution,active[j].origin,result.node,metric,walkBudget(active[j])));
+export function prepareRoutes(result,active=store.activePeople){
+  result.routes=store.sols.map((solution,j)=>describe(solution,active[j].origin,result.node,walkBudget(active[j])));
   result.paths=result.routes.map(route=>route.path);
   return result;
 }
@@ -86,57 +86,43 @@ export class MinHeap{
     return[d,k];}
 }
 
-export function solve(sources,mask,maxTime=180,mode='time'){
-  // In fare mode `dist` holds accumulated boarding fares instead of minutes;
-  // a parallel arrival map keeps the same time budget on the same state graph.
-  const fareMode=mode==='fare';
+export function solve(sources,mask,maxTime=180){
   // State offsets: FRESH (-2) is on foot before any boarding, BOARDED (-1) is
   // on foot after alighting, and >=0 is riding the corresponding line.
   const FRESH=-2,BOARDED=-1;
+  const include=store.settings.includeHeadway!==false;
   const stride=store.NET.lines.length+2,key=(node,line)=>node*stride+(line+2),start=-1;
-  const dist=new Map(),prev=new Map(),heap=new MinHeap(),arrival=new Map();
+  const dist=new Map(),prev=new Map(),heap=new MinHeap();
   sources.forEach(({node,minutes})=>{
     const k=key(node,FRESH);
-    if(minutes<=maxTime&&minutes<(dist.get(k)??Infinity)){dist.set(k,minutes);arrival.set(k,minutes);prev.set(k,start);heap.push(minutes,k);}
+    if(minutes<=maxTime&&minutes<(dist.get(k)??Infinity)){dist.set(k,minutes);prev.set(k,start);heap.push(minutes,k);}
   });
-  const relax=(k,cost,from,time)=>{
-    if(fareMode){
-      if(time>maxTime+1e-9)return;
-      const known=dist.get(k)??Infinity,knownTime=arrival.get(k)??Infinity;
-      if(cost>known||(cost===known&&time>=knownTime))return;
-      dist.set(k,cost);arrival.set(k,time);prev.set(k,from);heap.push(cost,k);
-    }else if(cost<(dist.get(k)??Infinity)&&cost<=maxTime){
+  const relax=(k,cost,from)=>{
+    if(cost<(dist.get(k)??Infinity)&&cost<=maxTime){
       dist.set(k,cost);prev.set(k,from);heap.push(cost,k);
     }
   };
   while(heap.size){
     const[d,k]=heap.pop();
-    if(d>(dist.get(k)??Infinity)||(!fareMode&&d>maxTime))continue;
-    const time=fareMode?arrival.get(k):d;
-    if(fareMode&&(time===undefined||time>maxTime+1e-9))continue;
+    if(d>(dist.get(k)??Infinity)||d>maxTime)continue;
     const node=Math.floor(k/stride),line=(k%stride)-2;
     if(line<0){
-      for(const[to,step]of store.walkAdj[node])relax(key(to,line),fareMode?d:d+step,k,fareMode?time:undefined);
+      for(const[to,step]of store.walkAdj[node])relax(key(to,line),d+step,k);
       for(const li of store.nodeLines[node])if(mask&(1<<store.NET.lines[li].c)){
-        const info=store.NET.lines[li],wait=isNum(info.w)?info.w:0,fare=isNum(info.f)?info.f:0;
+        const info=store.NET.lines[li],wait=isNum(info.w)?info.w:0;
         // w is the fixed boarding penalty; the capped half-headway h applies
         // only when boarding after alighting a transit leg (BOARDED foot state).
-        const extra=line===BOARDED&&isNum(info.h)?info.h:0;
-        relax(key(node,li),fareMode?d+fare:d+wait+extra,k,fareMode?time+wait+extra:undefined);
+        const extra=include&&line===BOARDED&&isNum(info.h)?info.h:0;
+        relax(key(node,li),d+wait+extra,k);
       }
     }else{
-      relax(key(node,BOARDED),d,k,fareMode?time:undefined);
-      for(const[li,to,step]of store.rideAdj[node])if(li===line)relax(key(to,li),fareMode?d:d+step,k,fareMode?time+step:undefined);
+      relax(key(node,BOARDED),d,k);
+      for(const[li,to,step]of store.rideAdj[node])if(li===line)relax(key(to,li),d+step,k);
     }
   }
   return{dist,prev,stride,key,start};
 }
 export function bestTimes(sol){
-  const best=new Float64Array(store.NODES.names.length).fill(Infinity);
-  for(const[k,d]of sol.dist){const node=Math.floor(k/sol.stride);if(d<best[node])best[node]=d;}
-  return best;
-}
-export function fareTimes(sol){
   const best=new Float64Array(store.NODES.names.length).fill(Infinity);
   for(const[k,d]of sol.dist){const node=Math.floor(k/sol.stride);if(d<best[node])best[node]=d;}
   return best;
@@ -201,8 +187,8 @@ export function reconstructChain(sol,k){
   while(cur!==undefined&&cur!==sol.start&&chain.length<4000){chain.push(cur);cur=sol.prev.get(cur);}
   return chain.reverse();
 }
-export function describe(sol,origin,target,metric='time',walkMinutes=WALK_TOLERANCE_DEFAULT){
-  const walkLimit=clamp(walkMinutes,0,WALK_TOLERANCE_MAX,WALK_TOLERANCE_DEFAULT),candidates=[];
+export function describe(sol,origin,target,walkMinutes=WALK_TOLERANCE_DEFAULT){
+  const walkLimit=clamp(walkMinutes,0,WALK_TOLERANCE_MAX,WALK_TOLERANCE_DEFAULT),includeHeadway=store.settings.includeHeadway!==false,candidates=[];
   for(let l=-2;l<store.NET.lines.length;l++){
     const k=sol.key(target,l),d=sol.dist.get(k);
     if(d===undefined)continue;
@@ -233,10 +219,10 @@ export function describe(sol,origin,target,metric='time',walkMinutes=WALK_TOLERA
         if(!current||current.mode!==mode||current.line!==label){
           close();
           // The first ride-state stepT already contains the boarding penalty w
-          // from solve(); the interchange half-headway h is included only when
-          // boarding from a BOARDED foot state, so do not add either again here.
+          // from solve(); the interchange half-headway h is charged there (and
+          // reflected in stepT) for BOARDED boarding only when includeHeadway is on.
           const fromBoarded=pst!==sol.start&&(pst%sol.stride)===1;
-          current={mode,line:label,lineName:info.n||info.l,minutes:stepT,coords:[coord,coord],from:name,to:name,fromNode:node,toNode:node,stopCount:0,interchangeWait:fromBoarded&&isNum(info.h)?info.h:0};
+          current={mode,line:label,lineName:info.n||info.l,minutes:stepT,coords:[coord,coord],from:name,to:name,fromNode:node,toNode:node,stopCount:0,interchangeWait:includeHeadway&&fromBoarded&&isNum(info.h)?info.h:0};
         }else{
           current.minutes+=stepT;
           const fromNode=pst===sol.start?null:Math.floor(pst/sol.stride);
@@ -262,41 +248,36 @@ export function describe(sol,origin,target,metric='time',walkMinutes=WALK_TOLERA
   }
   if(!candidates.length)return{text:t('route.unreachable'),legs:[],path:[[origin.lat,origin.lon]],fares:{rail:0,bus:0,total:0}};
   const walk=candidates.find(c=>c.line===-2&&c.d<=walkLimit);
-  if(!walk)candidates.sort((a,b)=>metric==='fare'?a.total-b.total||a.d-b.d:a.d-b.d||a.total-b.total);
+  if(!walk)candidates.sort((a,b)=>a.d-b.d||a.total-b.total);
   const best=walk||candidates[0],legs=best.legs;
   const text=legs.map(leg=>leg.text).join(' -> ')||t('route.already');
   const path=dedupePath(legs.flatMap(leg=>leg.coords));
   return{text,legs,path,fares:best.fares};
 }
-export function buildCells(grids,tolerance,budget,metric='time',fareGrids=null){
-  const cells=new Map(),useFare=metric==='fare'&&!!fareGrids;
+export function buildCells(grids,tolerance,budget){
+  const cells=new Map();
   for(const idx of store.surface){
     const times=grids.map(g=>g[idx]);
     if(times.some(v=>!isFinite(v)))continue;
-    // Time grids always decide whether a node is reachable within the budget.
     if(Math.max(...times)>budget)continue;
-    const fares=fareGrids?fareGrids.map(g=>g[idx]):null;
-    if(useFare&&fares.some(v=>!isFinite(v)))continue;
-    const values=useFare?fares:times;
-    const fastest=Math.min(...values),slowest=Math.max(...values),gap=slowest-fastest,station=store.NODES.kind[idx]===1;
+    const fastest=Math.min(...times),slowest=Math.max(...times),gap=slowest-fastest,station=store.NODES.kind[idx]===1;
     const overBand=station?gap>Math.max(fastest*tolerance,8):slowest>Math.max(fastest,5)*(1+tolerance);
     if(overBand)continue;
     const cy=Math.floor(store.NODES.lat[idx]/CELL_SIZE),cx=Math.floor(store.NODES.lon[idx]/CELL_SIZE),cellKey=`${cy},${cx}`;
     const score=slowest+gap,priority=nodePriority(store.NODES.kind[idx]);
     let cell=cells.get(cellKey);
-    if(!cell){cells.set(cellKey,{key:cellKey,cy,cx,node:idx,label:store.NODES.names[idx],priority,keyCat:catKey(priority),times,fares,fastest,slowest,gap,score});continue;}
+    if(!cell){cells.set(cellKey,{key:cellKey,cy,cx,node:idx,label:store.NODES.names[idx],priority,keyCat:catKey(priority),times,fastest,slowest,gap,score});continue;}
     if(priority<cell.priority){cell.label=store.NODES.names[idx];cell.priority=priority;cell.keyCat=catKey(priority);}
-    if(score<cell.score||score===cell.score&&gap<cell.gap){cell.node=idx;cell.times=times;cell.fares=fares;cell.fastest=fastest;cell.slowest=slowest;cell.gap=gap;cell.score=score;}
+    if(score<cell.score||score===cell.score&&gap<cell.gap){cell.node=idx;cell.times=times;cell.fastest=fastest;cell.slowest=slowest;cell.gap=gap;cell.score=score;}
   }
   return[...cells.values()].sort((a,b)=>a.score-b.score||a.gap-b.gap||a.key.localeCompare(b.key));
 }
 export function cellToResult(cell){
   const lat=store.NODES.lat[cell.node],lon=store.NODES.lon[cell.node],round=v=>Math.round(v*10)/10;
-  const fares=cell.fares||cell.times.map(()=>0);
   return{
     key:cell.key,node:cell.node,label:cell.label,catKey:cell.keyCat,district:districtFor(lat,lon),lat,lon,
     cellLat:cell.cy*CELL_SIZE+CELL_SIZE/2,cellLon:cell.cx*CELL_SIZE+CELL_SIZE/2,
-    times:cell.times.map(round),fares:fares.map(v=>isFinite(v)?round(v):0),
+    times:cell.times.map(round),
     fastest:round(cell.fastest),slowest:round(cell.slowest),gap:round(cell.gap),score:round(cell.score),
     fit:cellPreference(cell),vector:cellVector(cell),count:cellCount(cell),
   };

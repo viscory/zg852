@@ -77,8 +77,9 @@ header{height:var(--header);display:flex;align-items:center;justify-content:spac
 @media (prefers-reduced-motion:reduce){
   .flip-stage.flip-out,.flip-stage.flip-in{animation:none}
 }
-.side-right{grid-column:3;border-left:1px solid var(--border);display:flex;flex-direction:column}
-.options-panel{position:sticky;top:0;z-index:30;flex:none;margin:0 0 12px;padding:0 0 12px;background:var(--surface);border-bottom:1px solid var(--border);box-shadow:0 8px 12px -12px rgba(80,20,20,.35)}
+.side-right{grid-column:3;border-left:1px solid var(--border);display:flex;flex-direction:column;padding-top:0}
+.side-right::before{margin-top:12px}
+.options-panel{position:sticky;top:0;z-index:30;flex:none;margin:0 0 12px;padding:12px 0;background:var(--surface);border-bottom:1px solid var(--border);box-shadow:0 8px 12px -12px rgba(80,20,20,.35)}
 .rightbar-footer{flex:none;margin-top:auto;padding-top:12px;border-top:1px solid var(--border)}
 .rightbar-footer .note{margin-top:12px}
 .rightbar-footer .credit-note{margin-top:6px}
@@ -149,12 +150,10 @@ input[type=text]:focus-visible{outline:2px solid var(--accent);outline-offset:1p
 .fare.rail{border-color:var(--accent)}
 .fare.bus{border-style:dashed;border-color:var(--accent-hover)}
 .fare.total{border-color:var(--accent);font-weight:600}
-.focus-toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
-.focus-option{min-height:var(--field);border:1px solid var(--border);border-radius:var(--r-md);background:transparent;color:var(--muted);font-size:11px;font-weight:600}
-.focus-option[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:var(--danger-bg)}
-.fairness-section{margin:0 0 12px}
-.fairness-toggle{margin-top:6px}
-.fairness-help{margin:6px 0 0;max-width:none}
+.headway-section{margin:0 0 12px}
+.toggle-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);cursor:pointer}
+.toggle-row input[type=checkbox]{width:14px;height:14px;flex:none;margin:0;accent-color:var(--accent)}
+.headway-help{margin:6px 0 0;max-width:none}
 .walk-row{margin-top:8px}
 .card input[type=range]{margin:4px 0 0}
 .slider-gap{margin-top:12px}
@@ -195,7 +194,6 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .vector-row .value{font-family:var(--sans);font-size:11px;white-space:nowrap;text-align:right}
 .vector-ends{margin-top:4px;font-size:11px}
 .error{border:1px solid var(--danger-border);background:var(--danger-bg);color:var(--danger);border-radius:var(--r-md);padding:8px 12px;font-size:12px;margin-top:8px}
-.save-summary{font-size:12px;color:var(--subtle);margin:8px 0 0;font-family:var(--mono);font-variant-numeric:tabular-nums}
 .main{grid-column:2;grid-row:1;position:relative;min-width:0;background:var(--bg)}
 #map{position:absolute;inset:0}
 #map.pinning{cursor:crosshair}
@@ -255,8 +253,7 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .leg-mode{display:flex;align-items:center;gap:6px;min-width:0;font-size:12px;font-weight:600;color:var(--text)}
 .leg-mode .icon{color:var(--accent)}
 .route-bus .leg-mode .icon{color:var(--accent-hover)}
-.leg-stops{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:11px;color:var(--subtle)}
-.leg-board,.leg-alight{min-width:0;overflow-wrap:anywhere}
+.leg-stops{display:flex;flex-wrap:wrap;gap:2px 10px;min-width:0;overflow-wrap:anywhere;font-size:11px;color:var(--subtle)}
 .leg-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
 .leg-time{font-family:var(--mono);font-variant-numeric:tabular-nums}
 .leg-meta .fare{padding:0 5px;background:var(--bg);font-family:var(--mono);font-variant-numeric:tabular-nums}
@@ -315,7 +312,8 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   .main{grid-column:1;grid-row:2;min-height:0}
   .side-left{grid-column:1;grid-row:1;border-right:0;border-left:0;border-top:0;padding:16px;overflow:visible}
   .side-right{grid-column:1;grid-row:3;border-left:0;border-top:1px solid var(--border);padding:16px;overflow:visible}
-  .options-panel{position:static;box-shadow:none}
+  .side-right::before{margin-top:0}
+  .options-panel{position:static;box-shadow:none;padding-top:0}
   .legend{left:8px;bottom:8px;max-width:calc(100% - 16px);padding:6px 8px;font-size:11px}
   html[dir="rtl"] .layout{grid-template-columns:minmax(0,1fr)}
   html[dir="rtl"] .side-left{grid-column:1;grid-row:1;border-right:0;border-left:0;border-top:0}

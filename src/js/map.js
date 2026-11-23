@@ -167,7 +167,7 @@ export function resultMatches(result,sel){
     (Number.isFinite(sel.lat)&&Number.isFinite(sel.lon)&&Math.abs(result.lat-sel.lat)<1e-5&&Math.abs(result.lon-sel.lon)<1e-5);
 }
 export function buildResultFromCell(cell,active=store.activePeople){
-  return prepareRoutes(cellToResult(cell),active,store.settings.fairnessMetric);
+  return prepareRoutes(cellToResult(cell),active);
 }
 export function selectCell(cell){
   hideTooltip();
@@ -204,7 +204,7 @@ function legChip(leg){
   const fare=leg.fare?`<span class="fare">${esc(t('results.fareTotal',{value:money(leg.fare)}))}</span>`:'';
   const wait=interchangeWaitText(leg);
   const waitNote=wait?`<span class="interchange-wait">${esc(wait)}</span>`:'';
-  return `<span class="ride-leg route-${leg.mode}"><span class="leg-mode"><span class="icon icon-${rail?'rail':'bus'}" aria-hidden="true"></span>${esc(modeLabel)}</span><span class="leg-stops"><span class="leg-board">${esc(t('route.getOn',{place:leg.from}))}</span><span class="leg-alight">${esc(t('route.getOff',{place:leg.to}))}</span></span><span class="leg-meta"><span class="leg-time">${esc(minuteText(leg.minutes))}</span>${fare}${waitNote}</span></span>`;
+  return `<span class="ride-leg route-${leg.mode}"><span class="leg-mode"><span class="icon icon-${rail?'rail':'bus'}" aria-hidden="true"></span>${esc(modeLabel)}</span><span class="leg-stops">${esc(t('route.stops',{from:leg.from,to:leg.to}))}</span><span class="leg-meta"><span class="leg-time">${esc(minuteText(leg.minutes))}</span>${fare}${waitNote}</span></span>`;
 }
 export function renderSelection(r,active=store.activePeople){
   if(!r)return;
@@ -228,10 +228,7 @@ export function renderSelection(r,active=store.activePeople){
   $('detailTitle').textContent=r.label;
   $('detailDistrict').textContent=r.district;
   const preference=betaVectorsEnabled()?` ${preferenceText(r.fit)}`:'';
-  const fareMetric=store.settings.fairnessMetric==='fare';
-  const spread=fareMetric?t('results.fareSpread',{value:money(r.gap)}):t('results.spread',{value:intNum(r.gap)});
-  const longest=fareMetric?t('results.fareLongest',{value:money(r.slowest)}):t('results.longest',{value:intNum(r.slowest)});
-  $('detailSub').textContent=`${spread} ${longest}${preference}`;
+  $('detailSub').textContent=`${t('results.spread',{value:intNum(r.gap)})} ${t('results.longest',{value:intNum(r.slowest)})}${preference}`;
   const already=r.times.every(value=>value<=0.5);
   $('steps').innerHTML=legCount?r.routes.map((route,j)=>`<div class="step">
     <span class="dot ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>

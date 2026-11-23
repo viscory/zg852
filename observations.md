@@ -1,3 +1,37 @@
+## 2026-11-23T14:20:13Z
+
+- Tests/docs subagent finished: locale and add/remove-person tests now account for search revealing the detail face; all face/swap assumptions audited. Docs updated newest-first in DESIGN.md, README.md, process.html, PRIVACY.md and privacy.html.
+- Fixed one flaky assertion in the new headway-persistence test: it waited to observe a transient "Working" label, which the debounced recompute can skip; replaced with an explicit `#go` search as the deterministic sync point.
+- Final verification clean: `npm run lint` (145 keys × 15 catalogs, 99 literal keys), `npm test` 62/62 passed against built `public/`, `git diff --check`. Ready to commit and push.
+
+## 2026-11-23T14:17:57Z
+
+- Reviewed all four completed subagent diffs: engine/state search reveal and `includeHeadway` solveKey, routing fare-mode removal and interchange gating, UI Parameters/headway/arrow changes, and i18n (145 keys, Unicode arrow in every catalog). No stale `fairnessMetric`/`fareTimes`/Get on/Get off references remain outside the still-editing tests.
+- Confirmed full MTR names come from `line.n` (e.g. "Tuen Ma Line") and bus chips still show route numbers; leg chips use `route.stops` with `→`.
+- Bumped service-worker cache `zg852-v33` → `zg852-v34` because index.html, CSS and all i18n catalogs changed. `finalize.mjs` patch token is unaffected.
+- Flagged one stale test assumption to the tests/docs agent: the locale test clicked `#swapFace` after `#go` expecting the people face, but search now reveals detail first. Docs review otherwise clean.
+
+## 2026-11-23T14:14:57Z
+
+- UI/DOM/CSS subagent completed the Options→Parameters, fairness removal, headway control, saved-people summary removal, arrow leg chips, time-only result/detail text, and sticky-rightbar gap contract in the four owned files (`src/index.html`, `src/js/ui.js`, `src/js/map.js`, `src/styles.css`) only.
+- Exact DOM changes: rightbar aside aria-label is now "Parameters and results" and the `options.title` fallback text is "Parameters" (key unchanged); the `.fairness-section` block was replaced by `.headway-section` with `#includeHeadway` checkbox plus `.headway-help` note after the mode chips; `#saveSummary` was deleted. `ui.js` now wires `#includeHeadway` in `updateSettingsLabels()/applySettingsToDom()/readSettingsFromDom()`, no longer exports `updateSaveSummary()` or its `refreshMeta()` call, dropped the `money` import and all `fairnessMetric` reads/writes, and renders plain `results.spread`/`results.longest`. `map.js` legChip() renders one `.leg-stops` span with `route.stops` ("from → to"), keeps full line names/fare/wait spans, and `renderSelection()` uses time-only `#detailSub`; `money` import retained for leg fares.
+- Follow-up integrated: `buildResultFromCell()` now calls `prepareRoutes(cellToResult(cell),active)` with no third metric arg; grep confirmed zero `fairnessMetric`, `.fares`, fairness/save-summary selectors or Get on/Get off markup in the owned files, and no stale `money` import in `ui.js`.
+- CSS: `.side-right{padding-top:0}` with `.side-right::before{margin-top:12px}` (reset to 0 on mobile) and `.options-panel{padding:12px 0}` (reset `padding-top:0` on mobile) so the sticky panel sits flush at the scrollport top on desktop with no mobile gap; removed fairness/focus/save-summary rules, added compact `.headway-section`, `.toggle-row` (+ checkbox alignment/accent) and `.headway-help` rules, and folded the old `.leg-board/.leg-alight` wrapping into `.leg-stops`.
+- `npx eslint src/js/ui.js src/js/map.js` passed with no output; `npm test` deliberately not run and nothing committed.
+
+## 2026-11-23T14:13:54Z
+
+- Routing subagent completed the fare-mode removal and `includeHeadway` contract in `src/js/routing.js` only: `solve(sources,mask,maxTime=180)` has no `mode`/`fareMode`/`arrival`/`fare` path and charges `w + (include && line===BOARDED && isNum(info.h) ? info.h : 0)` on boarding; the `fareTimes` export is deleted while `bestTimes`, `walkTimes` and all other exports remain.
+- `buildCells(grids,tolerance,budget)` is time-only again (no `metric`/`fareGrids`/`cell.fares`), `cellToResult()` no longer returns `fares`, `describe(sol,origin,target,walkMinutes=WALK_TOLERANCE_DEFAULT)` and `prepareRoutes(result,active=store.activePeople)` lost their `metric` args and sort time-then-fare, and a new ride leg's `interchangeWait` is 0 unless `store.settings.includeHeadway!==false`. `rideLegText()`/`interchangeWaitText()` wording and full MTR line names are untouched; `routeFares()`/`fareMarkup()` still provide per-route fare estimates.
+- `npx eslint src/js/routing.js` and an ESM `node --check` pass. Full `npm run lint` still reports cross-agent errors in `engine.js` (`fareTimes` use, unused `setSidebarFace`) and `ui.js` (undefined `money`) — the owning agents must remove those. No commit; `npm test` deliberately not run per contract.
+
+## 2026-11-23T14:12:42Z
+
+- User requested eight changes: replace Get on/Get off with a "Start → End" Unicode-arrow display using full line names; make Search flip the leftbar to route detail; add a parameter controlling inclusion of average headway; remove "Travel Priority"; fix the rightbar scroll gap above the sticky panel; rename Options to Parameters; remove the "N saved: …" summary.
+- Clarified two ambiguities with the user: "Travel Priority" means the global Fairness metric (Time/Fare) control, which is to be removed entirely (time-only ranking); and Search SHOULD autoswap the leftbar to detail.
+- Found the old per-person label was literally "Travel priority" (`people.focusLabel`) and is already gone from source/catalogs/build; the new global Time/Fare toggle was the lookalike being objected to.
+- Launched five subagents with disjoint ownership: settings/state/engine/search reveal, routing simplification, UI/DOM/CSS (including sticky-scroll fix), i18n key cleanup/rename, and tests/docs.
+
 ## 2026-11-23T13:53:35Z
 
 - Integrated the interchange-wait refinement from all five subagents: GTFS data now exports `w` (fixed boarding penalty) and `h` (capped duration-weighted half-headway); the solver uses a FRESH/BOARDED foot-state bit so `h` is charged only at interchanges; ride legs carry `interchangeWait` and show a whole-minute "Interchange wait N min" note in chips, steps and tooltips; SW cache is `zg852-v33`.
