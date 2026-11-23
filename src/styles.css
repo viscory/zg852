@@ -297,13 +297,13 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   .brand h1{font-size:16px}
   .brand p{font-size:11px}
   .header-end{width:100%;justify-content:space-between}
-  .layout{grid-template-columns:minmax(0,1fr);grid-template-rows:48vh auto auto;overflow-y:auto;align-content:start}
-  .main{grid-column:1;grid-row:1;min-height:0}
-  .side-left{grid-column:1;grid-row:2;border-right:0;border-left:0;border-top:1px solid var(--border);padding:16px;overflow:visible}
+  .layout{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(240px,48vh) auto;overflow-y:auto;align-content:start}
+  .main{grid-column:1;grid-row:2;min-height:0}
+  .side-left{grid-column:1;grid-row:1;border-right:0;border-left:0;border-top:0;padding:16px;overflow:visible}
   .side-right{grid-column:1;grid-row:3;border-left:0;border-top:1px solid var(--border);padding:16px;overflow:visible}
   .legend{left:8px;bottom:8px;max-width:calc(100% - 16px);padding:6px 8px;font-size:11px}
   html[dir="rtl"] .layout{grid-template-columns:minmax(0,1fr)}
-  html[dir="rtl"] .side-left{grid-column:1;grid-row:2;border-right:0;border-left:0;border-top:1px solid var(--border)}
+  html[dir="rtl"] .side-left{grid-column:1;grid-row:1;border-right:0;border-left:0;border-top:0}
   html[dir="rtl"] .side-right{grid-column:1;grid-row:3;border-left:0;border-right:0;border-top:1px solid var(--border)}
-  html[dir="rtl"] .main{grid-column:1;grid-row:1}
+  html[dir="rtl"] .main{grid-column:1;grid-row:2}
 }

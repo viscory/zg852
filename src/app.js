@@ -23,10 +23,10 @@ async function init(){
   if(betaVectorsEnabled())await loadPoi();
   restoreDirectory();
   applyStaticText();
-  if(mapError)showError(t('error.mapFailed',{message:mapError.message||String(mapError)}));
   renderCards();
   renderEmpty();
   renderDirectoryList();
+  if(mapError)showError(t('error.mapFailed',{message:mapError.message||String(mapError)}));
   try{drawOrigins();}catch(err){console.error(err);}
   loadNetwork().catch(err=>{console.error(err);showError(t('error.timetableFailed',{message:err.message}));});
 }

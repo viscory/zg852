@@ -136,7 +136,7 @@ export function setOrigin(person,place,hint,input,sug){
   if(sug){sug.hidden=true;input?.setAttribute('aria-expanded','false');input?.removeAttribute('aria-activedescendant');}
   clearError();save();scheduleRecompute();
 }
-export function renderSuggestions(sug,entries,person,input,failed=false,settled=false){
+export function renderSuggestions(sug,entries,person,input,failed=false,settled=false,onChoose){
   const items=dedupePlaces(entries,8);
   sug.innerHTML='';
   let active=-1;
@@ -155,7 +155,7 @@ export function renderSuggestions(sug,entries,person,input,failed=false,settled=
     const d=document.createElement('div');d.className='suggestion';d.id=`${sug.id}-option-${i}`;
     d.setAttribute('role','option');d.setAttribute('aria-selected','false');d.tabIndex=-1;
     d.innerHTML=`<span class="avatar ${avatarClass(i)}">${esc(initialsFor(place.label))}</span><span class="place-main">${esc(place.label)}</span><span class="tag">${esc(t('tag.'+place.tagKey))}</span>${place.count>1?`<span class="tag">${esc(tp('place.stops',place.count))}</span>`:''}<span class="district">${esc(place.district||districtFor(place.lat,place.lon))}</span>`;
-    const choose=()=>setOrigin(person,place,sug.parentElement.querySelector('.hint'),input,sug);
+    const choose=()=>{onChoose?.();setOrigin(person,place,sug.parentElement.querySelector('.hint'),input,sug);};
     d.onclick=choose;
     sug.appendChild(d);
   });
@@ -210,21 +210,22 @@ export function makeCard(person){
   const input=card.querySelector('#start-'+CSS.escape(id));
   const sug=card.querySelector('.suggestions'),hint=card.querySelector('.hint');
   let timer=null,controller=null,requestSeq=0;
+  const cancelSearch=()=>{clearTimeout(timer);if(controller)controller.abort();requestSeq++;};
   nameInput.addEventListener('input',()=>{person.name=nameInput.value;save();refreshMeta();});
   input.addEventListener('input',()=>{
     clearTimeout(timer);if(controller)controller.abort();
     const q=input.value.trim();
     if(q.length<2){sug.hidden=true;input.setAttribute('aria-expanded','false');return;}
     const local=dedupePlaces(searchPlaces(q,8),8);
-    renderSuggestions(sug,local,person,input,false);
-    if(q.length<3)return;
+    renderSuggestions(sug,local,person,input,false,false,cancelSearch);
+    if(q.length<3&&!/[^\u0000-\u007f]/.test(q))return;
     const mine=++requestSeq;
     timer=setTimeout(async()=>{
       controller=new AbortController();
       try{
         const remote=await photonSearch(q,controller.signal);
-        if(mine===requestSeq)renderSuggestions(sug,local.concat(remote),person,input,false,true);
-      }catch(e){if(mine===requestSeq&&e.name!=='AbortError')renderSuggestions(sug,local,person,input,true,true);}
+        if(mine===requestSeq)renderSuggestions(sug,local.concat(remote),person,input,false,true,cancelSearch);
+      }catch(e){if(mine===requestSeq&&e.name!=='AbortError')renderSuggestions(sug,local,person,input,true,true,cancelSearch);}
     },350);
   });
   card.querySelector('.save-person').onclick=()=>savePersonToDirectory(person);

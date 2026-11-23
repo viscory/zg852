@@ -75,11 +75,20 @@ export function createMap(){
   L.control.zoom({position:'bottomright'}).addTo(map);
   map.createPane('routePane').style.zIndex=450;
   map.createPane('pointPane').style.zIndex=460;
-  vectorLayer=maplibreGL({style:CLEAN_STYLE,interactive:false,attributionControl:false}).addTo(map);
-  vectorLayer.on?.('load',applyMapLabels);
   cloudLayer=L.layerGroup().addTo(map);routeLayer=L.layerGroup({pane:'routePane'}).addTo(map);
   pointLayer=L.layerGroup({pane:'pointPane'}).addTo(map);originLayer=L.layerGroup({pane:'pointPane'}).addTo(map);
   map.on('click',e=>{if(store.pinTarget)setPinOrigin(store.pinTarget,e.latlng.lat,e.latlng.lng);});
+  const glLayer=maplibreGL({style:CLEAN_STYLE,interactive:false,attributionControl:false});
+  try{
+    glLayer.addTo(map);
+    vectorLayer=glLayer;
+    vectorLayer.on?.('load',applyMapLabels);
+  }catch(err){
+    glLayer._glMap||={remove(){}};
+    try{map.removeLayer(glLayer);}catch(removeErr){console.error(removeErr);}
+    vectorLayer=null;
+    throw err;
+  }
 }
 export function clearMapOutput(){
   store.results=[];
