@@ -26,7 +26,7 @@
   "options.title": "Parámetros",
   "options.rail": "MTR",
   "options.bus": "Autobús / minibús",
-  "options.tolerance": "Hasta el 300 %, la persona más lenta puede tardar ese múltiplo respecto a la más rápida. Por encima del 300 % el mapa es ilimitado: toca cualquier lugar para elegir un punto.",
+  "options.tolerance": "Cuánto más puede tardar el viaje más lento que el más rápido, en porcentaje.",
   "options.toleranceNear": "Casi igual",
   "options.toleranceFlexible": "Más flexible",
   "options.includeHeadway": "Incluir el intervalo medio",
@@ -148,10 +148,15 @@
   "map.pinnedPoint": "Punto fijado",
   "map.clearPoint": "Quitar el punto fijado",
   "route.busLink": "Ver esta ruta de autobús en HK Bus ETA",
-  "diag.button": "Descargar diagnóstico",
+  "diag.button": "Diagnósticos",
   "diag.help": "Exporta el escenario y las rutas actuales para poder diagnosticar un problema.",
   "diag.copied": "Diagnóstico descargado y copiado",
   "diag.downloaded": "Diagnóstico descargado",
   "diag.failed": "No se pudo exportar el diagnóstico",
-  "route.walkTo": "Caminar {time} hasta {to}"
+  "route.walkTo": "Caminar {time} hasta {to}",
+  "diag.beta": "beta",
+  "vector.ratings": "Valoraciones de intereses",
+  "vector.ratingScale": "Normalizado logarítmico 0–100 por categoría",
+  "vector.overall": "General {value}/100",
+  "vector.rating": "{value}/100"
 }

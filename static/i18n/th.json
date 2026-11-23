@@ -26,7 +26,7 @@
   "options.title": "พารามิเตอร์",
   "options.rail": "MTR",
   "options.bus": "รถบัส / รถตู้",
-  "options.tolerance": "สูงสุด 300% คนที่ช้าที่สุดอาจใช้เวลามากกว่าคนที่เร็วที่สุดได้ตามจำนวนเท่านั้น เกิน 300% แผนที่จะไม่จำกัด: แตะที่ใดก็ได้เพื่อเลือกจุด",
+  "options.tolerance": "เปอร์เซ็นต์ที่การเดินทางช้าที่สุดอาจใช้เวลานานกว่าการเดินทางเร็วที่สุด",
   "options.toleranceNear": "ใกล้เคียงกัน",
   "options.toleranceFlexible": "ยืดหยุ่นกว่า",
   "options.includeHeadway": "รวมระยะห่างเฉลี่ยระหว่างรถ",
@@ -148,10 +148,15 @@
   "map.pinnedPoint": "จุดที่ปักหมุด",
   "map.clearPoint": "ลบหมุด",
   "route.busLink": "ดูเส้นทางรถเมล์นี้ใน HK Bus ETA",
-  "diag.button": "ดาวน์โหลดข้อมูลวินิจฉัย",
+  "diag.button": "การวินิจฉัย",
   "diag.help": "ส่งออกสถานการณ์และเส้นทางปัจจุบันเพื่อวินิจฉัยปัญหา",
   "diag.copied": "ดาวน์โหลดและคัดลอกข้อมูลวินิจฉัยแล้ว",
   "diag.downloaded": "ดาวน์โหลดข้อมูลวินิจฉัยแล้ว",
   "diag.failed": "ไม่สามารถส่งออกข้อมูลวินิจฉัยได้",
-  "route.walkTo": "เดิน {time} ถึง{to}"
+  "route.walkTo": "เดิน {time} ถึง{to}",
+  "diag.beta": "เบต้า",
+  "vector.ratings": "คะแนนความสนใจ",
+  "vector.ratingScale": "ปรับเป็นสเกลลอการิทึก 0–100 ตามหมวดหมู่",
+  "vector.overall": "โดยรวม {value}/100",
+  "vector.rating": "{value}/100"
 }

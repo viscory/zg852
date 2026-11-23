@@ -134,7 +134,9 @@ test('brand copy and MTR-facing labels use the 就腳 name', async ({ page }) =>
   await expect(page.locator('.chip[data-mode="rail"]')).toHaveAttribute('aria-label', 'MTR');
   await expect(page.locator('.route-key [data-i18n="map.railKey"]')).toHaveText('MTR');
   await expect(page.locator('#tolerance')).toHaveAttribute('min', '0.05');
-  await expect(page.locator('label[for="tolerance"]')).toHaveText('Up to 300% the slowest person may take that many times the fastest. Past 300% the map is unbounded: tap anywhere to pick a point.');
+  await expect(page.locator('label[for="tolerance"]')).toHaveText('How much longer the slowest trip may be than the fastest, as a percentage.');
+  await expect(page.locator('.tolerance-row #exportDiagnostics')).toHaveCount(0);
+  await expect(page.locator('.legal-links #exportDiagnostics .beta-tag')).toHaveText('beta');
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', 'https://zg852.pages.dev/og-image.png?v=2');
 });
 
@@ -754,8 +756,8 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
-  expect(expected).toHaveLength(155);
-  for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
+  expect(expected).toHaveLength(160);
+  for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.beta', 'diag.help', 'vector.ratings', 'vector.ratingScale', 'vector.overall', 'vector.rating', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
   for (const key of ['app.meaning', 'people.focusLabel', 'people.focusTime', 'people.focusCost']) {
@@ -766,7 +768,7 @@ test('all catalogues keep the same keys and avoid ranking wording', async ({ pag
   expect(catalogues[0]['options.rail']).toBe('MTR');
   expect(catalogues[0]['mode.rail']).toBe('MTR');
   expect(catalogues[0]['map.railKey']).toBe('MTR');
-  expect(catalogues[0]['options.tolerance']).toBe('Up to 300% the slowest person may take that many times the fastest. Past 300% the map is unbounded: tap anywhere to pick a point.');
+  expect(catalogues[0]['options.tolerance']).toBe('How much longer the slowest trip may be than the fastest, as a percentage.');
   expect(catalogues[0]['results.fareTotal']).toBe('Fare {value}');
   expect(catalogues[0]['results.noFitMtr']).toContain('MTR');
   for (const entries of catalogues) {
@@ -951,7 +953,12 @@ test('beta interest vectors default off and recompute the map with labelled pref
   await expect(page.locator('.vector-help')).toContainText('travel time');
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
-  await expect(page.locator('.fit-row')).toHaveCount(0);
+  await expect(page.locator('#interestRatings')).toBeVisible();
+  await expect(page.locator('.fit-row')).toHaveCount(6);
+  await expect(page.locator('#fitOverall')).toHaveText(/^Overall \d+\/100$/);
+  for (const key of ['food', 'drinks', 'activities', 'culture', 'outdoors', 'shopping']) {
+    await expect(page.locator(`.fit-row[data-category="${key}"] .fit-value`)).toHaveText(/^\d+\/100$/);
+  }
   await expect(page.locator('#detailSub')).toContainText('No preference applied');
 
   await page.evaluate(() => {
@@ -978,6 +985,7 @@ test('beta interest vectors default off and recompute the map with labelled pref
   await page.locator('#betaBadge').click();
   await expect(page.locator('#vectorSection')).toBeHidden();
   await expect(page.locator('#legendVectorKey')).toBeHidden();
+  await expect(page.locator('#interestRatings')).toBeHidden();
   await expect.poll(() => page.locator('#detailSub').textContent()).not.toContain('preference');
 });
 
@@ -991,6 +999,22 @@ test('heat cells reveal delayed interest tooltips and open a breakdown', async (
   await page.mouse.click(point.x, point.y);
   await expect(page.locator('#detail')).toBeVisible();
   await expect(page.locator('#detailTitle')).not.toBeEmpty();
+});
+
+test('interest tooltip shows normalized category ratings when beta is on', async ({ page }) => {
+  await Promise.all([
+    page.waitForResponse(response => response.url().includes('poi-index.json')),
+    page.locator('#betaBadge').click(),
+  ]);
+  await page.locator('#go').click();
+  const point = await clickableHeatCell(page);
+  await page.mouse.move(point.x, point.y);
+  await expect(page.locator('#mapTooltip')).toBeVisible({ timeout: 2500 });
+  await expect(page.locator('#mapTooltip')).toContainText('Area interest fit');
+  await expect(page.locator('#mapTooltip .tooltip-vector')).toHaveCount(6);
+  for (const key of ['food', 'drinks', 'activities', 'culture', 'outdoors', 'shopping']) {
+    await expect(page.locator(`#mapTooltip .tooltip-vector[data-category="${key}"] .tooltip-rating`)).toHaveText(/^\d+\/100$/);
+  }
 });
 
 // Leaves the page on a result whose route really has an interchange, so tests

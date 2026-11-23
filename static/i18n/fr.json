@@ -26,7 +26,7 @@
   "options.title": "Paramètres",
   "options.rail": "MTR",
   "options.bus": "Bus / minibus",
-  "options.tolerance": "Jusqu'à 300 %, la personne la plus lente peut prendre autant de fois le temps de la plus rapide. Au-delà de 300 %, la carte est illimitée : touchez n'importe où pour choisir un point.",
+  "options.tolerance": "Combien de temps le trajet le plus lent peut dépasser le plus rapide, en pourcentage.",
   "options.toleranceNear": "Presque égaux",
   "options.toleranceFlexible": "Plus souple",
   "options.includeHeadway": "Inclure l'intervalle moyen",
@@ -148,10 +148,15 @@
   "map.pinnedPoint": "Point épinglé",
   "map.clearPoint": "Effacer l'épingle",
   "route.busLink": "Voir cette ligne de bus sur HK Bus ETA",
-  "diag.button": "Télécharger le diagnostic",
+  "diag.button": "Diagnostics",
   "diag.help": "Exporte le scénario et les itinéraires actuels afin de diagnostiquer un problème.",
   "diag.copied": "Diagnostic téléchargé et copié",
   "diag.downloaded": "Diagnostic téléchargé",
   "diag.failed": "Impossible d'exporter le diagnostic",
-  "route.walkTo": "Marcher {time} jusqu'à {to}"
+  "route.walkTo": "Marcher {time} jusqu'à {to}",
+  "diag.beta": "bêta",
+  "vector.ratings": "Évaluations des centres d’intérêt",
+  "vector.ratingScale": "Normalisation logarithmique 0–100 par catégorie",
+  "vector.overall": "Global {value}/100",
+  "vector.rating": "{value}/100"
 }

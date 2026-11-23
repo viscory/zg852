@@ -26,7 +26,7 @@
   "options.title": "Parameter",
   "options.rail": "MTR",
   "options.bus": "Bus / minibus",
-  "options.tolerance": "Hingga 300%, orang terpelan boleh mengambil masa sebanyak itu berbanding yang tercepat. Di atas 300%, peta tidak terhad: ketik di mana sahaja untuk memilih titik.",
+  "options.tolerance": "Seberapa lebih lama perjalanan terlama boleh dibanding perjalanan tercepat, dalam persentase.",
   "options.toleranceNear": "Hampir sama",
   "options.toleranceFlexible": "Lebih fleksibel",
   "options.includeHeadway": "Sertakan jeda waktu rata-rata",
@@ -148,10 +148,15 @@
   "map.pinnedPoint": "Titik disemat",
   "map.clearPoint": "Hapus sematan",
   "route.busLink": "Lihat laluan bas ini di HK Bus ETA",
-  "diag.button": "Muat turun diagnostik",
+  "diag.button": "Diagnostik",
   "diag.help": "Mengeksport senario dan laluan semasa supaya masalah boleh didiagnosis.",
   "diag.copied": "Diagnostik dimuat turun dan disalin",
   "diag.downloaded": "Diagnostik dimuat turun",
   "diag.failed": "Gagal mengeksport diagnostik",
-  "route.walkTo": "Jalan {time} ke {to}"
+  "route.walkTo": "Jalan {time} ke {to}",
+  "diag.beta": "beta",
+  "vector.ratings": "Peringkat minat",
+  "vector.ratingScale": "Dinormalisasi log 0–100 per kategori",
+  "vector.overall": "Keseluruhan {value}/100",
+  "vector.rating": "{value}/100"
 }

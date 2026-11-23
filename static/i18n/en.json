@@ -26,7 +26,7 @@
   "options.title": "Parameters",
   "options.rail": "MTR",
   "options.bus": "Bus / minibus",
-  "options.tolerance": "Up to 300% the slowest person may take that many times the fastest. Past 300% the map is unbounded: tap anywhere to pick a point.",
+  "options.tolerance": "How much longer the slowest trip may be than the fastest, as a percentage.",
   "options.toleranceNear": "Near equal",
   "options.toleranceFlexible": "More flexible",
   "options.includeHeadway": "Include average headway",
@@ -148,10 +148,15 @@
   "map.pinnedPoint": "Pinned point",
   "map.clearPoint": "Clear pinned point",
   "route.busLink": "View this bus route on HK Bus ETA",
-  "diag.button": "Download diagnostics",
+  "diag.button": "Diagnostics",
   "diag.help": "Exports your current scenario and routes so a problem can be diagnosed.",
   "diag.copied": "Diagnostics downloaded and copied",
   "diag.downloaded": "Diagnostics downloaded",
   "diag.failed": "Could not export diagnostics",
-  "route.walkTo": "Walk {time} to {to}"
+  "route.walkTo": "Walk {time} to {to}",
+  "diag.beta": "beta",
+  "vector.ratings": "Interest ratings",
+  "vector.ratingScale": "Log-normalised 0–100 by category",
+  "vector.overall": "Overall {value}/100",
+  "vector.rating": "{value}/100"
 }

@@ -26,7 +26,7 @@
   "options.title": "Mga parameter",
   "options.rail": "MTR",
   "options.bus": "Bus / minibus",
-  "options.tolerance": "Hanggang 300%, ang pinakamabagal ay maaaring tumagal nang ganon kadaming beses kaysa sa pinakamabilis. Lampas 300%, walang hanggan ang mapa: pindutin kahit saan upang pumili ng punto.",
+  "options.tolerance": "Gaano katagal maaaring tumagal ang pinakamabagal na biyahe kumpara sa pinakamabilis, bilang porsiyento.",
   "options.toleranceNear": "Halos pantay",
   "options.toleranceFlexible": "Mas maluwag",
   "options.includeHeadway": "Isama ang karaniwang agwat ng biyahe",
@@ -148,10 +148,15 @@
   "map.pinnedPoint": "Naka-pin na punto",
   "map.clearPoint": "Tanggalin ang pin",
   "route.busLink": "Tingnan ang bus na ito sa HK Bus ETA",
-  "diag.button": "I-download ang diagnostics",
+  "diag.button": "Diagnostics",
   "diag.help": "Ine-export ang kasalukuyang senaryo at mga ruta upang masuri ang isang problema.",
   "diag.copied": "Na-download at nakopya ang diagnostics",
   "diag.downloaded": "Na-download ang diagnostics",
   "diag.failed": "Hindi ma-export ang diagnostics",
-  "route.walkTo": "Lakad {time} patungong {to}"
+  "route.walkTo": "Lakad {time} patungong {to}",
+  "diag.beta": "beta",
+  "vector.ratings": "Mga rating ng interes",
+  "vector.ratingScale": "Log-normalisado 0–100 bawat kategorya",
+  "vector.overall": "Kabuuan {value}/100",
+  "vector.rating": "{value}/100"
 }

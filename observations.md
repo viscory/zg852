@@ -1,3 +1,16 @@
+## 2026-11-23T16:57:47Z
+
+- Corrected the previous misread: diagnostics is now a muted text button beside Process in the rightbar footer with a small `beta` superscript, and its status output lives in the footer. Removed `data-i18n` from the button element because the i18n pass replaced its child markup and hid the beta tag.
+- Replaced the long tolerance paragraph with one sentence: “How much longer the slowest trip may be than the fastest, as a percentage.” in FALLBACK and all 15 catalogues.
+- Built the missing interest-rating UI the user expected. `src/js/vectors.js` now exposes `categoryRating()`, `cellRatings()`, `overallRating()`, and `ratingText()` over the existing per-category log-normalised 0..1 POI values. `cellToResult()` carries `ratings` and `rating` into results and diagnostics.
+- Interest ratings now appear in two places when beta vectors are on: the selected-area detail panel has an “Interest ratings” card with an overall `/100` score plus six category rows (label, count, bar, `/100` value), and the delayed map tooltip shows the same normalized ratings per category with the overall score/preference. Added four localized keys across all catalogues (160 keys total).
+- Added coverage for the beta tag placement, one-line tolerance copy, six detail rating rows, overall rating format, and tooltip ratings. Fixed a CSP regression by setting bar widths via JS after insertion instead of inline `style` attributes.
+- Verification clean: `npm run lint` (160 keys × 15 catalogues, 107 literal keys), `npm test` 65/65, `npm run build`, `git diff --check`. Bumped service-worker cache `v38` → `v39`. Changes are in the working tree but not yet committed.
+
+## 2026-11-23T16:48:07Z
+
+- User was unhappy with the prior terse summary; clarified the exact changes made in `7d862b5`: icon-only diagnostics button beside the tolerance label, headway help removed, tolerance label replaced by the 300%/unlimited explanation, sticky rightbar footer restored, plus i18n cleanup and SW cache bump.
+
 ## 2026-11-23T16:45:11Z
 
 - Committed and pushed the Parameters/footer fixes as `7d862b5` (`fix: tighten parameters copy and restore sticky footer`); `origin/main` is current and the working tree is clean.

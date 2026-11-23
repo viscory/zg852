@@ -39,6 +39,21 @@ export function cellTopNames(cell){
   const top=store.POI?.cells?.[cell.key]?.top||{};
   return VECTOR_KEYS.flatMap(key=>top[key]||[]).slice(0,3);
 }
+// POI values are already log-normalised to 0..1 per category (see
+// scripts/build_poi_index.py). Surface that as a readable 0..100 rating rather
+// than treating the raw decimals as an opaque preference input.
+export function categoryRating(value){
+  return Math.round(clamp(Number(value)||0,0,1)*100);
+}
+export function cellRatings(cell){
+  const values=cellVector(cell),counts=cellCount(cell);
+  return VECTOR_KEYS.map(key=>({key,rating:categoryRating(values[key]),count:counts[key]}));
+}
+export function overallRating(cell){
+  const values=cellVector(cell);
+  return categoryRating(VECTOR_KEYS.reduce((sum,key)=>sum+(Number(values[key])||0),0)/VECTOR_KEYS.length);
+}
+export function ratingText(rating){return t('vector.rating',{value:num(Math.round(clamp(Number(rating)||0,0,100)))});}
 export function cellPreference(cell){
   if(!betaVectorsEnabled())return 0;
   const vectors=normalizeVectors(store.settings.vectors),values=cellVector(cell);

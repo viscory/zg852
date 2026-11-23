@@ -26,7 +26,7 @@
   "options.title": "Tham số",
   "options.rail": "MTR",
   "options.bus": "Xe buýt / xe mini",
-  "options.tolerance": "Đến 300%, người chậm nhất có thể mất gấp bấy nhiêu thời gian người nhanh nhất. Trên 300%, bản đồ không giới hạn: chạm vào bất kỳ đâu để chọn một điểm.",
+  "options.tolerance": "Mức thời gian chuyến đi chậm nhất có thể hơn chuyến nhanh nhất, tính theo phần trăm.",
   "options.toleranceNear": "Gần bằng nhau",
   "options.toleranceFlexible": "Linh hoạt hơn",
   "options.includeHeadway": "Bao gồm khoảng thời gian trung bình giữa các chuyến xe",
@@ -148,10 +148,15 @@
   "map.pinnedPoint": "Điểm đã ghim",
   "map.clearPoint": "Xóa điểm ghim",
   "route.busLink": "Xem tuyến xe buýt này trên HK Bus ETA",
-  "diag.button": "Tải dữ liệu chẩn đoán",
+  "diag.button": "Chẩn đoán",
   "diag.help": "Xuất kịch bản và các tuyến đường hiện tại để chẩn đoán sự cố.",
   "diag.copied": "Đã tải và sao chép dữ liệu chẩn đoán",
   "diag.downloaded": "Đã tải dữ liệu chẩn đoán",
   "diag.failed": "Không thể xuất dữ liệu chẩn đoán",
-  "route.walkTo": "Đi bộ {time} đến {to}"
+  "route.walkTo": "Đi bộ {time} đến {to}",
+  "diag.beta": "beta",
+  "vector.ratings": "Điểm sở thích",
+  "vector.ratingScale": "Chuẩn hoá logarit 0–100 theo danh mục",
+  "vector.overall": "Tổng thể {value}/100",
+  "vector.rating": "{value}/100"
 }

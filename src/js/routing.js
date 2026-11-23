@@ -3,7 +3,7 @@ import { store } from './store.js';
 import { isNum,haversine,walkMinutes,clamp,round1,esc } from './util.js';
 import { t,tp,num,minuteText } from './i18n.js';
 import { nodePriority,catKey,districtFor } from './data.js';
-import { cellVector,cellCount,cellPreference } from './vectors.js';
+import { cellVector,cellCount,cellPreference,cellRatings,overallRating } from './vectors.js';
 
 // The routing engine: multi-source Dijkstra over the walk+ride graph, fare
 // estimation, leg narration, and fair-cell construction. Pure with respect to
@@ -292,6 +292,6 @@ export function cellToResult(cell){
     cellLat:cell.cy*CELL_SIZE+CELL_SIZE/2,cellLon:cell.cx*CELL_SIZE+CELL_SIZE/2,
     times:cell.times.map(round),
     fastest:round(cell.fastest),slowest:round(cell.slowest),gap:round(cell.gap),score:round(cell.score),
-    fit:cellPreference(cell),vector:cellVector(cell),count:cellCount(cell),
+    fit:cellPreference(cell),vector:cellVector(cell),count:cellCount(cell),ratings:cellRatings(cell),rating:overallRating(cell),
   };
 }

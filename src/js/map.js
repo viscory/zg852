@@ -2,11 +2,11 @@ import * as L from 'leaflet';
 import { maplibreGL } from '@maplibre/maplibre-gl-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,VECTOR_KEYS,TRAVEL_BUDGET_MINUTES } from './config.js';
+import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,TRAVEL_BUDGET_MINUTES } from './config.js';
 import { store } from './store.js';
 import { $,esc,clamp,isNum,icon,initialsFor,avatarClass,haversine } from './util.js';
 import { t,num,intNum,minuteText } from './i18n.js';
-import { betaVectorsEnabled,preferenceText,cellVector,cellCount,cellTopNames,cellPreference } from './vectors.js';
+import { betaVectorsEnabled,preferenceText,cellTopNames,cellPreference,cellRatings,overallRating,ratingText } from './vectors.js';
 import { prepareRoutes,legLabel,fareMarkup,money,cellToResult,interchangeWaitText } from './routing.js';
 import { hkbusUrl,mtrLineCode,districtFor } from './data.js';
 import { displayName } from './state.js';
@@ -151,9 +151,8 @@ export function scheduleCellTooltip(cell,event){
     const enabled=betaVectorsEnabled();
     const tooltip=$('mapTooltip');
     if(enabled){
-      const values=cellVector(cell),counts=cellCount(cell),max=Math.max(...VECTOR_KEYS.map(key=>values[key]),1);
-      const places=cellTopNames(cell);
-      tooltip.innerHTML=`<b>${esc(t('map.cellTitle'))} · ${esc(preferenceText(cellPreference(cell)))}</b>${VECTOR_KEYS.map(key=>`<span class="tooltip-vector"><span>${esc(t('vector.'+key))}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${Math.max(2,Math.round(values[key]/max*100))}"></i></span><span>${esc(num(counts[key]))}</span></span>`).join('')}${places.length?`<span class="tooltip-places">${esc(places.join(' · '))}</span>`:''}`;
+      const ratings=cellRatings(cell),places=cellTopNames(cell);
+      tooltip.innerHTML=`<b>${esc(t('map.cellTitle'))} · ${esc(ratingText(overallRating(cell)))} · ${esc(preferenceText(cellPreference(cell)))}</b>${ratings.map(({key,rating,count})=>`<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}"><span>${esc(t('vector.'+key))}<em>${esc(num(count))}</em></span><span class="tooltip-track"><i class="tooltip-fill" data-width="${rating}"></i></span><span class="tooltip-rating">${esc(ratingText(rating))}</span></span>`).join('')}${places.length?`<span class="tooltip-places">${esc(places.join(' · '))}</span>`:''}`;
       tooltip.querySelectorAll('.tooltip-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
     }else{
       tooltip.innerHTML=`<b>${esc(t('map.areaTitle'))} · ${esc(t('results.longest',{value:intNum(cell.slowest)}))}</b>`;
@@ -208,6 +207,13 @@ export function applySelection(active=store.activePeople){
   }
   selectResult(clamp(Number(store.selection?.index)||0,0,Math.max(0,store.results.length-1)),active);
 }
+function interestRatingMarkup(result){
+  return cellRatings(result).map(({key,rating,count})=>`<div class="fit-row" data-category="${esc(key)}" data-rating="${rating}">
+    <span class="fit-label">${esc(t('vector.'+key))}<small>${esc(num(count))}</small></span>
+    <span class="fit-track"><i class="fit-fill" data-width="${rating}"></i></span>
+    <span class="fit-value">${esc(ratingText(rating))}</span>
+  </div>`).join('');
+}
 function legChip(leg){
   if(leg.mode==='walk')return `<span class="walk-leg route-walk"><span class="ride-text">${esc(leg.text||legLabel(leg))}</span></span>`;
   const rail=leg.mode==='rail';
@@ -244,7 +250,14 @@ export function renderSelection(r,active=store.activePeople){
   L.circleMarker([r.lat,r.lon],{pane:'pointPane',radius:5,color:ACCENT,weight:2,fillColor:ACCENT,fillOpacity:1}).bindPopup(`<b>${esc(r.label)}</b>`).addTo(pointLayer);
   $('detailTitle').textContent=r.label;
   $('detailDistrict').textContent=r.district;
-  const preference=betaVectorsEnabled()?` ${preferenceText(r.fit)}`:'';
+  const showRatings=betaVectorsEnabled()&&!r.point;
+  $('interestRatings').hidden=!showRatings;
+  if(showRatings){
+    $('fitOverall').textContent=t('vector.overall',{value:num(overallRating(r))});
+    $('fitGrid').innerHTML=interestRatingMarkup(r);
+    $('fitGrid').querySelectorAll('.fit-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
+  }
+  const preference=showRatings?` ${preferenceText(r.fit)}`:'';
   $('detailSub').textContent=`${t('results.spread',{value:intNum(r.gap)})} ${t('results.longest',{value:intNum(r.slowest)})}${preference}`;
   const already=r.times.every(value=>value<=0.5);
   $('steps').innerHTML=legCount?r.routes.map((route,j)=>`<div class="step">

@@ -26,7 +26,7 @@
   "options.title": "參數",
   "options.rail": "港鐵",
   "options.bus": "巴士／小巴",
-  "options.tolerance": "300% 以內，最慢者的時間最多是最快者的相同倍數。超過 300% 即為無界限模式：在地圖上任何位置點選即可選點。",
+  "options.tolerance": "最慢行程相比最快行程可多出的時間百分比。",
   "options.toleranceNear": "盡量相近",
   "options.toleranceFlexible": "較有彈性",
   "options.includeHeadway": "計入平均班次間隔",
@@ -148,10 +148,15 @@
   "map.pinnedPoint": "已固定地點",
   "map.clearPoint": "清除已固定地點",
   "route.busLink": "在 HK Bus ETA 查看此巴士路線",
-  "diag.button": "下載診斷資料",
+  "diag.button": "診斷",
   "diag.help": "匯出目前情境與路線，以便診斷問題。",
   "diag.copied": "診斷資料已下載並複製",
   "diag.downloaded": "診斷資料已下載",
   "diag.failed": "無法匯出診斷資料",
-  "route.walkTo": "步行 {time} 至{to}"
+  "route.walkTo": "步行 {time} 至{to}",
+  "diag.beta": "測試版",
+  "vector.ratings": "興趣評分",
+  "vector.ratingScale": "各類別以對數正規化為 0–100",
+  "vector.overall": "整體 {value}/100",
+  "vector.rating": "{value}/100"
 }

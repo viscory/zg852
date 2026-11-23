@@ -26,7 +26,7 @@
   "options.title": "パラメーター",
   "options.rail": "MTR",
   "options.bus": "バス／ミニバス",
-  "options.tolerance": "300% まで、最も遅い人は最も速い人のその倍の時間がかかります。300% を超えると無制限モードになり、地図の任意の場所をタップして地点を選べます。",
+  "options.tolerance": "最も遅い移動が最も速い移動より長くてもよい割合です。",
   "options.toleranceNear": "できるだけ均等",
   "options.toleranceFlexible": "柔軟に調整",
   "options.includeHeadway": "平均運転間隔を含める",
@@ -148,10 +148,15 @@
   "map.pinnedPoint": "ピン留めした地点",
   "map.clearPoint": "ピン留めを解除",
   "route.busLink": "このバス路線を HK Bus ETA で見る",
-  "diag.button": "診断データをダウンロード",
+  "diag.button": "診断",
   "diag.help": "現在のシナリオとルートを書き出して、問題を診断できるようにします。",
   "diag.copied": "診断データをダウンロードしてコピーしました",
   "diag.downloaded": "診断データをダウンロードしました",
   "diag.failed": "診断データを書き出せませんでした",
-  "route.walkTo": "{to}まで徒歩 {time}"
+  "route.walkTo": "{to}まで徒歩 {time}",
+  "diag.beta": "ベータ",
+  "vector.ratings": "興味評価",
+  "vector.ratingScale": "カテゴリごとに対数正規化した 0〜100",
+  "vector.overall": "総合 {value}/100",
+  "vector.rating": "{value}/100"
 }

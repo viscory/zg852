@@ -26,7 +26,7 @@
   "options.title": "پیرامیٹرز",
   "options.rail": "MTR",
   "options.bus": "بس / منی بس",
-  "options.tolerance": "300% تک سست ترین شخص کو تیز ترین شخص سے اتنا وقت لگ سکتا ہے۔ 300% سے اوپر نقشہ لامحدود ہے: نقطہ منتخب کرنے کے لیے کہیں بھی ٹیپ کریں۔",
+  "options.tolerance": "سب سے سست سفر سب سے تیز سفر سے کتنے فیصد زیادہ وقت لے سکتا ہے۔",
   "options.toleranceNear": "تقریباً برابر",
   "options.toleranceFlexible": "زیادہ لچکدار",
   "options.includeHeadway": "اوسط وقفہ شامل کریں",
@@ -148,10 +148,15 @@
   "map.pinnedPoint": "پن کیا گیا نقطہ",
   "map.clearPoint": "پن ہٹائیں",
   "route.busLink": "یہ بس روٹ HK Bus ETA پر دیکھیں",
-  "diag.button": "تشخیصی ڈیٹا ڈاؤن لوڈ کریں",
+  "diag.button": "تشخیص",
   "diag.help": "مسئلے کی تشخیص کے لیے موجودہ منظرنامہ اور راستے برآمد کرتا ہے۔",
   "diag.copied": "تشخیصی ڈیٹا ڈاؤن لوڈ اور کاپی ہو گیا",
   "diag.downloaded": "تشخیصی ڈیٹا ڈاؤن لوڈ ہو گیا",
   "diag.failed": "تشخیصی ڈیٹا برآمد نہیں ہو سکا",
-  "route.walkTo": "{to} تک پیدل {time}"
+  "route.walkTo": "{to} تک پیدل {time}",
+  "diag.beta": "بیٹا",
+  "vector.ratings": "دلچسپی کی درجہ بندی",
+  "vector.ratingScale": "زمرے کے حساب سے لاگاریتھمک 0–100",
+  "vector.overall": "مجموعی {value}/100",
+  "vector.rating": "{value}/100"
 }

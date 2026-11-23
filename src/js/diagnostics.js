@@ -46,6 +46,8 @@ function areaFacts(result){
     gap:result.gap,
     score:result.score,
     interestFit:result.fit,
+    interestRating:result.rating??null,
+    interestRatings:result.ratings??null,
     routes:(result.routes||[]).map((route,j)=>({
       person:displayName(store.activePeople[j],j),
       legs:(route.legs||[]).map(leg=>legFacts(leg,j)),

@@ -26,7 +26,7 @@
   "options.title": "매개변수",
   "options.rail": "MTR",
   "options.bus": "버스／미니버스",
-  "options.tolerance": "300%까지 가장 느린 사람은 가장 빠른 사람의 그 배만큼 걸릴 수 있습니다. 300%를 넘으면 무제한 모드가 되어 지도의 아무 곳이나 눌러 지점을 고를 수 있습니다.",
+  "options.tolerance": "가장 느린 이동이 가장 빠른 이동보다 얼마나 더 오래 걸릴 수 있는지의 비율입니다.",
   "options.toleranceNear": "최대한 비슷하게",
   "options.toleranceFlexible": "좀 더 유연하게",
   "options.includeHeadway": "평균 배차 간격 포함",
@@ -148,10 +148,15 @@
   "map.pinnedPoint": "고정된 지점",
   "map.clearPoint": "고정 지점 해제",
   "route.busLink": "HK Bus ETA에서 이 버스 노선 보기",
-  "diag.button": "진단 데이터 다운로드",
+  "diag.button": "진단",
   "diag.help": "문제를 진단할 수 있도록 현재 시나리오와 경로를 내보냅니다.",
   "diag.copied": "진단 데이터를 다운로드하고 복사했습니다",
   "diag.downloaded": "진단 데이터를 다운로드했습니다",
   "diag.failed": "진단 데이터를 내보낼 수 없습니다",
-  "route.walkTo": "{to}까지 도보 {time}"
+  "route.walkTo": "{to}까지 도보 {time}",
+  "diag.beta": "베타",
+  "vector.ratings": "관심 점수",
+  "vector.ratingScale": "카테고리별 로그 정규화 0–100",
+  "vector.overall": "전체 {value}/100",
+  "vector.rating": "{value}/100"
 }

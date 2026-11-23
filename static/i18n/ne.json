@@ -26,7 +26,7 @@
   "options.title": "प्यारामिटरहरू",
   "options.rail": "MTR",
   "options.bus": "बस / मिनिबस",
-  "options.tolerance": "300% सम्म सबैभन्दा ढिलो व्यक्तिले सबैभन्दा छिटोभन्दा उति गुणा समय लिन सक्छ। 300% भन्दा माथि नक्सा असीमित छ: बिन्दु छनोट गर्न जहाँ पनि ट्याप गर्नुहोस्।",
+  "options.tolerance": "सबैभन्दा ढिलो यात्रा सबैभन्दा छिटो भन्दा कति प्रतिशत बढी समय लिन सक्छ।",
   "options.toleranceNear": "लगभग बराबर",
   "options.toleranceFlexible": "अझ लचिलो",
   "options.includeHeadway": "औसत अन्तराल समावेश गर्नुहोस्",
@@ -148,10 +148,15 @@
   "map.pinnedPoint": "पिन गरिएको बिन्दु",
   "map.clearPoint": "पिन हटाउनुहोस्",
   "route.busLink": "यो बस मार्ग HK Bus ETA मा हेर्नुहोस्",
-  "diag.button": "निदान डेटा डाउनलोड गर्नुहोस्",
+  "diag.button": "निदान",
   "diag.help": "समस्या निदान गर्न वर्तमान परिदृश्य र मार्गहरू निर्यात गर्दछ।",
   "diag.copied": "निदान डेटा डाउनलोड र प्रतिलिपि गरियो",
   "diag.downloaded": "निदान डेटा डाउनलोड गरियो",
   "diag.failed": "निदान डेटा निर्यात गर्न सकिएन",
-  "route.walkTo": "{to} सम्म पैदल {time}"
+  "route.walkTo": "{to} सम्म पैदल {time}",
+  "diag.beta": "बिटा",
+  "vector.ratings": "रुचि मूल्याङ्कन",
+  "vector.ratingScale": "श्रेणी अनुसार लघुगणकीय 0–100",
+  "vector.overall": "समग्र {value}/100",
+  "vector.rating": "{value}/100"
 }
