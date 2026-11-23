@@ -2,6 +2,12 @@
 
 This file records visual critiques of 就腳. The newest critique is first. Change `src/styles.css` so the page matches the newest sizes. Keep one size scale on `:root`.
 
+## 2026-11-23 Person walk tolerance and sidebar faces
+
+Each person card has a walk-tolerance row directly below the travel-priority toggle. It uses the same `.slider-row` type scale as the options tolerance: a 12px muted label, a tabular mono value, and a full-width range input with the shared 8px top margin shortened to 4px inside cards. The control stays inside the 8px card padding, runs 0–60 minutes in 5-minute steps, and defaults to 20 minutes. Its value uses the localised minute unit, like every other time in the app. No origin-hint line remains on the cards.
+
+The left sidebar swaps between the people list and the selected route. The `.sec-title` keeps the swap icon button at the right edge and shows the people count only on the people face. The detail face holds the meeting-area card plus a small dashed hint using `map.areaHint`, which hides as soon as a route is selected. The right sidebar keeps a sticky options panel at the top with a solid background, a thin bottom border, and a soft shadow, so fair-area results scroll underneath it. The results heading and count sit with the results list, and the save summary and footer stay at the bottom.
+
 ## 2026-11-23 Header spacing, sidebar footer and route legs
 
 The header subtitle needs a 6px spacer underneath it before the header ends. That is a 6px gap below the subtitle line, not a larger title margin or a taller header.

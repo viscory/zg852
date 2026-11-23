@@ -1,7 +1,7 @@
 import { LETTERS,VECTOR_KEYS } from './config.js';
 import { store } from './store.js';
 import { $,esc,clamp,icon,initialsFor,avatarClass,clone } from './util.js';
-import { t,tp,num } from './i18n.js';
+import { t,tp,num,minuteText } from './i18n.js';
 import { normalizeVectors,vectorLabel,betaVectorsEnabled } from './vectors.js';
 import { searchPlaces,districtFor } from './data.js';
 import { dedupePlaces,photonSearch } from './search.js';
@@ -15,7 +15,7 @@ export function clearError(){const el=$('error');el.textContent='';el.hidden=tru
 export function setLabel(el,value){if(!el)return;el.setAttribute('aria-label',value);el.title=value;el.dataset.tooltip=value;}
 let flipToken=0;
 export function setSidebarFace(face){
-  if(face!=='people'&&face!=='results'||store.sidebarFace===face)return;
+  if(face!=='people'&&face!=='detail'||store.sidebarFace===face)return;
   const stage=$('flipStage');
   const apply=()=>{
     store.sidebarFace=face;
@@ -93,7 +93,7 @@ export function renderResults(active=store.activePeople){
     <span class="result-times"><span>${esc(t('results.spread',{value:num(r.gap)}))}</span><span>${esc(t('results.longest',{value:num(r.slowest)}))}</span></span>
     <span class="result-people">${r.routes.map((route,j)=>`<span class="result-person"><span class="avatar ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span><span class="person-name">${esc(displayName(active[j],j))}</span>${fareMarkup(route)}</span>`).join('')}</span>
   </button>`).join('');
-  list.querySelectorAll('.result-row').forEach(row=>{row.onclick=()=>selectResult(Number(row.dataset.index),active);});
+  list.querySelectorAll('.result-row').forEach(row=>{row.onclick=()=>selectResult(Number(row.dataset.index),active,true);});
   markSelectedResult();
 }
 export function markSelectedResult(){
@@ -118,17 +118,10 @@ export function setWorking(working){
   $('goLabel').textContent=label;
   if(working)renderSkeleton();
 }
-export function originHint(origin){
-  if(!origin)return t('people.hintEmpty');
-  if(origin.kind==='node')return t('people.hintTransit');
-  if(origin.source==='photon')return t('people.hintAddress');
-  return t('people.hintPin');
-}
-export function setOrigin(person,place,hint,input,sug){
+export function setOrigin(person,place,input,sug){
   if(place.kind==='local')person.origin={kind:'node',node:place.node,label:place.label,lat:place.lat,lon:place.lon,district:place.district||districtFor(place.lat,place.lon)};
   else person.origin={kind:'coords',source:place.source||'photon',label:place.label,lat:place.lat,lon:place.lon,osm:place.osm||null,district:place.district||districtFor(place.lat,place.lon)};
   if(input)input.value=place.label;
-  if(hint)hint.textContent=originHint(person.origin);
   if(sug){sug.hidden=true;input?.setAttribute('aria-expanded','false');input?.removeAttribute('aria-activedescendant');}
   clearError();save();scheduleRecompute();
 }
@@ -151,7 +144,7 @@ export function renderSuggestions(sug,entries,person,input,failed=false,settled=
     const d=document.createElement('div');d.className='suggestion';d.id=`${sug.id}-option-${i}`;
     d.setAttribute('role','option');d.setAttribute('aria-selected','false');d.tabIndex=-1;
     d.innerHTML=`<span class="avatar ${avatarClass(i)}">${esc(initialsFor(place.label))}</span><span class="place-main">${esc(place.label)}</span><span class="tag">${esc(t('tag.'+place.tagKey))}</span>${place.count>1?`<span class="tag">${esc(tp('place.stops',place.count))}</span>`:''}<span class="district">${esc(place.district||districtFor(place.lat,place.lon))}</span>`;
-    const choose=()=>{onChoose?.();setOrigin(person,place,sug.parentElement.querySelector('.hint'),input,sug);};
+    const choose=()=>{onChoose?.();setOrigin(person,place,input,sug);};
     d.onclick=choose;
     sug.appendChild(d);
   });
@@ -188,18 +181,22 @@ export function makeCard(person){
       <input class="start-input" id="start-${id}" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggest-${id}" placeholder="${esc(t('people.startPlaceholder'))}" value="${esc(person.origin?.label||'')}">
       <button class="icon-button pin" type="button" aria-label="${pinLabel}" title="${pinLabel}" data-tooltip="${pinLabel}">${icon('pin')}</button>
     </div>
-    <span class="hint">${esc(originHint(person.origin))}</span>
   </div>
   <div class="focus-toggle" role="group" aria-label="${esc(t('people.focusLabel'))}">
     <span class="focus-label">${esc(t('people.focusLabel'))}</span>
     <button class="focus-option" type="button" data-focus="time" aria-pressed="${person.focus!=='cost'}">${esc(t('people.focusTime'))}</button>
     <button class="focus-option" type="button" data-focus="cost" aria-pressed="${person.focus==='cost'}">${esc(t('people.focusCost'))}</button>
   </div>
+  <div class="walk-row slider-row">
+    <label for="walk-${id}">${esc(t('people.walkTolerance'))}</label>
+    <span class="value" id="walk-${id}-val">${esc(minuteText(person.walkMinutes))}</span>
+  </div>
+  <input type="range" id="walk-${id}" data-walk min="0" max="60" step="5" value="${person.walkMinutes}">
   <div class="suggestions" id="suggest-${id}" role="listbox" hidden></div>`;
   $('cards').appendChild(card);
   const nameInput=card.querySelector('#name-'+CSS.escape(id));
   const input=card.querySelector('#start-'+CSS.escape(id));
-  const sug=card.querySelector('.suggestions'),hint=card.querySelector('.hint');
+  const sug=card.querySelector('.suggestions');
   let timer=null,controller=null,requestSeq=0;
   const cancelSearch=()=>{clearTimeout(timer);if(controller)controller.abort();requestSeq++;};
   nameInput.addEventListener('input',()=>{person.name=nameInput.value;save();refreshMeta();});
@@ -221,7 +218,7 @@ export function makeCard(person){
   });
   card.querySelector('.save-person').onclick=()=>savePersonToDirectory(person);
   card.querySelector('.remove').onclick=()=>{store.people=store.people.filter(p=>p.id!==id);commitPeople();};
-  card.querySelector('.pin').onclick=()=>startPinMode(id,hint,input,sug);
+  card.querySelector('.pin').onclick=()=>startPinMode(id,input,sug);
   const focusToggle=card.querySelector('.focus-toggle');
   focusToggle.querySelectorAll('.focus-option').forEach(option=>{
     option.onclick=()=>{
@@ -230,6 +227,12 @@ export function makeCard(person){
       save();scheduleRecompute();
     };
   });
+  const walk=card.querySelector('[data-walk]'),walkValue=card.querySelector('.walk-row .value');
+  walk.oninput=()=>{
+    person.walkMinutes=clamp(Number(walk.value),0,60,20);
+    walkValue.textContent=minuteText(person.walkMinutes);
+    save();scheduleRecompute();
+  };
   refreshMeta();
 }
 export function renderCards(){
@@ -248,6 +251,8 @@ export function refreshMeta(){
     const nameLabel=card.querySelector('label[for^="name-"]');if(nameLabel)nameLabel.textContent=t('people.name',{letter});
     const nameInput=card.querySelector('.name-input');if(nameInput)nameInput.placeholder=t('people.name',{letter});
     const startInput=card.querySelector('.start-input');if(startInput)startInput.placeholder=t('people.startPlaceholder');
+    const walkLabel=card.querySelector('.walk-row label');if(walkLabel)walkLabel.textContent=t('people.walkTolerance');
+    const walkValue=card.querySelector('.walk-row .value');if(walkValue)walkValue.textContent=minuteText(person.walkMinutes);
     const remove=card.querySelector('.remove');remove.hidden=store.people.length<=1;setLabel(remove,t('people.remove',{letter}));
     setLabel(card.querySelector('.pin'),t('people.pin'));
     setLabel(card.querySelector('.save-person'),t('people.save'));
@@ -261,7 +266,7 @@ export function clearPinMode(){
   $('pinBanner').hidden=true;
   hideTooltip();
 }
-export function startPinMode(id,hint,input,sug){
+export function startPinMode(id,input,sug){
   const idx=store.people.findIndex(p=>p.id===id);if(idx<0)return;
   store.pinTarget=id;
   $('map').classList.add('pinning');
@@ -282,15 +287,13 @@ export function setPinOrigin(id,lat,lon){
 export function savePersonToDirectory(person){
   if(!person.origin){showError(t('people.hintEmpty'));return;}
   const existing=store.directory.find(d=>d.id===person.directoryId)||store.directory.find(d=>d.name===person.name&&d.origin?.label===person.origin.label);
-  if(existing){existing.name=person.name;existing.origin=clone(person.origin);existing.focus=normFocus(person.focus);existing.updated=Date.now();person.directoryId=existing.id;}
+  if(existing){existing.name=person.name;existing.origin=clone(person.origin);existing.focus=normFocus(person.focus);existing.walkMinutes=clamp(Number(person.walkMinutes),0,60,20);existing.updated=Date.now();person.directoryId=existing.id;}
   else{const profile=profileFromPerson(person);store.directory.push(profile);person.directoryId=profile.id;}
   saveDirectory();save();renderDirectoryList();flashSaved(person.id);
 }
 export function flashSaved(id){
   const card=document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);if(!card)return;
-  const hint=card.querySelector('.hint'),previous=hint.textContent;
-  hint.textContent=t('people.saved');
-  setTimeout(()=>{if(hint.isConnected)hint.textContent=previous;},1200);
+  flashTooltip(card.querySelector('.save-person'),t('people.saved'));
 }
 export function deleteDirectoryPerson(id){
   store.directory=store.directory.filter(d=>d.id!==id);
@@ -299,13 +302,13 @@ export function deleteDirectoryPerson(id){
 }
 export function addDirectoryPerson(profile){
   if(store.people.length>=8||!profile)return;
-  store.people.push({id:`p${store.seq++}`,name:profile.name,origin:clone(profile.origin),directoryId:profile.id,focus:normFocus(profile.focus)});
+  store.people.push({id:`p${store.seq++}`,name:profile.name,origin:clone(profile.origin),directoryId:profile.id,focus:normFocus(profile.focus),walkMinutes:clamp(Number(profile.walkMinutes),0,60,20)});
   commitPeople();
 }
 export function editDirectoryPerson(profile){
   let person=store.people.find(p=>p.directoryId===profile.id);
   if(!person&&store.people.length<8){addDirectoryPerson(profile);person=store.people[store.people.length-1];}
-  if(person){person.name=profile.name;person.origin=clone(profile.origin);person.focus=normFocus(profile.focus);}
+  if(person){person.name=profile.name;person.origin=clone(profile.origin);person.focus=normFocus(profile.focus);person.walkMinutes=clamp(Number(profile.walkMinutes),0,60,20);}
   commitPeople();
 }
 export function renderDirectoryList(){

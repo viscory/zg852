@@ -1,3 +1,9 @@
+## 2026-11-23T13:25:13Z
+
+- Integrated the second change set: removed all start-place hints, added `t()` fallback plus SW cache `zg852-v31`, added per-person `walkMinutes` (default 20, whole-trip walk preference), moved sticky options/results to the rightbar and route detail to the leftbar flip face, and wired map/result selection to reveal that face.
+- Fixed integration gaps: result-row clicks now call `selectResult(..., true)` so selecting a result flips the leftbar, and updated Playwright selectors/expectations for the new two-face layout and always-visible rightbar results state.
+- Verified `npm run lint`, the full `npm test` suite against built `public/` (60 passed), and `git diff --check`; all 15 i18n catalogs keep identical key sets. Ready to commit and push.
+
 ## 2026-11-23T13:01:33Z
 
 - User asked to commit and push. Working tree contains the integrated UI/routing/data changes plus pre-existing uncommitted edits to `AUDIT-REPORT.md` and `observations.md`.

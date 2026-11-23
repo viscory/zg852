@@ -31,7 +31,7 @@ async function init(){
   loadNetwork().catch(err=>{console.error(err);showError(t('error.timetableFailed',{message:err.message}));});
 }
 
-$('add').onclick=()=>{if(store.people.length<8){store.people.push({id:`p${store.seq++}`,name:defaultName(store.people.length),origin:null,focus:'time'});commitPeople();}};
+$('add').onclick=()=>{if(store.people.length<8){store.people.push({id:`p${store.seq++}`,name:defaultName(store.people.length),origin:null,focus:'time',walkMinutes:20});commitPeople();}};
 $('library').onclick=openDirectory;
 $('libraryClose').onclick=()=>closeDialog($('peopleDialog'));
 $('directorySearch').oninput=renderDirectoryList;
@@ -52,9 +52,9 @@ async function setBetaEnabled(enabled){
 $('betaBadge').onclick=()=>setBetaEnabled(!betaVectorsEnabled());
 document.querySelectorAll('[data-vector]').forEach(input=>{input.oninput=readSettingsFromDom;});
 $('locale').onchange=e=>changeLocale(e.target.value);
-$('swapFace').onclick=()=>setSidebarFace(store.sidebarFace==='people'?'results':'people');
-$('go').onclick=()=>{setSidebarFace('results');triggerSearch();};
-$('emptyRun').onclick=()=>{setSidebarFace('results');triggerSearch();};
+$('swapFace').onclick=()=>setSidebarFace(store.sidebarFace==='people'?'detail':'people');
+$('go').onclick=()=>triggerSearch();
+$('emptyRun').onclick=()=>triggerSearch();
 $('share').onclick=shareScenario;
 $('cancelPin').onclick=clearPinMode;
 document.addEventListener('click',e=>{document.querySelectorAll('.suggestions').forEach(s=>{if(!s.hidden&&!s.contains(e.target)){s.hidden=true;const input=s.parentElement.querySelector('.start-input');input?.setAttribute('aria-expanded','false');}});});

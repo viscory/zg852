@@ -94,6 +94,7 @@ test('production focus controls and fare output are visible', async ({ page }) =
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   await expect(page.locator('.result-row').first().locator('.fare.total').first()).toBeVisible();
   await expect(page.locator('.result-row').first().locator('.fare.total').first()).toContainText('Fare HK$');
+  await page.locator('#swapFace').click();
   await expect(page.locator('.fare-note')).toBeVisible();
   await expect(page.locator('.fare-note')).toContainText('Total adult Octopus fare estimate');
 });

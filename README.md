@@ -4,6 +4,10 @@ Client-side Hong Kong fair meeting-point finder. Pick two or more start places a
 
 Site: https://zg852.pages.dev/
 
+## Using it
+
+Each person card has a walk tolerance slider: 0–60 minutes in 5-minute steps, 20 minutes by default. It is saved with the person, in saved profiles, and in share links. The left sidebar swaps between the people list and the selected route with the `#swapFace` button. The right sidebar keeps its options panel at the top while fair-area results scroll beneath it; picking a result shows that route's steps in the left detail face.
+
 ## Repository layout
 
 - `src/` — application source. `src/index.html` is the entry page; `src/js/` holds focused modules (`config`, `store`, `util`, `i18n`, `data`, `vectors`, `routing`, `search`, `state`, `map`, `ui`, `engine`); `src/styles.css` and `src/legal.css` are the stylesheets.

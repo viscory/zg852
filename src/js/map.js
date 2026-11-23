@@ -9,7 +9,7 @@ import { t,num,minuteText } from './i18n.js';
 import { betaVectorsEnabled,preferenceText,cellVector,cellCount,cellTopNames,cellPreference } from './vectors.js';
 import { prepareRoutes,legLabel,fareMarkup,money,cellToResult } from './routing.js';
 import { displayName } from './state.js';
-import { markSelectedResult,setPinOrigin,setLabel } from './ui.js';
+import { markSelectedResult,setPinOrigin,setLabel,setSidebarFace } from './ui.js';
 
 export const CLEAN_STYLE={
   version:8,
@@ -172,10 +172,11 @@ export function buildResultFromCell(cell,active=store.activePeople){
 export function selectCell(cell){
   hideTooltip();
   const active=store.activePeople,match=store.results.findIndex(result=>resultMatches(result,{key:cell.key,node:cell.node}));
-  if(match>=0){store.selection={kind:'result',index:match};store.sharedSelection=null;selectResult(match,active);return;}
+  if(match>=0){store.selection={kind:'result',index:match};store.sharedSelection=null;selectResult(match,active,true);return;}
   const result=buildResultFromCell(cell,active);
   store.selection={kind:'cell',key:cell.key,node:cell.node,lat:result.lat,lon:result.lon};
   store.sharedSelection=null;
+  setSidebarFace('detail');
   renderSelection(result,active);
 }
 export function applySelection(active=store.activePeople){
@@ -231,8 +232,9 @@ export function renderSelection(r,active=store.activePeople){
   const pts=r.paths.flat().concat(active.map(p=>[p.origin.lat,p.origin.lon]));
   if(pts.length)map.fitBounds(pts,{padding:[60,60],maxZoom:14});
 }
-export function selectResult(i,active=store.activePeople){
+export function selectResult(i,active=store.activePeople,reveal=false){
   const r=store.results[i];if(!r)return;
   store.selection={kind:'result',index:i};store.sharedSelection=null;
+  if(reveal)setSidebarFace('detail');
   renderSelection(r,active);
 }

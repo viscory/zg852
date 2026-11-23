@@ -192,7 +192,7 @@ test('defaults load and a two-person search draws fair map areas', async ({ page
   await expect(page.locator('#detail')).toBeHidden();
   await expect(page.locator('path.heat-cell')).toHaveCount(0);
   await expect(page.locator('#resultsList')).toBeEmpty();
-  await expect(page.locator('#resultState')).toBeHidden();
+  await expect(page.locator('#resultState')).toBeVisible();
   await expect(page.locator('#nres')).toBeEmpty();
 
   await page.locator('#go').click();
@@ -202,9 +202,13 @@ test('defaults load and a two-person search draws fair map areas', async ({ page
   await expect(page.locator('.result-row').first().locator('.fare.total').first()).toContainText('Fare HK$');
   await expect(page.locator('.result-row').first()).not.toContainText('MTR HK$');
   await expect(page.locator('.result-row').first()).not.toContainText('Bus HK$');
-  await expect(page.locator('#detail')).toBeVisible();
+  await expect(page.locator('#detail')).toBeAttached();
   await expect(page.locator('#detailTitle')).not.toBeEmpty();
   await expect(page.locator('#detailDistrict')).not.toBeEmpty();
+  await expect(page.locator('#steps')).not.toContainText(/\b(route|results|map|people|mode|unit)\.[A-Za-z]/);
+  await page.locator('.result-row').first().click();
+  await expect(page.locator('.side-left .face[data-face="detail"]')).toBeVisible();
+  await expect(page.locator('#detail')).toBeVisible();
   await expect(page.locator('#steps .step')).toHaveCount(2);
   await expect(page.locator('.step').first()).toContainText('Person A');
   await expect(page.locator('.step').first().locator('.fare.total')).toContainText('Fare HK$');
@@ -347,7 +351,7 @@ test('duplicate places collapse and suggestions are keyboard navigable', async (
   await expect(third.locator('.suggestion').first()).toHaveClass(/active/);
   await input.press('Enter');
   await expect(input).toHaveValue('Harbour City, 3 Canton Road, Hong Kong');
-  await expect(third.locator('.hint')).toHaveText('Address saved');
+  await expect(third.locator('.hint')).toHaveCount(0);
   await expect(third.locator('.suggestions')).toBeHidden();
 });
 
@@ -386,7 +390,7 @@ test('recenter never changes an origin', async ({ page }) => {
   const before = await page.locator('.start-input').first().inputValue();
   await page.locator('.map-recenter-control .map-recenter').click();
   await expect(page.locator('.start-input').first()).toHaveValue(before);
-  await expect(page.locator('.hint').first()).not.toHaveText('Map pin saved');
+  await expect(page.locator('.hint')).toHaveCount(0);
 });
 
 test('scenario removal works down to one and card controls are icon-only', async ({ page }) => {
@@ -408,25 +412,28 @@ test('scenario removal works down to one and card controls are icon-only', async
   await expect(page.locator('#error')).toHaveText('Add at least two people with a start place.');
 });
 
-test('people and results stay left, controls stay right, and the map fills the middle', async ({ page }) => {
+test('people and routes share the leftbar, options and results stay right, and the map fills the middle', async ({ page }) => {
   await expect(page.locator('.layout > .side')).toHaveCount(2);
   await expect(page.locator('.side-left .card')).toHaveCount(2);
   await expect(page.locator('.side-left #add')).toBeVisible();
-  await expect(page.locator('.side-left #resultsList')).toBeAttached();
-  await expect(page.locator('.side-left #resultState')).toBeHidden();
+  await expect(page.locator('.side-left #detail')).toBeAttached();
+  await expect(page.locator('.side-left .face[data-face="detail"]')).toBeHidden();
+  await expect(page.locator('.side-right #resultsList')).toBeAttached();
+  await expect(page.locator('.side-right #resultState')).toBeVisible();
+  await expect(page.locator('.side-right #nres')).toBeAttached();
+  await expect(page.locator('#optionsPanel')).toBeVisible();
+  await expect(page.locator('#optionsPanel')).toHaveCSS('position', 'sticky');
+  await expect(page.locator('.side-right #go')).toBeVisible();
+  await expect(page.locator('.side-right #tolerance')).toBeVisible();
   await expect(page.locator('#swapFace')).toBeVisible();
   await page.locator('#swapFace').click();
-  await expect(page.locator('.side-left #resultState')).toBeVisible();
+  await expect(page.locator('.side-left .face[data-face="detail"]')).toBeVisible();
   await expect(page.locator('.side-left #add')).toBeHidden();
   await page.locator('#swapFace').click();
   await expect(page.locator('.side-left #add')).toBeVisible();
-  await expect(page.locator('.side-left #nres')).toBeEmpty();
-  await expect(page.locator('.side-right #go')).toBeVisible();
-  await expect(page.locator('.side-right #tolerance')).toBeVisible();
   await expect(page.locator('#budget')).toHaveCount(0);
   await expect(page.locator('#shareStatus')).toBeAttached();
   await expect(page.locator('.side-right #reset')).toHaveCount(0);
-  await expect(page.locator('.side-right #detail')).toBeHidden();
   await expect(headerLibrary(page)).toBeVisible();
   await expect(page.locator('.main #map')).toBeVisible();
 });
@@ -489,7 +496,7 @@ test('named people, Photon addresses and tolerance cloud work', async ({ page })
   await third.locator('.start-input').fill('3 Canton Road');
   await third.locator('.suggestion').first().click();
   await expect(third.locator('.start-input')).toHaveValue('Harbour City, 3 Canton Road, Hong Kong');
-  await expect(third.locator('.hint')).toHaveText('Address saved');
+  await expect(third.locator('.hint')).toHaveCount(0);
   await expect(page.locator('#count')).toHaveText('3');
 
   await setRange(page, '#tolerance', '0.2');
@@ -560,6 +567,8 @@ test('locale switching translates static text and enables RTL layout', async ({ 
   await expect(page.locator('#detailSub')).toContainText('差距');
   await expect(page.locator('#detailSub')).toContainText('最長');
 
+  await page.locator('#swapFace').click();
+  await expect(page.locator('.side-left .face[data-face="detail"]')).toBeVisible();
   await page.locator('#swapFace').click();
   await page.locator('#add').click();
   await page.locator('#locale').selectOption('ur');
@@ -653,7 +662,7 @@ test('map pin fallback saves a coordinate origin', async ({ page }) => {
   await expect(page.locator('#map')).not.toHaveClass(/pinning/);
   await expect(page.locator('#pinBanner')).toBeHidden();
   await expect(page.locator('.start-input').first()).toHaveValue(/^Pin /);
-  await expect(page.locator('.hint').first()).toHaveText('Map pin saved');
+  await expect(page.locator('.hint')).toHaveCount(0);
 
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
@@ -834,6 +843,26 @@ test('per-person focus toggle persists through storage, reload and routes', asyn
   await expect(page.locator('.ride-leg .leg-meta').first()).toContainText('Fare HK$');
 });
 
+test('per-person walk tolerance defaults to 20 and persists through reload', async ({ page }) => {
+  const card = page.locator('.card').first();
+  const slider = card.locator('[data-walk]');
+  await expect(slider).toHaveValue('20');
+  await slider.evaluate(el => {
+    el.value = '15';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await expect(slider).toHaveValue('15');
+  expect(await page.evaluate(() => localStorage.getItem('hkfair.v2.people'))).toMatch(/"walkMinutes":15/);
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await expect(page.locator('.card').first().locator('[data-walk]')).toHaveValue('15');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('#steps')).not.toContainText(/\b(route|results|map|people|mode|unit)\.[A-Za-z]/);
+});
+
 test('share links restore the current scenario', async ({ page }) => {
   await page.evaluate(() => {
     window.__copied = '';
@@ -844,6 +873,10 @@ test('share links restore the current scenario', async ({ page }) => {
   });
   await page.locator('.card').first().locator('.name-input').fill('Alex');
   await page.locator('.card').first().locator('.focus-option[data-focus="cost"]').click();
+  await page.locator('.card').first().locator('[data-walk]').evaluate(el => {
+    el.value = '10';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
   await page.locator('#go').click();
   await page.locator('#share').click();
   await expect(page.locator('#shareStatus')).toBeVisible();
@@ -855,10 +888,12 @@ test('share links restore the current scenario', async ({ page }) => {
   const state = await sharedState(page, sharedUrl);
   expect(state.people[0].name).toBe('Alex');
   expect(state.people[0].focus).toBe('cost');
+  expect(state.people[0].walkMinutes).toBe(10);
   await page.goto(sharedUrl);
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('.name-input').first()).toHaveValue('Alex');
   await expect(page.locator('.card').first().locator('.focus-option[data-focus="cost"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.card').first().locator('[data-walk]')).toHaveValue('10');
 });
 
 test('legal buttons open the dialog with loaded documents and direct pages still work', async ({ page }) => {
@@ -916,7 +951,6 @@ test('adding and removing a person recomputes without pressing search', async ({
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
 
-  await page.locator('#swapFace').click();
   await page.locator('#add').click();
   await expect(page.locator('.card')).toHaveCount(3);
   await expect.poll(() => page.locator('path.heat-cell').count()).toBe(0);

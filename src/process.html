@@ -27,6 +27,8 @@
 <p>Routing runs in this browser. Place search uses keyless Photon and the map uses OpenFreeMap vector tiles from OpenStreetMap data. Your people and settings stay on this device.</p>
 <h2>Starts matched to nearby stops</h2>
 <p>Each start place is matched to nearby transit stops within a fixed walking radius. A stop saved from the local list uses the stop itself; an address or map pin uses the closest stops around that point.</p>
+<h2>Walk tolerance per person</h2>
+<p>Every person has a walk tolerance from 0 to 60 minutes in 5-minute steps, set on their card with a default of 20 minutes. When a place is within that walking time of a start, its walking time is used for that person instead of a transit time. Changing the tolerance re-ranks fair areas from the travel times already computed; it does not change which transit paths exist.</p>
 <h2>Multi-source Dijkstra</h2>
 <p>Those nearby stops become the sources of a multi-source Dijkstra search over a local transit graph. Walking links connect the sources, and ride edges follow the scheduled network, so every reachable place gets a travel time for each person.</p>
 <h2>Fair-cell grouping</h2>

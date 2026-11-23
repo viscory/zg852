@@ -1,6 +1,6 @@
-import { RAIL_FARE_BANDS,BUS_FARE_BANDS,AEL_FARES,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE } from './config.js';
+import { RAIL_FARE_BANDS,BUS_FARE_BANDS,AEL_FARES,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE,WALK_TOLERANCE_DEFAULT,WALK_TOLERANCE_MAX } from './config.js';
 import { store } from './store.js';
-import { isNum,haversine,walkMinutes,round1,esc } from './util.js';
+import { isNum,haversine,walkMinutes,clamp,round1,esc } from './util.js';
 import { t,tp,num,minuteText } from './i18n.js';
 import { nodePriority,catKey,districtFor } from './data.js';
 import { cellVector,cellCount,cellPreference } from './vectors.js';
@@ -60,8 +60,9 @@ export function routeFares(route){
   flushRail();
   return{rail:round1(rail),bus:round1(bus),total:round1(rail+bus)};
 }
+export const walkBudget=person=>clamp(person?.walkMinutes,0,WALK_TOLERANCE_MAX,WALK_TOLERANCE_DEFAULT);
 export function prepareRoutes(result,active=store.activePeople){
-  result.routes=store.sols.map((solution,j)=>describe(solution,active[j].origin,result.node,active[j].focus));
+  result.routes=store.sols.map((solution,j)=>describe(solution,active[j].origin,result.node,active[j].focus,walkBudget(active[j])));
   result.paths=result.routes.map(route=>route.path);
   return result;
 }
@@ -109,6 +110,11 @@ export function solve(sources,mask,maxTime=180){
 export function bestTimes(sol){
   const best=new Float64Array(store.NODES.names.length).fill(Infinity);
   for(const[k,d]of sol.dist){const node=Math.floor(k/sol.stride);if(d<best[node])best[node]=d;}
+  return best;
+}
+export function walkTimes(sol){
+  const best=new Float64Array(store.NODES.names.length).fill(Infinity);
+  for(const[k,d]of sol.dist)if(k%sol.stride===0){const node=Math.floor(k/sol.stride);if(d<best[node])best[node]=d;}
   return best;
 }
 export function sourceNodeIndices(){
@@ -164,8 +170,8 @@ export function reconstructChain(sol,k){
   while(cur!==undefined&&cur!==sol.start&&chain.length<4000){chain.push(cur);cur=sol.prev.get(cur);}
   return chain.reverse();
 }
-export function describe(sol,origin,target,focus='time'){
-  const candidates=[];
+export function describe(sol,origin,target,focus='time',walkMinutes=WALK_TOLERANCE_DEFAULT){
+  const walkLimit=clamp(walkMinutes,0,WALK_TOLERANCE_MAX,WALK_TOLERANCE_DEFAULT),candidates=[];
   for(let l=-1;l<store.NET.lines.length;l++){
     const k=sol.key(target,l),d=sol.dist.get(k);
     if(d===undefined)continue;
@@ -217,11 +223,12 @@ export function describe(sol,origin,target,focus='time'){
     });
     close();
     const fares=routeFares({legs});
-    candidates.push({d,legs,fares,total:fares.total});
+    candidates.push({d,line:l,legs,fares,total:fares.total});
   }
   if(!candidates.length)return{text:t('route.unreachable'),legs:[],path:[[origin.lat,origin.lon]],fares:{rail:0,bus:0,total:0}};
-  candidates.sort((a,b)=>focus==='cost'?a.total-b.total||a.d-b.d:a.d-b.d||a.total-b.total);
-  const best=candidates[0],legs=best.legs;
+  const walk=candidates.find(c=>c.line===-1&&c.d<=walkLimit);
+  if(!walk)candidates.sort((a,b)=>focus==='cost'?a.total-b.total||a.d-b.d:a.d-b.d||a.total-b.total);
+  const best=walk||candidates[0],legs=best.legs;
   const text=legs.map(leg=>leg.text).join(' -> ')||t('route.already');
   const path=dedupePath(legs.flatMap(leg=>leg.coords));
   return{text,legs,path,fares:best.fares};
