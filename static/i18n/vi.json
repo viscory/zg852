@@ -36,7 +36,7 @@
   "results.empty": "Đặt tên cho mọi người, chọn điểm xuất phát, rồi bắt đầu tìm kiếm để xem các khu vực công bằng trên bản đồ.",
   "results.emptyRun": "Tìm khu vực công bằng",
   "results.noFit": "Không có khu vực nào phù hợp với dung sai này. Tăng dung sai hoặc bật chế độ khác.",
-  "results.areas": "{count} khu vực.",
+  "results.areas": "{count} khu vực",
   "results.spread": "Chênh lệch {value} phút.",
   "results.longest": "Dài nhất {value} phút.",
   "map.fairArea": "Khu vực công bằng, màu đậm hơn nghĩa là thời gian di chuyển ngắn hơn",
@@ -175,5 +175,6 @@
   "map.close": "Đóng",
   "beta.on": "Bật",
   "beta.off": "Tắt",
-  "map.pinHint": "Nhấn bản đồ để đặt điểm bắt đầu."
+  "map.pinHint": "Nhấn bản đồ để đặt điểm bắt đầu.",
+  "app.tagline": "Tìm điểm hẹn công bằng"
 }

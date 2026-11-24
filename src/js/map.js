@@ -139,9 +139,18 @@ const MIN_FIT_HEIGHT=80;
 function mapPadding(){
   if(!isMobileLayout())return {paddingTopLeft:[MAP_INSET,MAP_INSET],paddingBottomRight:[MAP_INSET,MAP_INSET]};
   const size=map.getSize().y;
-  // The route card floats over the lower part of the map. Reserve that space
-  // when fitting a route, but keep a meaningful strip of map above it.
-  const wanted=document.body.classList.contains('mobile-route-open')?Math.round(size*.62):MAP_INSET;
+  // The route card floats over the lower part of the map. Reserve exactly the
+  // space it occupies when fitting a route, so a collapsed summary leaves much
+  // more map visible than an expanded route sheet.
+  let wanted=MAP_INSET;
+  if(document.body.classList.contains('mobile-route-open')){
+    const card=document.querySelector('.side-left');
+    if(card&&getComputedStyle(card).display!=='none'){
+      const mapTop=document.getElementById('map').getBoundingClientRect().top;
+      const cardTop=card.getBoundingClientRect().top;
+      wanted=Math.max(0,size-(cardTop-mapTop)+8);
+    }
+  }
   const bottom=Math.min(wanted,Math.max(0,size-MOBILE_TOP_INSET-MIN_FIT_HEIGHT));
   return {paddingTopLeft:[MAP_INSET,MOBILE_TOP_INSET],paddingBottomRight:[MAP_INSET,bottom]};
 }

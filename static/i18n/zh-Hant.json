@@ -36,7 +36,7 @@
   "results.empty": "先為成員命名並選擇出發地，然後開始搜尋，即可在地圖上查看公平區域。",
   "results.emptyRun": "尋找公平區域",
   "results.noFit": "沒有符合此容差的區域。請提高容差或啟用其他交通方式。",
-  "results.areas": "{count} 個區域。",
+  "results.areas": "{count} 個區域",
   "results.spread": "差距 {value} 分鐘。",
   "results.longest": "最長 {value} 分鐘。",
   "map.fairArea": "公平區域，顏色越深代表行程時間越短",
@@ -175,5 +175,6 @@
   "map.close": "關閉",
   "beta.on": "開啟",
   "beta.off": "關閉",
-  "map.pinHint": "點擊地圖設定此出發地。"
+  "map.pinHint": "點擊地圖設定此出發地。",
+  "app.tagline": "找一個公平的見面地點"
 }

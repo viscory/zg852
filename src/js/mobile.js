@@ -50,6 +50,21 @@ function syncFace(view){
   }
 }
 
+function syncRouteCardHeight(){
+  const card=document.querySelector('.side-left');
+  const shown=card&&getComputedStyle(card).display!=='none';
+  const height=shown?Math.round(card.getBoundingClientRect().height):0;
+  document.documentElement.style.setProperty('--route-card-h',`${height}px`);
+}
+
+function setRouteExpanded(expanded){
+  document.body.classList.toggle('mobile-route-expanded',!!expanded);
+  const button=$('toggleRoute');
+  if(button)button.setAttribute('aria-expanded',String(!!expanded));
+  syncRouteCardHeight();
+  requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+}
+
 function syncLegend(){
   const legend=$('mapLegend');
   if(legend)legend.open=!isMobileLayout();
@@ -60,9 +75,11 @@ export function setMobileView(view,{focus=false}={}){
   const next=VIEWS.includes(view)?view:'plan';
   store.mobile.view=next;
   document.body.dataset.mobileView=next;
+  if(next!=='map')document.body.classList.remove('mobile-route-expanded');
   syncTabs();
   syncCopy();
   syncFace(next);
+  syncRouteCardHeight();
   if(next==='map'){
     // Leaflet measured a zero-size container while the map screen was hidden.
     requestAnimationFrame(()=>{
@@ -82,6 +99,10 @@ export function openMobileRoute(){
   if(!isMobileLayout())return;
   document.body.classList.add('mobile-route-open');
   setMobileView('map');
+  const button=$('toggleRoute');
+  if(button)button.setAttribute('aria-expanded','false');
+  document.body.classList.remove('mobile-route-expanded');
+  syncRouteCardHeight();
   const people=document.querySelector('#flipStage [data-face="people"]');
   const detail=document.querySelector('#flipStage [data-face="detail"]');
   if(people)people.hidden=true;
@@ -89,7 +110,10 @@ export function openMobileRoute(){
   store.sidebarFace='detail';
 }
 export function closeMobileRoute(){
-  document.body.classList.remove('mobile-route-open');
+  document.body.classList.remove('mobile-route-open','mobile-route-expanded');
+  const button=$('toggleRoute');
+  if(button)button.setAttribute('aria-expanded','false');
+  syncRouteCardHeight();
 }
 export function showMobileRoute(){openMobileRoute();}
 
@@ -124,6 +148,11 @@ export function initMobile(){
   });
   $('editSetup')?.addEventListener('click',()=>setMobileView('plan'));
   $('goPlan')?.addEventListener('click',()=>setMobileView('plan'));
+  $('toggleRoute')?.addEventListener('click',()=>setRouteExpanded(!document.body.classList.contains('mobile-route-expanded')));
+  if(typeof ResizeObserver!=='undefined'){
+    const card=document.querySelector('.side-left');
+    if(card)new ResizeObserver(syncRouteCardHeight).observe(card);
+  }
   window.matchMedia?.('(max-width:1024px)').addEventListener?.('change',syncViewState);
   // The keyboard owns the lower half of the screen; get the persistent bars
   // out of its way while someone is editing a start place.
@@ -138,4 +167,5 @@ export function initMobile(){
     }
   });
   syncViewState();
+  syncRouteCardHeight();
 }

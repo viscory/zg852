@@ -1,3 +1,11 @@
+## 2026-11-24T11:46:00Z
+
+- Polished the deployed mobile flow. The phone header now shows `就腳 zau6 goek3` plus “Find a fair place to meet” (`app.tagline`, all 15 locales); the full subtitle and tagline swap correctly on desktop, and the jyutping/tagline shrink at 320–360 px.
+- The Map route card now opens collapsed at ~189 px with **Routes** and expands to 50dvh; route legs, interest ratings, and the fare note are hidden until expanded. Leaflet zoom, recenter, and attribution follow the real card height via `--route-card-h`, so they stay clear of both the collapsed and expanded card. The Map key is a 40 px tap target above attribution.
+- Plan now has a visible **Trip settings** shortcut in the people header that scrolls to and focuses the settings heading. Results counts dropped the trailing period (`7 areas`). Pinned starts read `Pinned point · district`.
+- Added a collapsed/expanded route-card regression, a header/settings-shortcut regression, and tightened the heat-tap test. `npm run lint` is clean; `CI=true npm test` passes 122/122 twice with the new two-worker CI setting.
+- SW cache is now `zg852-v50`; i18n is 178 keys across 15 catalogues. Commit, push, CI, and live verification are next.
+
 ## 2026-11-24T10:35:00Z
 
 - Pushed commit `8984716`; CI run `45375408078` passed the test job and the Cloudflare deploy job. Live `https://zg852.pages.dev/` now serves SW `zg852-v49`.

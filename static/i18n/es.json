@@ -36,7 +36,7 @@
   "results.empty": "Pon nombre a las personas, elige los lugares de salida y ejecuta la búsqueda para ver las zonas equitativas en el mapa.",
   "results.emptyRun": "Buscar zonas equitativas",
   "results.noFit": "Ninguna zona encaja con esta tolerancia. Aumenta la tolerancia o activa otro modo.",
-  "results.areas": "{count} zonas.",
+  "results.areas": "{count} zonas",
   "results.spread": "Diferencia {value} min.",
   "results.longest": "Más largo {value} min.",
   "map.fairArea": "Zona equitativa, cuanto más oscuro, menor tiempo de viaje",
@@ -175,5 +175,6 @@
   "map.close": "Cerrar",
   "beta.on": "Activado",
   "beta.off": "Desactivado",
-  "map.pinHint": "Toca el mapa para fijar este inicio."
+  "map.pinHint": "Toca el mapa para fijar este inicio.",
+  "app.tagline": "Encuentra un lugar justo para reunirse"
 }

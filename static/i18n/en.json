@@ -36,7 +36,7 @@
   "results.empty": "Name your people, choose start places, then run the search to see fair areas on the map.",
   "results.emptyRun": "Find fair areas",
   "results.noFit": "No areas fit this tolerance. Increase tolerance or enable another mode.",
-  "results.areas": "{count} areas.",
+  "results.areas": "{count} areas",
   "results.spread": "Spread {value} min.",
   "results.longest": "Longest {value} min.",
   "map.fairArea": "Fair area, darker means shorter travel time",
@@ -175,5 +175,6 @@
   "map.close": "Close",
   "beta.on": "On",
   "beta.off": "Off",
-  "map.pinHint": "Tap the map to set this start."
+  "map.pinHint": "Tap the map to set this start.",
+  "app.tagline": "Find a fair place to meet"
 }

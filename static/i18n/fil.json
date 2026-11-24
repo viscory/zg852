@@ -36,7 +36,7 @@
   "results.empty": "Pangalanan ang mga tao, pumili ng panimulang lugar, pagkatapos ay simulan ang paghahanap upang makita ang mga patas na lugar sa mapa.",
   "results.emptyRun": "Hanapin ang mga patas na lugar",
   "results.noFit": "Walang lugar na pasok sa tolerance na ito. Taasan ang tolerance o mag-enable ng ibang mode.",
-  "results.areas": "{count} lugar.",
+  "results.areas": "{count} lugar",
   "results.spread": "Pagkakaiba {value} min.",
   "results.longest": "Pinakamatagal {value} min.",
   "map.fairArea": "Patas na lugar, mas madilim ang mas maikling oras ng biyahe",
@@ -175,5 +175,6 @@
   "map.close": "Isara",
   "beta.on": "Naka-on",
   "beta.off": "Naka-off",
-  "map.pinHint": "I-tap ang mapa para itakda ang simula."
+  "map.pinHint": "I-tap ang mapa para itakda ang simula.",
+  "app.tagline": "Humanap ng patas na tagpuan"
 }

@@ -36,7 +36,7 @@
   "results.empty": "Beri nama orang, pilih titik awal, lalu jalankan pencarian untuk melihat area yang adil di peta.",
   "results.emptyRun": "Cari area yang adil",
   "results.noFit": "Tidak ada area yang cocok dengan toleransi ini. Naikkan toleransi atau aktifkan mode lain.",
-  "results.areas": "{count} area.",
+  "results.areas": "{count} area",
   "results.spread": "Selisih {value} mnt.",
   "results.longest": "Terpanjang {value} mnt.",
   "map.fairArea": "Area adil, makin gelap berarti waktu perjalanan makin singkat",
@@ -175,5 +175,6 @@
   "map.close": "Tutup",
   "beta.on": "Aktif",
   "beta.off": "Nonaktif",
-  "map.pinHint": "Ketuk peta untuk menetapkan titik awal."
+  "map.pinHint": "Ketuk peta untuk menetapkan titik awal.",
+  "app.tagline": "Temukan tempat bertemu yang adil"
 }

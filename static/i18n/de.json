@@ -36,7 +36,7 @@
   "results.empty": "Benenne deine Personen, wähle Startorte und starte die Suche, um faire Gebiete auf der Karte zu sehen.",
   "results.emptyRun": "Faire Gebiete finden",
   "results.noFit": "Keine Bereiche passen zu dieser Toleranz. Erhöhe die Toleranz oder aktiviere einen anderen Modus.",
-  "results.areas": "{count} Gebiete.",
+  "results.areas": "{count} Gebiete",
   "results.spread": "Unterschied {value} Min.",
   "results.longest": "Längste {value} Min.",
   "map.fairArea": "Fairer Bereich, dunkler bedeutet kürzere Fahrzeit",
@@ -175,5 +175,6 @@
   "map.close": "Schließen",
   "beta.on": "An",
   "beta.off": "Aus",
-  "map.pinHint": "Tippen Sie auf die Karte, um diesen Start festzulegen."
+  "map.pinHint": "Tippen Sie auf die Karte, um diesen Start festzulegen.",
+  "app.tagline": "Finden Sie einen fairen Treffpunkt"
 }

@@ -175,5 +175,6 @@
   "map.close": "閉じる",
   "beta.on": "オン",
   "beta.off": "オフ",
-  "map.pinHint": "地図をタップして出発地を設定します。"
+  "map.pinHint": "地図をタップして出発地を設定します。",
+  "app.tagline": "公平な待ち合わせ場所を探す"
 }

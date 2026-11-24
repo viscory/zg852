@@ -107,6 +107,12 @@ $('mobileBeta')?.addEventListener('click',()=>setBetaEnabled(!betaVectorsEnabled
 document.querySelectorAll('[data-vector]').forEach(input=>{input.oninput=readSettingsFromDom;});
 $('locale').onchange=e=>changeLocale(e.target.value);
 $('swapFace').onclick=()=>setSidebarFace(store.sidebarFace==='people'?'detail':'people');
+$('jumpSettings')?.addEventListener('click',()=>{
+  const heading=$('optionsHeading');
+  if(!heading)return;
+  heading.scrollIntoView({block:'start',behavior:'smooth'});
+  heading.focus({preventScroll:true});
+});
 $('go').onclick=()=>{setMobileView('results');triggerSearch(!isMobileLayout());};
 $('emptyRun').onclick=()=>triggerSearch(!isMobileLayout());
 $('share').onclick=shareScenario;

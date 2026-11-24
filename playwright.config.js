@@ -6,6 +6,9 @@ module.exports = defineConfig({
   testDir: './tests',
   fullyParallel: true,
   reporter: 'list',
+  // Two CI workers keeps the map/WebGL cases from starving each other on the
+  // shared runners without making the 120-test suite slow.
+  workers: process.env.CI ? 2 : undefined,
   retries: process.env.CI ? 1 : 0,
   use: {
     baseURL: externalBaseURL || 'http://127.0.0.1:8765',

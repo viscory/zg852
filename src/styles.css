@@ -54,6 +54,7 @@ header{height:var(--header);display:flex;align-items:center;justify-content:spac
 .brand h1 .jyutping{margin-inline-start:.45em;font-size:13px;font-style:italic;font-weight:400;letter-spacing:0;color:var(--subtle)}
 .brand p{margin:2px 0 0;font-size:12px;color:var(--muted)}
 .brand .sub{margin-bottom:6px;line-height:1.25}
+.brand-tagline{display:none}
 .header-end{display:flex;align-items:center;gap:12px}
 .header-actions{position:relative;display:flex;align-items:center;gap:8px}
 .share-status{position:absolute;top:calc(100% + 6px);right:0;z-index:1000;max-width:min(280px,80vw);padding:4px 8px;border:1px solid var(--accent);border-radius:var(--r-md);background:var(--elevated);color:var(--text);font-size:11px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 6px 20px rgba(80,20,20,.14)}
@@ -207,7 +208,7 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .face[data-face="detail"]:has(#detail:not([hidden])) .detail-placeholder{display:none}
 .fare-note{margin:8px 0 0}
 .options-title{margin-bottom:8px}
-.mobile-tabbar,.mobile-scenario,.mobile-results-empty,.mobile-route-close,.mobile-beta-row,.pin-hint{display:none}
+.mobile-tabbar,.mobile-scenario,.mobile-results-empty,.mobile-route-close,.mobile-beta-row,.pin-hint,.jump-settings,.mobile-route-more{display:none}
 .vector-section{margin-top:12px}
 .vector-title{margin-top:0}
 .vector-help{margin-top:0;margin-bottom:10px;max-width:none}
@@ -362,8 +363,12 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   header{height:var(--header);min-height:var(--header);gap:6px;padding:0 10px;border-top-width:2px}
   .brand{gap:8px;min-width:0}
   .logo{width:32px;height:32px}
-  .brand h1{font-size:16px;white-space:nowrap}
-  .brand h1 .jyutping,.brand p{display:none}
+  .brand h1{font-size:16px;line-height:1.15;white-space:nowrap}
+  .brand h1 .jyutping{display:inline;font-size:11px;margin-inline-start:.35em}
+  .brand p{display:none}
+  .brand{flex:1;min-width:0}
+  .brand>div{min-width:0}
+  .brand-tagline{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;line-height:1.2;color:var(--muted)}
   .header-end{gap:0;width:auto}
   .header-actions{gap:6px}
   .header-actions .icon-button,.locale{width:44px;height:44px}
@@ -426,6 +431,16 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   body[data-mobile-view="map"] .main{display:block;inset:0 0 calc(var(--tabbar) + env(safe-area-inset-bottom)) 0}
   body[data-mobile-view="map"] .side-right{display:none}
   body[data-mobile-view="map"] .side-left{display:none;position:absolute;left:8px;right:8px;bottom:calc(var(--tabbar) + env(safe-area-inset-bottom) + 8px);z-index:1250;height:auto;max-height:44dvh;padding:14px 12px 12px;border:1px solid var(--border);border-radius:14px;background:var(--surface);box-shadow:0 -12px 36px rgba(80,20,20,.22);overflow:hidden}
+  body[data-mobile-view="map"].mobile-route-expanded .side-left{max-height:50dvh}
+  body[data-mobile-view="map"]:not(.mobile-route-expanded) #interestRatings,
+  body[data-mobile-view="map"]:not(.mobile-route-expanded) #steps,
+  body[data-mobile-view="map"]:not(.mobile-route-expanded) .fare-note{display:none!important}
+  .mobile-route-more{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:44px;margin:10px 0 2px;padding:0 10px;border:1px solid var(--accent);border-radius:var(--r-md);background:var(--danger-bg);color:var(--accent);font-size:12px;font-weight:600}
+  .mobile-route-chevron{width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .15s ease}
+  .mobile-route-expanded .mobile-route-chevron{transform:rotate(225deg)}
+  .jump-settings{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;min-width:44px;height:44px;min-height:44px;padding:0 9px;border:1px solid var(--border);border-radius:var(--r-md);background:transparent;color:var(--muted);font-size:11px;font-weight:600}
+  .jump-settings .icon{--icon:13px}
+  @media (max-width:360px){.brand h1 .jyutping{display:none}.brand-tagline{font-size:9px}}
   body[data-mobile-view="map"].mobile-route-open .side-left{display:flex;flex-direction:column}
   body[data-mobile-view="map"] .side-left>.sec-title{display:none!important}
   body[data-mobile-view="map"] #flipStage{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0}
@@ -450,11 +465,12 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   .mobile-tabbar button[aria-current="page"]::before{content:"";position:absolute;top:0;left:18%;right:18%;height:2px;border-radius:0 0 2px 2px;background:var(--accent)}
 
   /* Map chrome. */
-  .legend{left:8px;right:auto;bottom:34px;max-width:calc(100% - 88px);padding:4px 8px;gap:2px;font-size:10px;line-height:1.25;pointer-events:auto}
-  .legend summary{pointer-events:auto;cursor:pointer}
-  .legend-head{font-size:11px}
+  .legend{left:8px;right:auto;bottom:40px;max-width:calc(100% - 88px);padding:0 10px;gap:0;font-size:10px;line-height:1.25;pointer-events:auto}
+  .legend summary{pointer-events:auto;cursor:pointer;display:flex;align-items:center;min-height:40px;gap:6px}
+  .legend-head{font-size:11px;gap:6px}
   .legend-head::after{display:inline;content:'+';margin-inline-start:4px;color:var(--muted);font-family:var(--mono)}
   .legend[open] .legend-head::after{content:'−'}
+  .legend-body{padding-bottom:8px}
   body.mobile-route-open .legend{display:none}
   .pin-banner,.point-banner,.unbounded-hint{top:8px;max-width:calc(100% - 24px)}
   .pin-banner{flex-wrap:wrap}
@@ -466,7 +482,7 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   #mapIssue{display:none}
   .leaflet-control-zoom a,.leaflet-control .map-recenter{width:44px!important;height:44px!important;line-height:44px!important}
   .leaflet-bottom.leaflet-right{bottom:0;transform:none}
-  body.mobile-route-open .leaflet-bottom.leaflet-right{bottom:calc(44dvh + 8px)}
+  body.mobile-route-open .leaflet-bottom.leaflet-right{bottom:calc(var(--route-card-h, 44dvh) + 8px)}
   .map-tooltip{max-width:calc(100vw - 24px);padding:10px 12px;font-size:13px}
   .tooltip-vector{grid-template-columns:84px minmax(0,1fr)}
   .fit-row{grid-template-columns:84px minmax(0,1fr);height:24px}

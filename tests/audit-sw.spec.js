@@ -90,7 +90,7 @@ test('service worker does not cache non-OK responses', async ({ page, context })
 });
 
 test('service worker precache list still covers required offline assets', () => {
-  expect(SW_CACHE_NAME).toBe('zg852-v49');
+  expect(SW_CACHE_NAME).toBe('zg852-v50');
   const sw = readFileSync(join(publicDir, 'sw.js'), 'utf8');
   const list = sw.match(/const ASSETS=\[([^\]]*)\]/);
   expect(list).not.toBeNull();

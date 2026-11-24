@@ -93,7 +93,7 @@ test('search moves to Fair areas and a result opens the route card on Map', asyn
   await page.locator('#go').click();
   await waitForSearch(page, { heat: true });
   await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'results');
-  await expect(page.locator('#nres')).toHaveText('7 areas.');
+  await expect(page.locator('#nres')).toHaveText('7 areas');
   await expect(page.locator('#mobileScenarioText')).toHaveText('Tsuen Wan → North Point');
   await expect(page.locator('.result-row')).toHaveCount(7);
 
@@ -104,7 +104,17 @@ test('search moves to Fair areas and a result opens the route card on Map', asyn
   await expect(page.locator('#detailTitle')).not.toBeEmpty();
   const card = await rect(page.locator('.side-left'));
   const map = await rect(page.locator('#map'));
-  expect(card.height).toBeLessThanOrEqual(map.height * 0.55);
+  expect(card.height).toBeLessThanOrEqual(map.height * 0.4);
+  await expect(page.locator('#steps')).toBeHidden();
+  await expect(page.locator('#interestRatings')).toBeHidden();
+  await expect(page.locator('#toggleRoute')).toHaveAttribute('aria-expanded', 'false');
+
+  await page.locator('#toggleRoute').click();
+  await expect(page.locator('#toggleRoute')).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('#steps')).toBeVisible();
+  await expect(page.locator('#interestRatings')).toBeVisible();
+  const expanded = await rect(page.locator('.side-left'));
+  expect(expanded.height).toBeGreaterThan(card.height);
 
   await page.locator('#closeRoute').click();
   await expect(page.locator('body')).not.toHaveClass(/mobile-route-open/);
@@ -142,6 +152,16 @@ test('Pin opens the Map in picking mode and returns to Plan after a tap', async 
   await expect(page.locator('body')).not.toHaveClass(/mobile-picking/);
   await expect(page.locator('#mobileTabbar')).toBeVisible();
   await expect(page.locator('#start-p1')).toHaveValue(/^Pinned point/);
+});
+
+test('the Plan header explains the app and links to Trip settings', async ({ page }) => {
+  await expect(page.locator('.brand-tagline')).toBeVisible();
+  await expect(page.locator('.brand-tagline')).toHaveText('Find a fair place to meet');
+  await expect(page.locator('.brand h1 .jyutping')).toBeVisible();
+  await page.locator('#jumpSettings').click();
+  await expect(page.locator('#optionsHeading')).toBeInViewport();
+  await expect(page.locator('#optionsHeading')).toBeFocused();
+  await expect(page.locator('#optionsHeading')).toHaveText('Trip settings');
 });
 
 test('a validation error is visible above the tabs, not buried in a scroller', async ({ page }) => {
@@ -187,6 +207,7 @@ test('bounded heat tap opens the route card with bar-only ratings', async ({ pag
   expect(target).not.toBeNull();
   await page.touchscreen.tap(target.x, target.y);
   await expect(page.locator('body')).toHaveClass(/mobile-route-open/);
+  await page.locator('#toggleRoute').click();
   await expect(page.locator('#interestRatings')).toBeVisible();
   await page.locator('#interestRatings summary').click();
   await expect(page.locator('#fitGrid .fit-row')).toHaveCount(6);

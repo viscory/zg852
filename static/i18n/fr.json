@@ -36,7 +36,7 @@
   "results.empty": "Nommez vos personnes, choisissez des lieux de départ, puis lancez la recherche pour voir les zones équitables sur la carte.",
   "results.emptyRun": "Trouver des zones équitables",
   "results.noFit": "Aucune zone ne correspond à cette tolérance. Augmentez la tolérance ou activez un autre mode.",
-  "results.areas": "{count} zones.",
+  "results.areas": "{count} zones",
   "results.spread": "Écart {value} min.",
   "results.longest": "Plus long {value} min.",
   "map.fairArea": "Zone équitable, plus la couleur est foncée, plus le trajet est court",
@@ -175,5 +175,6 @@
   "map.close": "Fermer",
   "beta.on": "Activé",
   "beta.off": "Désactivé",
-  "map.pinHint": "Touchez la carte pour définir ce départ."
+  "map.pinHint": "Touchez la carte pour définir ce départ.",
+  "app.tagline": "Trouvez un lieu de rencontre équitable"
 }
