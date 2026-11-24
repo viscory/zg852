@@ -1,4 +1,4 @@
-const CACHE='zg852-v52';
+const CACHE='zg852-v53';
 const ASSETS=['./index.html','./app.js','./app.css','./legal.css','./sw.js','./preview-noindex.js','./maplibre-gl-worker.mjs','./favicon.ico','./favicon.svg','./icon-180.png','./icon-512.png','./manifest.webmanifest','./og-image.png','./privacy.html','./terms.html','./credits.html','./process.html','./data/nodes.json','./data/network.json','./data/districts.json','./data/poi-index.json','./data/hkbus.json','./i18n/en.json','./i18n/zh-Hant.json','./i18n/zh-Hans.json','./i18n/ja.json','./i18n/ko.json','./i18n/hi.json','./i18n/ur.json','./i18n/fil.json','./i18n/id.json','./i18n/fr.json','./i18n/th.json','./i18n/vi.json','./i18n/ne.json','./i18n/es.json','./i18n/de.json'];
 const cacheKey=request=>new URL(request.url||request,self.location.href).pathname;
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));});

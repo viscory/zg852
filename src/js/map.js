@@ -254,8 +254,10 @@ export function drawCloud(budget){
 export function positionTooltip(event){
   if(!event)return;
   const tooltip=$('mapTooltip');
-  tooltip.style.left=`${Math.max(8,Math.min(event.clientX+12,window.innerWidth-248))}px`;
-  tooltip.style.top=`${Math.max(8,Math.min(event.clientY+12,window.innerHeight-140))}px`;
+  const width=tooltip.offsetWidth||240;
+  const height=tooltip.offsetHeight||140;
+  tooltip.style.left=`${Math.max(8,Math.min(event.clientX+12,window.innerWidth-width-8))}px`;
+  tooltip.style.top=`${Math.max(8,Math.min(event.clientY+12,window.innerHeight-height-8))}px`;
 }
 function ratingTooltipMarkup(title,subtitle,ratings){
   return `<b>${esc(title)}</b>${subtitle?`<span class="tooltip-sub">${esc(subtitle)}</span>`:''}${ratings.map(({key,rating})=>`<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}"><span>${esc(t('vector.'+key))}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${rating}"></i></span></span>`).join('')}`;
@@ -270,6 +272,7 @@ function showRatingTooltip(target,event,delay,title,subtitle,ratings){
     tooltip.innerHTML=ratingTooltipMarkup(title,subtitle,ratings);
     tooltip.querySelectorAll('.tooltip-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
     tooltip.hidden=false;
+    positionTooltip(event);
   },delay);
 }
 function cleanPlaceNames(places){

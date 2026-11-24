@@ -1028,6 +1028,7 @@ test('heat cells reveal delayed interest tooltips and open a breakdown', async (
   await page.mouse.move(point.x, point.y);
   await expect(page.locator('#mapTooltip')).toBeVisible({ timeout: 2500 });
   await expect(page.locator('#mapTooltip')).toContainText('Area interest fit');
+  await expect.poll(() => page.locator('#mapTooltip').evaluate(el => Math.round(el.getBoundingClientRect().width))).toBe(240);
   await expect(page.locator('#mapTooltip b')).not.toHaveText('Area interest fit');
   await expect(page.locator('#mapTooltip .tooltip-sub')).toHaveText('Area interest fit');
   await expect(page.locator('#mapTooltip .tooltip-vector')).toHaveCount(6);

@@ -229,8 +229,8 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .point-banner{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:950;display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--accent);border-radius:var(--r-md);background:var(--elevated);color:var(--text);font-size:12px;box-shadow:0 6px 20px rgba(80,20,20,.14)}
 .point-banner .icon-map-pin{color:var(--accent)}
 .unbounded-hint{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:940;max-width:min(90%,520px);padding:6px 12px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--elevated);color:var(--muted);font-size:12px;text-align:center;box-shadow:0 6px 20px rgba(80,20,20,.08)}
-.map-tooltip{position:fixed;z-index:1200;max-width:240px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--elevated);color:var(--text);font-size:12px;line-height:1.45;pointer-events:none;box-shadow:0 8px 24px rgba(80,20,20,.12)}
-.map-tooltip b{display:block;margin-bottom:1px}
+.map-tooltip{position:fixed;z-index:1200;width:240px;max-width:calc(100vw - 24px);padding:8px 10px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--elevated);color:var(--text);font-size:12px;line-height:1.45;pointer-events:none;box-shadow:0 8px 24px rgba(80,20,20,.12)}
+.map-tooltip b{display:block;margin-bottom:1px;overflow-wrap:anywhere}
 .tooltip-sub{display:block;margin:0 0 4px;color:var(--muted);font-size:11px}
 .tooltip-vector{display:grid;grid-template-columns:70px 1fr;gap:6px;align-items:center;margin-top:4px}
 .tooltip-track{height:5px;background:var(--border);border-radius:var(--r-sm)}
@@ -494,7 +494,7 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   .leaflet-bottom.leaflet-right{bottom:0;transform:none}
   body.mobile-route-open .leaflet-bottom.leaflet-right{bottom:calc(var(--route-card-h, 44dvh) + 8px);transition:bottom .18s ease}
   body.mobile-route-closing .leaflet-bottom.leaflet-right{bottom:8px}
-  .map-tooltip{max-width:calc(100vw - 24px);padding:10px 12px;font-size:13px}
+  .map-tooltip{width:min(280px,calc(100vw - 24px));max-width:calc(100vw - 24px);padding:10px 12px;font-size:13px}
   .tooltip-vector{grid-template-columns:84px minmax(0,1fr)}
   .fit-row{grid-template-columns:84px minmax(0,1fr);height:24px}
   .fit-track,.tooltip-track{height:8px}

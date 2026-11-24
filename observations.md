@@ -1,3 +1,9 @@
+## 2026-11-24T14:43:00Z
+
+- Made the red-area interest tooltip a fixed 240 px wide on desktop and 280 px on phones, with the title allowed to wrap. `positionTooltip` now clamps against the tooltip’s real width and height after it becomes visible, so long place names no longer resize or push the panel.
+- The FEHD place list is still removed; the tooltip contains only the hovered place, `Area interest fit`, and the six bars.
+- `CI=true npm test` passes 122/122; SW cache is `zg852-v53`. Commit, push, deploy and live verification are next.
+
 ## 2026-11-24T12:31:00Z
 
 - Removed the dataset place list from the map interest tooltip entirely. The tooltip now shows only the hovered place name, the `Area interest fit` subtitle, and the six category bars; no `(fehd_rl)` suffixes or restaurant dumps remain.
