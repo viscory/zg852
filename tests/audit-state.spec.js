@@ -193,13 +193,17 @@ test('a shared pinned point survives reload', async ({ page }) => {
   await page.reload();
 
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
-  await expect(page.locator('#pointBanner')).toBeVisible();
+  // The selection is restored persistently, but the banner stays hidden until
+  // a search has produced results that a point can be pinned against.
+  await expect(page.locator('#pointBanner')).toBeHidden();
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
-  await expect(page.locator('#pointBanner')).toBeVisible();
+  await expect(page.locator('#pointBanner')).toBeHidden();
   await expect(page.locator('#tolerance')).toHaveValue('3.05');
 
   await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('#pointBanner')).toBeVisible();
   await expect(page.locator('#detailTitle')).toHaveText('Pinned point');
   await expect(page.locator('.point-pin')).toHaveCount(1);
 });

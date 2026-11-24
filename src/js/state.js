@@ -22,15 +22,16 @@ function parseStored(raw){
   try{return JSON.parse(raw);}
   catch(err){console.error(err);return null;}
 }
-// A default name is never a real name: it is a placeholder for the current
-// locale. English literals are checked explicitly so old saved profiles are
-// recognised even before any non-English catalogue has been loaded.
+// An unset name is a placeholder for the current locale. Literal defaults
+// written by older releases are also unset, but only when they match the
+// person's current slot: a saved profile genuinely called "Person B" must not
+// be renumbered to "Person D" when it is added as the fourth person.
 export function isDefaultName(value,i){
   const name=String(value??'').trim();
-  if(!name||/^Person\s+[A-H]$/i.test(name))return true;
+  if(!name)return true;
   const letters=Number.isInteger(i)?[LETTERS[((i%8)+8)%8]]:[...LETTERS];
-  const templates=[store.EN?.['people.defaultName'],...Object.values(store.I18N||{}).map(catalog=>catalog?.['people.defaultName'])].filter(Boolean);
-  return templates.some(template=>letters.some(letter=>String(template).replaceAll('{letter}',letter)===name));
+  const templates=['Person {letter}',store.EN?.['people.defaultName'],...Object.values(store.I18N||{}).map(catalog=>catalog?.['people.defaultName'])].filter(template=>typeof template==='string'&&template);
+  return templates.some(template=>letters.some(letter=>template.replaceAll('{letter}',letter)===name));
 }
 function cleanName(value,i){return isDefaultName(value,i)?'':String(value??'').trim();}
 
@@ -73,7 +74,8 @@ export function saveDirectory(){
 }
 export function profileFromPerson(person){
   const index=Math.max(0,store.people.indexOf(person));
-  const profile={id:person.directoryId||`d${store.directorySeq++}`,name:displayName(person,index),origin:clone(person.origin),walkMinutes:clamp(Number(person.walkMinutes),0,60,20),updated:Date.now()};
+  const name=String(person?.name??'').trim()||displayName(person,index);
+  const profile={id:person.directoryId||`d${store.directorySeq++}`,name,origin:clone(person.origin),walkMinutes:clamp(Number(person.walkMinutes),0,60,20),updated:Date.now()};
   person.directoryId=profile.id;
   return profile;
 }
