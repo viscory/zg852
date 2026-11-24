@@ -1,3 +1,10 @@
+## 2026-11-24T10:35:00Z
+
+- Pushed commit `8984716`; CI run `45375408078` passed the test job and the Cloudflare deploy job. Live `https://zg852.pages.dev/` now serves SW `zg852-v49`.
+- Live mobile at 393×664 opens on **Plan** with no map chrome, a fixed Find fair areas button, three bottom tabs, and 3.5 full result cards after search. Tapping a result opens Map with a 292 px route card over a 552 px map; the key pill, zoom, recenter, and attribution all sit above the card.
+- Live desktop at 1440×900 still shows the 360/740/340 grid, 52 px header, Beta badge, sticky Parameters, open static map key, icon-only search, and the footer. No mobile tab bar or mobile-only controls leak into desktop.
+- Live screenshots are in `.playwright-mcp/live-v49-*.png`; no further source changes were made after the deploy.
+
 ## 2026-11-24T10:30:00Z
 
 - Replaced the mobile sheet/pane model with three real destinations: **Plan**, **Fair areas**, and **Map**, driven by `data-mobile-view` and a fixed 56 px bottom tab bar. Removed the top mobile tabs, sheet handle, peek/half/full snaps, pane state, and mobile people/route flip.
