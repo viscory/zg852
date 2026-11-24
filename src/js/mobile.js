@@ -3,6 +3,8 @@ import { $ } from './util.js';
 import { t } from './i18n.js';
 
 const VIEWS=['plan','results','map'];
+let viewAnimTimer=null;
+let closeRouteTimer=null;
 
 // styles.css owns the mobile deck query and exposes the result as --mobile-deck.
 export function isMobileLayout(){
@@ -50,6 +52,23 @@ function syncFace(view){
   }
 }
 
+function playViewAnimation(){
+  if(!isMobileLayout())return;
+  document.body.classList.remove('mobile-view-anim');
+  void document.body.offsetWidth;
+  document.body.classList.add('mobile-view-anim');
+  clearTimeout(viewAnimTimer);
+  viewAnimTimer=setTimeout(()=>document.body.classList.remove('mobile-view-anim'),260);
+}
+
+function syncResultsFallback(){
+  if(!isMobileLayout())return;
+  const empty=$('mobileResultsEmpty'),row=$('mobileScenarioRow');
+  if(!empty)return;
+  if(store.results.length){empty.hidden=true;if(row)row.hidden=false;}
+  else{empty.hidden=false;if(row)row.hidden=true;}
+}
+
 function syncRouteCardHeight(){
   const card=document.querySelector('.side-left');
   const shown=card&&getComputedStyle(card).display!=='none';
@@ -80,6 +99,8 @@ export function setMobileView(view,{focus=false}={}){
   syncCopy();
   syncFace(next);
   syncRouteCardHeight();
+  syncResultsFallback();
+  playViewAnimation();
   if(next==='map'){
     // Leaflet measured a zero-size container while the map screen was hidden.
     requestAnimationFrame(()=>{
@@ -97,6 +118,8 @@ export function setMobileView(view,{focus=false}={}){
 // while an area is selected. It is not a fourth destination and has no snaps.
 export function openMobileRoute(){
   if(!isMobileLayout())return;
+  clearTimeout(closeRouteTimer);
+  document.body.classList.remove('mobile-route-closing');
   document.body.classList.add('mobile-route-open');
   setMobileView('map');
   const button=$('toggleRoute');
@@ -110,10 +133,16 @@ export function openMobileRoute(){
   store.sidebarFace='detail';
 }
 export function closeMobileRoute(){
-  document.body.classList.remove('mobile-route-open','mobile-route-expanded');
-  const button=$('toggleRoute');
-  if(button)button.setAttribute('aria-expanded','false');
-  syncRouteCardHeight();
+  if(!isMobileLayout()||!document.body.classList.contains('mobile-route-open'))return;
+  clearTimeout(closeRouteTimer);
+  document.body.classList.add('mobile-route-closing');
+  closeRouteTimer=setTimeout(()=>{
+    document.body.classList.remove('mobile-route-open','mobile-route-expanded','mobile-route-closing');
+    const button=$('toggleRoute');
+    if(button)button.setAttribute('aria-expanded','false');
+    syncRouteCardHeight();
+    requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+  },170);
 }
 export function showMobileRoute(){openMobileRoute();}
 
@@ -167,5 +196,6 @@ export function initMobile(){
     }
   });
   syncViewState();
+  syncResultsFallback();
   syncRouteCardHeight();
 }

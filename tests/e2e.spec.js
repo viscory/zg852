@@ -970,6 +970,7 @@ test('beta interest vectors default off and recompute the map with labelled pref
   await expect(page.locator('#exportDiagnostics')).toBeHidden();
   await page.locator('#betaBadge').click();
   await expect(page.locator('#vectorSection')).toBeVisible();
+  await expect.poll(() => page.locator('#go').evaluate(el => Math.round(el.getBoundingClientRect().height))).toBe(36);
   await expect(page.locator('#legendVectorKey')).toBeVisible();
   await expect(page.locator('#exportDiagnostics')).toBeVisible();
   for (const key of ['food', 'drinks', 'activities', 'culture', 'outdoors', 'shopping']) {
@@ -1027,6 +1028,8 @@ test('heat cells reveal delayed interest tooltips and open a breakdown', async (
   await page.mouse.move(point.x, point.y);
   await expect(page.locator('#mapTooltip')).toBeVisible({ timeout: 2500 });
   await expect(page.locator('#mapTooltip')).toContainText('Area interest fit');
+  await expect(page.locator('#mapTooltip b')).not.toHaveText('Area interest fit');
+  await expect(page.locator('#mapTooltip .tooltip-sub')).toHaveText('Area interest fit');
   await expect(page.locator('#mapTooltip .tooltip-vector')).toHaveCount(6);
   await expect(page.locator('#mapTooltip')).not.toContainText('/100');
   await page.mouse.click(point.x, point.y);

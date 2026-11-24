@@ -87,6 +87,11 @@ test('the three tabs are real destinations and show exactly one job', async ({ p
   await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'plan');
   await expect(page.locator('.side-left')).toBeVisible();
   await expect(page.locator('#mobileTabbar [data-mobile-view="plan"]')).toHaveAttribute('aria-current', 'page');
+
+  // Returning to an empty Fair areas screen must never leave a blank page.
+  await page.locator('#mobileTabbar [data-mobile-view="results"]').click();
+  await expect(page.locator('#mobileResultsEmpty')).toBeVisible();
+  await expect(page.locator('#mobileEmptyTitle')).toHaveText('No fair areas yet.');
 });
 
 test('search moves to Fair areas and a result opens the route card on Map', async ({ page }) => {
@@ -102,6 +107,8 @@ test('search moves to Fair areas and a result opens the route card on Map', asyn
   await expect(page.locator('body')).toHaveClass(/mobile-route-open/);
   await expect(page.locator('#detail')).toBeVisible();
   await expect(page.locator('#detailTitle')).not.toBeEmpty();
+  const strokes = await page.evaluate(() => [...new Set([...document.querySelectorAll('path.route-line')].map(line => line.getAttribute('stroke')))]);
+  expect(strokes.length).toBeGreaterThan(1);
   const card = await rect(page.locator('.side-left'));
   const map = await rect(page.locator('#map'));
   expect(card.height).toBeLessThanOrEqual(map.height * 0.4);
@@ -186,6 +193,12 @@ test('beta parameters stay in Plan and do not collide with the CTA', async ({ pa
   const go = await rect(page.locator('#go'));
   const shopping = await rect(page.locator('.vector-row:has(#vec-shopping)'));
   expect(overlaps(go, shopping)).toBe(false);
+
+  // The avoid/off/prefer labels belong under the slider, not spread over the row.
+  const slider = await rect(page.locator('.vector-row').first().locator('input[type=range]'));
+  const ends = await rect(page.locator('.vector-ends-track'));
+  expect(Math.abs(ends.x - slider.x)).toBeLessThanOrEqual(2);
+  expect(Math.abs(ends.width - slider.width)).toBeLessThanOrEqual(2);
 });
 
 test('bounded heat tap opens the route card with bar-only ratings', async ({ page }) => {

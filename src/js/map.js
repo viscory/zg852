@@ -257,28 +257,34 @@ export function positionTooltip(event){
   tooltip.style.left=`${Math.max(8,Math.min(event.clientX+12,window.innerWidth-248))}px`;
   tooltip.style.top=`${Math.max(8,Math.min(event.clientY+12,window.innerHeight-140))}px`;
 }
-function ratingTooltipMarkup(title,ratings,places){
-  return `<b>${esc(title)}</b>${ratings.map(({key,rating})=>`<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}"><span>${esc(t('vector.'+key))}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${rating}"></i></span></span>`).join('')}${places.length?`<span class="tooltip-places">${esc(places.join(' · '))}</span>`:''}`;
+function ratingTooltipMarkup(title,subtitle,ratings,places){
+  return `<b>${esc(title)}</b>${subtitle?`<span class="tooltip-sub">${esc(subtitle)}</span>`:''}${ratings.map(({key,rating})=>`<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}"><span>${esc(t('vector.'+key))}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${rating}"></i></span></span>`).join('')}${places.length?`<span class="tooltip-places">${esc(places.join(' · '))}</span>`:''}`;
 }
-function showRatingTooltip(target,event,delay,title,ratings,places){
+function showRatingTooltip(target,event,delay,title,subtitle,ratings,places){
   clearTimeout(store.tooltipTimer);
   store.hoverCell=target;
   positionTooltip(event);
   store.tooltipTimer=setTimeout(()=>{
     if(store.hoverCell!==target)return;
     const tooltip=$('mapTooltip');
-    tooltip.innerHTML=ratingTooltipMarkup(title,ratings,places);
+    tooltip.innerHTML=ratingTooltipMarkup(title,subtitle,ratings,places);
     tooltip.querySelectorAll('.tooltip-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
     tooltip.hidden=false;
   },delay);
 }
+function cleanPlaceNames(places){
+  return places.map(name=>String(name).replace(/\s*\([^)]*\)$/,'').trim()).filter(Boolean);
+}
 export function scheduleCellTooltip(cell,event,delay=700){
-  showRatingTooltip(cell,event,delay,t('map.cellTitle'),cellRatings(cell),cellTopNames(cell));
+  const places=cleanPlaceNames(cellTopNames(cell));
+  const district=districtFor(cell.cy*CELL_SIZE+CELL_SIZE/2,cell.cx*CELL_SIZE+CELL_SIZE/2);
+  const title=cell.label||places[0]||district||t('map.areaTitle');
+  showRatingTooltip(cell,event,delay,title,t('map.cellTitle'),cellRatings(cell),places);
 }
 function scheduleResultTooltip(result,event,delay=350){
   const ratings=result.ratings||cellRatings(result);
-  const places=result.poiKey?cellTopNames({key:result.poiKey}):[];
-  showRatingTooltip(result,event,delay,result.point?t('map.pinnedPoint'):t('map.cellTitle'),ratings,places);
+  const places=result.poiKey?cleanPlaceNames(cellTopNames({key:result.poiKey})):[];
+  showRatingTooltip(result,event,delay,result.label||t('map.areaTitle'),t('map.cellTitle'),ratings,places);
 }
 export function hideTooltip(){
   clearTimeout(store.tooltipTimer);
@@ -374,9 +380,9 @@ export function renderSelection(r,active=store.activePeople,fit=false){
       if(leg.coords.length<2)return;
       legCount++;
       const dash=leg.mode==='walk'?'1 6':leg.mode==='bus'?'8 5':null;
-      // Match the map key: walk is muted dotted, MTR solid red, bus dashed red.
-      // Person identity stays on the start/end markers and route cards.
-      const color=leg.mode==='walk'?'#705b57':leg.mode==='bus'?'#a50d26':ACCENT;
+      // Each person keeps their own colour; the line style still carries the
+      // mode (dotted walk, dashed bus, solid rail).
+      const color=PERSON_COLORS[j%PERSON_COLORS.length];
       L.polyline(leg.coords,{pane:'routePane',color,weight:leg.mode==='walk'?2:4,opacity:leg.mode==='walk'?.7:1,dashArray:dash,className:`route-line route-${leg.mode} route-person-${j}`})
         .bindTooltip(esc(`${displayName(active[j],j)}: ${legLabel(leg)}`)).addTo(routeLayer);
     });

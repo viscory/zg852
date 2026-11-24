@@ -1,3 +1,12 @@
+## 2026-11-24T12:25:00Z
+
+- Restored per-person route colours: walk/MTR/bus keep their dotted/solid/dashed styles, but each person now keeps their own accent colour (orange vs teal) instead of every line being red.
+- Map tooltips now lead with the place under the cursor (`cell.label`, falling back to a nearby POI or district), with `Area interest fit` as the subtitle; POI names have their dataset suffixes stripped.
+- Added a `mobileResultsEmpty` fallback on every Results entry so the “No fair areas yet / Plan a meet” state cannot disappear and leave a blank screen.
+- Added mobile transitions: screen fade/slide on tab switches, route-card slide in/out, detail fade, toast/pin/key animations, with `prefers-reduced-motion` support. Icons were reduced (18 px tabs, 11 px header, 13 px card/chip) and Trip settings gained a 20 px separator above it. Vector avoid/off/prefer labels now align to the slider column instead of the whole row.
+- Fixed the desktop Find button sizing: it was shrinking to 16 px after a search because it was a shrinkable flex item. `flex:none` keeps it at 36 px; the desktop beta panel now caps at `100dvh - 500px` so results remain visible.
+- `CI=true npm test` passes 122/122 with two workers; `npm run lint` passes. SW cache bumped to `zg852-v51`. Commit, push, CI and live verification are next.
+
 ## 2026-11-24T11:51:00Z
 
 - Pushed polish commit `d47846e`; CI run `45387232894` passed the test job and the Cloudflare deploy job. Live is now SW `zg852-v50`.
