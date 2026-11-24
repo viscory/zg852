@@ -639,9 +639,9 @@ test('tolerance runs from 5% to 300%, then opens free point picking', async ({ p
 
   await setRange(page, '#tolerance', '3.05');
   await expect(page.locator('#tolval')).toHaveText('Unlimited');
-  await expect(page.locator('#unboundedHint')).toBeVisible();
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('#unboundedHint')).toBeVisible();
   await expect(page.locator('path.heat-cell')).toHaveCount(0);
 
   const mapBox = await page.locator('#map').boundingBox();
