@@ -6,7 +6,7 @@ import { districtFor,loadNetwork } from './data.js';
 import { cellFitScore } from './vectors.js';
 import { sourcesFor,solve,bestTimes,walkTimes,walkBudget,buildCells,prepareRoutes,cellToResult } from './routing.js';
 import { save } from './state.js';
-import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,renderCards,setWorking,setSidebarFace,applyUnboundedUi } from './ui.js';
+import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,refreshTranslatedNames,setWorking,setSidebarFace,applyUnboundedUi } from './ui.js';
 import { drawOrigins,drawCloud,applySelection,applyMapLabels } from './map.js';
 
 export function compute(reveal=false){
@@ -90,7 +90,9 @@ export function rerender(){
   store.results.forEach(r=>{r.district=districtFor(r.lat,r.lon);});
   updateSettingsLabels();
   applyUnboundedUi();
-  renderCards();
+  // Keep cards (and any in-progress input) in place; refresh their translated
+  // labels in place instead of rebuilding them.
+  refreshTranslatedNames();
   if(store.results.length){renderResults(store.activePeople);drawOrigins(store.activePeople);drawCloud(TRAVEL_BUDGET_MINUTES);applySelection(store.activePeople);}
   else renderEmpty();
   renderDirectoryList();

@@ -9,7 +9,6 @@ import { fareMarkup } from './routing.js';
 import { displayName,save,saveDirectory,profileFromPerson,profileLabel,profileDistrict } from './state.js';
 import { scheduleRecompute } from './engine.js';
 import { hideTooltip,clearMapOutput,selectResult } from './map.js';
-import { setMobilePane } from './mobile.js';
 
 export function showError(message){const el=$('error');el.textContent=message;el.hidden=false;}
 export function clearError(){const el=$('error');el.textContent='';el.hidden=true;}
@@ -50,10 +49,17 @@ export function updateSettingsLabels(){
   store.settings.vectors=normalizeVectors(store.settings.vectors);
   VECTOR_KEYS.forEach(key=>{const label=$(`vec-${key}-val`);if(label)label.textContent=vectorLabel(store.settings.vectors[key]);});
 }
+// Free point picking needs a solved network and a completed search. Showing
+// the hint earlier invites map taps that cannot produce a route yet.
+export function isUnboundedReady(){
+  return Boolean(store.unbounded&&store.NET&&store.effectiveGrids&&store.activePeople.length&&store.results.length);
+}
 export function applyUnboundedUi(){
-  const hint=$('unboundedHint');if(hint)hint.hidden=!store.unbounded;
-  const banner=$('pointBanner');if(banner)banner.hidden=!store.pointSelection;
-  const label=$('pointLabel');if(label&&store.pointSelection)label.textContent=t('map.pinnedPoint');
+  const ready=isUnboundedReady();
+  if(!ready&&store.pointSelection)store.pointSelection=null;
+  const hint=$('unboundedHint');if(hint)hint.hidden=!ready;
+  const banner=$('pointBanner');if(banner)banner.hidden=!ready||!store.pointSelection;
+  const label=$('pointLabel');if(label&&ready&&store.pointSelection)label.textContent=t('map.pinnedPoint');
 }
 export function applyBetaFeatures(){
   const enabled=betaVectorsEnabled();
@@ -99,19 +105,22 @@ export function renderResults(active=store.activePeople){
     state.hidden=false;
     count.textContent='';
     if(emptyRun)emptyRun.hidden=false;
+    applyUnboundedUi();
     return;
   }
   state.hidden=true;
   if(emptyRun)emptyRun.hidden=true;
   count.textContent=t('results.areas',{count:store.results.length});
-  setMobilePane('results');
-  list.innerHTML=store.results.map((r,i)=>`<button class="result-row" type="button" data-index="${i}" aria-label="${esc(`${t('results.selectTitle')}: ${r.label}`)}">
+  // Never switch mobile panes from a recompute: only explicit navigation or
+  // selecting a result may move the user out of the pane they are editing.
+  list.innerHTML=store.results.map((r,i)=>`<button class="result-row" type="button" role="listitem" data-index="${i}" aria-label="${esc(`${t('results.selectTitle')}: ${r.label}`)}">
     <span class="result-head"><b>${esc(r.label)}</b><span class="tag">${esc(t('cat.'+r.catKey))}</span><span class="district">${esc(r.district)}</span></span>
     <span class="result-times"><span>${esc(t('results.spread',{value:intNum(r.gap)}))}</span><span>${esc(t('results.longest',{value:intNum(r.slowest)}))}</span></span>
     <span class="result-people">${r.routes.map((route,j)=>`<span class="result-person"><span class="avatar ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span><span class="person-name">${esc(displayName(active[j],j))}</span>${fareMarkup(route)}</span>`).join('')}</span>
   </button>`).join('');
   list.querySelectorAll('.result-row').forEach(row=>{row.onclick=()=>selectResult(Number(row.dataset.index),active,true);});
   markSelectedResult();
+  applyUnboundedUi();
 }
 export function markSelectedResult(){
   document.querySelectorAll('.result-row').forEach(row=>row.classList.toggle('selected',Number(row.dataset.index)===store.selected));
@@ -128,6 +137,7 @@ export function renderSkeleton(){
   if(state){state.textContent=t('options.searching');state.hidden=false;}
   if(count)count.textContent='';
   if(emptyRun)emptyRun.hidden=true;
+  applyUnboundedUi();
 }
 export function setWorking(working){
   const label=working?t('options.searching'):t('options.search');
@@ -182,10 +192,10 @@ export function makeCard(person){
   const saveLabel=esc(t('people.save')),removeLabel=esc(t('people.remove',{letter})),pinLabel=esc(t('people.pin'));
   const card=document.createElement('div');card.className='card';card.dataset.id=id;
   card.innerHTML=`<div class="card-head">
-    <span class="avatar ${avatarClass(idx)}">${esc(initialsFor(person.name))}</span>
+    <span class="avatar ${avatarClass(idx)}">${esc(initialsFor(displayName(person,idx)))}</span>
     <div class="field">
       <label class="label" for="name-${id}">${esc(t('people.name',{letter}))}</label>
-      <input class="name-input" id="name-${id}" type="text" placeholder="${esc(t('people.name',{letter}))}" value="${esc(person.name)}">
+      <input class="name-input" id="name-${id}" type="text" placeholder="${esc(t('people.name',{letter}))}" value="${esc(displayName(person,idx))}">
     </div>
     <div class="icon-actions">
       <button class="icon-button save-person" type="button" aria-label="${saveLabel}" title="${saveLabel}" data-tooltip="${saveLabel}">${icon('save')}</button>
@@ -211,7 +221,7 @@ export function makeCard(person){
   const sug=card.querySelector('.suggestions');
   let timer=null,controller=null,requestSeq=0;
   const cancelSearch=()=>{clearTimeout(timer);if(controller)controller.abort();requestSeq++;};
-  nameInput.addEventListener('input',()=>{person.name=nameInput.value;save();refreshMeta();});
+  nameInput.addEventListener('input',()=>{person.name=nameInput.value;save();refreshMeta();refreshPersonLabels();});
   input.addEventListener('input',()=>{
     clearTimeout(timer);if(controller)controller.abort();
     const q=input.value.trim();
@@ -229,7 +239,11 @@ export function makeCard(person){
     },350);
   });
   card.querySelector('.save-person').onclick=()=>savePersonToDirectory(person);
-  card.querySelector('.remove').onclick=()=>{store.people=store.people.filter(p=>p.id!==id);commitPeople();};
+  card.querySelector('.remove').onclick=()=>{
+    if(store.pinTarget===id)clearPinMode();
+    store.people=store.people.filter(p=>p.id!==id);
+    commitPeople();
+  };
   card.querySelector('.pin').onclick=()=>startPinMode(id,input,sug);
   const walk=card.querySelector('[data-walk]'),walkValue=card.querySelector('.walk-row .value');
   walk.oninput=()=>{
@@ -251,9 +265,10 @@ export function refreshMeta(){
   document.querySelectorAll('.card').forEach(card=>{
     const person=store.people.find(p=>p.id===card.dataset.id);if(!person)return;
     const idx=store.people.indexOf(person),letter=LETTERS[idx%8];
-    const avatar=card.querySelector('.avatar');if(avatar){avatar.textContent=initialsFor(person.name);avatar.className=`avatar ${avatarClass(idx)}`;}
+    const avatar=card.querySelector('.avatar');if(avatar){avatar.textContent=initialsFor(displayName(person,idx));avatar.className=`avatar ${avatarClass(idx)}`;}
     const nameLabel=card.querySelector('label[for^="name-"]');if(nameLabel)nameLabel.textContent=t('people.name',{letter});
     const nameInput=card.querySelector('.name-input');if(nameInput)nameInput.placeholder=t('people.name',{letter});
+    const startLabel=card.querySelector('label[for^="start-"]');if(startLabel)startLabel.textContent=t('people.start');
     const startInput=card.querySelector('.start-input');if(startInput)startInput.placeholder=t('people.startPlaceholder');
     const walkLabel=card.querySelector('.walk-row label');if(walkLabel)walkLabel.textContent=t('people.walkTolerance');
     const walkValue=card.querySelector('.walk-row .value');if(walkValue)walkValue.textContent=minuteText(person.walkMinutes);
@@ -261,6 +276,50 @@ export function refreshMeta(){
     setLabel(card.querySelector('.pin'),t('people.pin'));
     setLabel(card.querySelector('.save-person'),t('people.save'));
   });
+}
+// Result rows and route steps are built from activePeople. Refresh just their
+// labels on rename so the name input keeps focus and its caret.
+export function refreshPersonLabels(){
+  const active=store.activePeople;
+  if(!active.length)return;
+  document.querySelectorAll('.result-row').forEach(row=>{
+    row.querySelectorAll('.result-person').forEach((entry,j)=>{
+      const person=active[j];if(!person)return;
+      const name=displayName(person,j);
+      const label=entry.querySelector('.person-name');if(label)label.textContent=name;
+      const avatar=entry.querySelector('.avatar');if(avatar)avatar.textContent=initialsFor(name);
+    });
+  });
+  document.querySelectorAll('#steps .step:not(.route-empty)').forEach((step,j)=>{
+    const person=active[j];if(!person)return;
+    const name=displayName(person,j);
+    const dot=step.querySelector('.dot');if(dot)dot.textContent=initialsFor(name);
+    const bold=step.querySelector('.txt > b');if(bold)bold.textContent=name;
+  });
+}
+function isDefaultPersonName(person,idx){
+  const name=String(person?.name||'').trim();
+  if(!name)return true;
+  const letter=LETTERS[idx%8];
+  return [store.EN,...Object.values(store.I18N)].some(catalog=>{
+    const template=catalog?.['people.defaultName'];
+    return typeof template==='string'&&template.replaceAll('{letter}',letter)===name;
+  });
+}
+// Locale changes re-translate unset default names but never overwrite a name
+// the user typed. Cards are left in place so an in-progress query, its
+// suggestions and focus all survive the locale switch.
+export function refreshTranslatedNames(){
+  document.querySelectorAll('.card').forEach(card=>{
+    const person=store.people.find(p=>p.id===card.dataset.id);if(!person)return;
+    const idx=store.people.indexOf(person);
+    if(!isDefaultPersonName(person,idx))return;
+    const input=card.querySelector('.name-input');if(!input)return;
+    const start=input.selectionStart,end=input.selectionEnd,direction=input.selectionDirection;
+    input.value=displayName({name:''},idx);
+    if(document.activeElement===input){try{input.setSelectionRange(start,end,direction);}catch{}}
+  });
+  refreshMeta();
 }
 export function commitPeople(){renderCards();save();scheduleRecompute();}
 export function clearPinMode(){
@@ -289,9 +348,10 @@ export function setPinOrigin(id,lat,lon){
 }
 export function savePersonToDirectory(person){
   if(!person.origin){showError(t('people.hintEmpty'));return;}
-  const existing=store.directory.find(d=>d.id===person.directoryId)||store.directory.find(d=>d.name===person.name&&d.origin?.label===person.origin.label);
-  if(existing){existing.name=person.name;existing.origin=clone(person.origin);existing.walkMinutes=clamp(Number(person.walkMinutes),0,60,20);existing.updated=Date.now();person.directoryId=existing.id;}
-  else{const profile=profileFromPerson(person);store.directory.push(profile);person.directoryId=profile.id;}
+  const name=displayName(person,store.people.indexOf(person));
+  const existing=store.directory.find(d=>d.id===person.directoryId)||store.directory.find(d=>d.name===name&&d.origin?.label===person.origin.label);
+  if(existing){existing.name=name;existing.origin=clone(person.origin);existing.walkMinutes=clamp(Number(person.walkMinutes),0,60,20);existing.updated=Date.now();person.directoryId=existing.id;}
+  else{const profile=profileFromPerson({...person,name});store.directory.push(profile);person.directoryId=profile.id;}
   saveDirectory();save();renderDirectoryList();flashSaved(person.id);
 }
 export function flashSaved(id){
@@ -320,7 +380,7 @@ export function renderDirectoryList(){
   const items=store.directory.filter(p=>[p.name,profileLabel(p),profileDistrict(p)].join(' ').toLowerCase().includes(query));
   list.innerHTML=items.length?items.map(p=>{
     const addLabel=esc(t('people.libraryAdd')),editLabel=esc(t('people.libraryEdit')),deleteLabel=esc(store.pendingDelete===p.id?`${t('people.libraryDelete')}?`:t('people.libraryDelete'));
-    return `<div class="directory-row" data-id="${esc(p.id)}" tabindex="0">
+    return `<div class="directory-row" data-id="${esc(p.id)}" role="listitem" tabindex="0">
     <div class="directory-copy"><b>${esc(p.name)}</b><span>${esc(profileLabel(p))}</span><span class="district">${esc(profileDistrict(p))}</span></div>
     <div class="directory-actions">
       <button class="icon-button" type="button" data-action="add" aria-label="${addLabel}" title="${addLabel}" data-tooltip="${addLabel}">${icon('add')}</button>

@@ -91,6 +91,36 @@ export async function ensureCatalog(code){
   store.I18N[code]=await res.json();
   return store.I18N[code];
 }
+// Re-translating should not disturb a place query that is being typed. Keep a
+// snapshot of the active text field and its suggestion panel around rerender()
+// as a safety net, even though cards are now refreshed in place.
+function snapshotActiveText(){
+  const el=document.activeElement;
+  if(!el||el.tagName!=='INPUT'||el.type!=='text')return null;
+  const sug=el.closest('.card')?.querySelector('.suggestions');
+  return{
+    id:el.id,
+    selection:[el.selectionStart,el.selectionEnd,el.selectionDirection],
+    expanded:el.getAttribute('aria-expanded'),
+    activeDescendant:el.getAttribute('aria-activedescendant'),
+    suggestion:sug?{id:sug.id,html:sug.innerHTML,hidden:sug.hidden}:null,
+  };
+}
+function restoreActiveText(snapshot){
+  if(!snapshot)return;
+  const el=document.getElementById(snapshot.id);
+  if(!el||el.tagName!=='INPUT'||document.activeElement!==el)return;
+  try{el.setSelectionRange(...snapshot.selection);}catch{}
+  if(snapshot.expanded===null)el.removeAttribute('aria-expanded');else el.setAttribute('aria-expanded',snapshot.expanded);
+  if(snapshot.activeDescendant===null)el.removeAttribute('aria-activedescendant');else el.setAttribute('aria-activedescendant',snapshot.activeDescendant);
+  if(snapshot.suggestion){
+    const sug=document.getElementById(snapshot.suggestion.id);
+    if(sug){
+      if(sug.innerHTML!==snapshot.suggestion.html)sug.innerHTML=snapshot.suggestion.html;
+      sug.hidden=snapshot.suggestion.hidden;
+    }
+  }
+}
 export async function changeLocale(code){
   if(!LOCALES.includes(code)||code===store.locale)return;
   try{await ensureCatalog(code);}catch(e){code='en';await ensureCatalog('en');}
@@ -98,5 +128,7 @@ export async function changeLocale(code){
   localStorage.setItem(KEY.locale,code);
   save();
   setDocumentLocale();
+  const snapshot=snapshotActiveText();
   rerender();
+  restoreActiveText(snapshot);
 }
