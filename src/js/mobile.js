@@ -2,11 +2,13 @@ import { store } from './store.js';
 import { $ } from './util.js';
 import { t } from './i18n.js';
 
-const QUERY='(max-width: 480px) and (pointer: coarse)';
 const SNAPS=['peek','half','full'];
 const PANE_KEYS={people:'people.title',results:'results.title',route:'sidebar.routeTitle'};
 
-export function isMobileLayout(){return matchMedia(QUERY).matches;}
+// styles.css owns the coarse-pointer deck query and exposes the result as --mobile-deck.
+export function isMobileLayout(){
+  return getComputedStyle(document.documentElement).getPropertyValue('--mobile-deck').trim()==='1';
+}
 
 export function snapMobileSheet(snap){
   if(!isMobileLayout()||!SNAPS.includes(snap))return;
