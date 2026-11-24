@@ -659,6 +659,17 @@ test('tolerance runs from 5% to 300%, then opens free point picking', async ({ p
   await expect(page.locator('.fit-row')).toHaveCount(6);
   await expect(page.locator('#interestRatings')).not.toContainText('/100');
 
+  const pinBox = await page.locator('.point-pin').first().boundingBox();
+  expect(pinBox).not.toBeNull();
+  await page.mouse.move(pinBox.x + pinBox.width / 2, pinBox.y + pinBox.height / 2);
+  await expect(page.locator('#mapTooltip')).toBeVisible({ timeout: 2500 });
+  await expect(page.locator('#mapTooltip')).toContainText('Pinned point');
+  await expect(page.locator('#mapTooltip .tooltip-vector')).toHaveCount(6);
+  await expect(page.locator('#mapTooltip .tooltip-fill')).toHaveCount(6);
+  const pinWidths = await page.locator('#mapTooltip .tooltip-fill').evaluateAll(fills => fills.map(fill => fill.style.width));
+  expect(pinWidths).toHaveLength(6);
+  expect(pinWidths.every(width => /^\d+%$/.test(width))).toBe(true);
+
   await page.locator('#clearPoint').click();
   await expect(page.locator('#pointBanner')).toBeHidden();
   await expect(page.locator('#detailTitle')).not.toHaveText('Pinned point');

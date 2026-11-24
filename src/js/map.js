@@ -170,17 +170,28 @@ export function positionTooltip(event){
   tooltip.style.left=`${Math.max(8,Math.min(event.clientX+12,window.innerWidth-248))}px`;
   tooltip.style.top=`${Math.max(8,Math.min(event.clientY+12,window.innerHeight-140))}px`;
 }
-export function scheduleCellTooltip(cell,event,delay=700){
+function ratingTooltipMarkup(title,ratings,places){
+  return `<b>${esc(title)}</b>${ratings.map(({key,rating})=>`<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}"><span>${esc(t('vector.'+key))}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${rating}"></i></span></span>`).join('')}${places.length?`<span class="tooltip-places">${esc(places.join(' · '))}</span>`:''}`;
+}
+function showRatingTooltip(target,event,delay,title,ratings,places){
   clearTimeout(store.tooltipTimer);
-  store.hoverCell=cell;
+  store.hoverCell=target;
   positionTooltip(event);
   store.tooltipTimer=setTimeout(()=>{
-    if(store.hoverCell!==cell)return;
-    const tooltip=$('mapTooltip'),ratings=cellRatings(cell),places=cellTopNames(cell);
-    tooltip.innerHTML=`<b>${esc(t('map.cellTitle'))}</b>${ratings.map(({key,rating})=>`<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}"><span>${esc(t('vector.'+key))}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${rating}"></i></span></span>`).join('')}${places.length?`<span class="tooltip-places">${esc(places.join(' · '))}</span>`:''}`;
+    if(store.hoverCell!==target)return;
+    const tooltip=$('mapTooltip');
+    tooltip.innerHTML=ratingTooltipMarkup(title,ratings,places);
     tooltip.querySelectorAll('.tooltip-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
     tooltip.hidden=false;
   },delay);
+}
+export function scheduleCellTooltip(cell,event,delay=700){
+  showRatingTooltip(cell,event,delay,t('map.cellTitle'),cellRatings(cell),cellTopNames(cell));
+}
+function scheduleResultTooltip(result,event,delay=350){
+  const ratings=result.ratings||cellRatings(result);
+  const places=result.poiKey?cellTopNames({key:result.poiKey}):[];
+  showRatingTooltip(result,event,delay,result.point?t('map.pinnedPoint'):t('map.cellTitle'),ratings,places);
 }
 export function hideTooltip(){
   clearTimeout(store.tooltipTimer);
@@ -268,8 +279,14 @@ export function renderSelection(r,active=store.activePeople){
         .bindTooltip(esc(`${displayName(active[j],j)}: ${legLabel(leg)}`)).addTo(routeLayer);
     });
   });
-  L.circleMarker([r.lat,r.lon],{pane:'pointPane',radius:12,color:ACCENT,weight:2,fillColor:ACCENT,fillOpacity:.16}).addTo(pointLayer);
-  L.circleMarker([r.lat,r.lon],{pane:'pointPane',radius:5,color:ACCENT,weight:2,fillColor:ACCENT,fillOpacity:1}).bindPopup(`<b>${esc(r.label)}</b>`).addTo(pointLayer);
+  const pointMarker=L.circleMarker([r.lat,r.lon],{pane:'pointPane',radius:12,color:ACCENT,weight:2,fillColor:ACCENT,fillOpacity:.16,className:'point-pin'})
+    .bindPopup(`<b>${esc(r.label)}</b>`).addTo(pointLayer);
+  if(r.ratings){
+    pointMarker.on('mouseover',event=>scheduleResultTooltip(r,event.originalEvent));
+    pointMarker.on('mousemove',event=>positionTooltip(event.originalEvent));
+    pointMarker.on('mouseout',hideTooltip);
+  }
+  L.circleMarker([r.lat,r.lon],{pane:'pointPane',radius:5,color:ACCENT,weight:2,fillColor:ACCENT,fillOpacity:1,interactive:false,className:'point-dot'}).addTo(pointLayer);
   $('detailTitle').textContent=r.label;
   $('detailDistrict').textContent=r.district;
   $('fitGrid').innerHTML=interestRatingMarkup(r);
@@ -314,7 +331,7 @@ export function selectPoint(lat,lon){
     district:districtFor(lat,lon),lat,lon,cellLat:lat,cellLon:lon,
     times,fastest:round(fastest),slowest:round(slowest),gap:round(slowest-fastest),
     score:round(slowest*2),point:{lat,lon},
-    fit:cellPreference(poiCell),vector:cellVector(poiCell),count:cellCount(poiCell),ratings:cellRatings(poiCell),rating:overallRating(poiCell),
+    fit:cellPreference(poiCell),vector:cellVector(poiCell),count:cellCount(poiCell),ratings:cellRatings(poiCell),rating:overallRating(poiCell),poiKey:poiCell.key,
   };
   prepareRoutes(result,store.activePeople);
   store.selection={kind:'point',lat,lon,node:nearest};
