@@ -1,3 +1,8 @@
+## 2026-11-24T12:31:00Z
+
+- Removed the dataset place list from the map interest tooltip entirely. The tooltip now shows only the hovered place name, the `Area interest fit` subtitle, and the six category bars; no `(fehd_rl)` suffixes or restaurant dumps remain.
+- `CI=true npm test` still passes 122/122; SW cache bumped to `zg852-v52`. Commit, push, deploy and live verification are next.
+
 ## 2026-11-24T12:25:00Z
 
 - Restored per-person route colours: walk/MTR/bus keep their dotted/solid/dashed styles, but each person now keeps their own accent colour (orange vs teal) instead of every line being red.

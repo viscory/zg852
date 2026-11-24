@@ -257,17 +257,17 @@ export function positionTooltip(event){
   tooltip.style.left=`${Math.max(8,Math.min(event.clientX+12,window.innerWidth-248))}px`;
   tooltip.style.top=`${Math.max(8,Math.min(event.clientY+12,window.innerHeight-140))}px`;
 }
-function ratingTooltipMarkup(title,subtitle,ratings,places){
-  return `<b>${esc(title)}</b>${subtitle?`<span class="tooltip-sub">${esc(subtitle)}</span>`:''}${ratings.map(({key,rating})=>`<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}"><span>${esc(t('vector.'+key))}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${rating}"></i></span></span>`).join('')}${places.length?`<span class="tooltip-places">${esc(places.join(' · '))}</span>`:''}`;
+function ratingTooltipMarkup(title,subtitle,ratings){
+  return `<b>${esc(title)}</b>${subtitle?`<span class="tooltip-sub">${esc(subtitle)}</span>`:''}${ratings.map(({key,rating})=>`<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}"><span>${esc(t('vector.'+key))}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${rating}"></i></span></span>`).join('')}`;
 }
-function showRatingTooltip(target,event,delay,title,subtitle,ratings,places){
+function showRatingTooltip(target,event,delay,title,subtitle,ratings){
   clearTimeout(store.tooltipTimer);
   store.hoverCell=target;
   positionTooltip(event);
   store.tooltipTimer=setTimeout(()=>{
     if(store.hoverCell!==target)return;
     const tooltip=$('mapTooltip');
-    tooltip.innerHTML=ratingTooltipMarkup(title,subtitle,ratings,places);
+    tooltip.innerHTML=ratingTooltipMarkup(title,subtitle,ratings);
     tooltip.querySelectorAll('.tooltip-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
     tooltip.hidden=false;
   },delay);
@@ -279,12 +279,11 @@ export function scheduleCellTooltip(cell,event,delay=700){
   const places=cleanPlaceNames(cellTopNames(cell));
   const district=districtFor(cell.cy*CELL_SIZE+CELL_SIZE/2,cell.cx*CELL_SIZE+CELL_SIZE/2);
   const title=cell.label||places[0]||district||t('map.areaTitle');
-  showRatingTooltip(cell,event,delay,title,t('map.cellTitle'),cellRatings(cell),places);
+  showRatingTooltip(cell,event,delay,title,t('map.cellTitle'),cellRatings(cell));
 }
 function scheduleResultTooltip(result,event,delay=350){
   const ratings=result.ratings||cellRatings(result);
-  const places=result.poiKey?cleanPlaceNames(cellTopNames({key:result.poiKey})):[];
-  showRatingTooltip(result,event,delay,result.label||t('map.areaTitle'),t('map.cellTitle'),ratings,places);
+  showRatingTooltip(result,event,delay,result.label||t('map.areaTitle'),t('map.cellTitle'),ratings);
 }
 export function hideTooltip(){
   clearTimeout(store.tooltipTimer);

@@ -235,7 +235,6 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .tooltip-vector{display:grid;grid-template-columns:70px 1fr;gap:6px;align-items:center;margin-top:4px}
 .tooltip-track{height:5px;background:var(--border);border-radius:var(--r-sm)}
 .tooltip-fill{display:block;height:100%;background:var(--accent);border-radius:var(--r-sm)}
-.tooltip-places{display:block;margin-top:6px;padding-top:5px;border-top:1px solid var(--border);color:var(--muted)}
 .leaflet-control-attribution{background:var(--elevated)!important;color:var(--muted)!important;font-size:12px!important}
 .leaflet-control-attribution a{color:var(--accent)!important}
 .leaflet-bar a{background:var(--elevated)!important;color:var(--text)!important;border-bottom-color:var(--border)!important}
