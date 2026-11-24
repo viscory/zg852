@@ -669,6 +669,12 @@ test('tolerance runs from 5% to 300%, then opens free point picking', async ({ p
   const pinWidths = await page.locator('#mapTooltip .tooltip-fill').evaluateAll(fills => fills.map(fill => fill.style.width));
   expect(pinWidths).toHaveLength(6);
   expect(pinWidths.every(width => /^\d+%$/.test(width))).toBe(true);
+  const pinFills = await page.locator('#mapTooltip .tooltip-fill').evaluateAll(fills => fills.map(fill => {
+    const box = fill.getBoundingClientRect();
+    return { width: box.width, height: box.height };
+  }));
+  expect(pinFills.every(({ height }) => height > 0)).toBe(true);
+  expect(pinFills.some(({ width }) => width > 0)).toBe(true);
 
   await page.locator('#clearPoint').click();
   await expect(page.locator('#pointBanner')).toBeHidden();

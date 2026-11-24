@@ -19,10 +19,10 @@ button svg{width:14px;height:14px;flex:none}
 .icon{display:inline-block;width:var(--icon,12px);height:var(--icon,12px);flex:none;background:currentColor;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain}
 .icon-globe{-webkit-mask-image:url(../node_modules/lucide-static/icons/globe.svg);mask-image:url(../node_modules/lucide-static/icons/globe.svg)}
 .icon-map-pin{-webkit-mask-image:url(../node_modules/lucide-static/icons/map-pin.svg);mask-image:url(../node_modules/lucide-static/icons/map-pin.svg)}
+.icon-bookmark{-webkit-mask-image:url(../node_modules/lucide-static/icons/bookmark.svg);mask-image:url(../node_modules/lucide-static/icons/bookmark.svg)}
 .icon-bookmark-plus{-webkit-mask-image:url(../node_modules/lucide-static/icons/bookmark-plus.svg);mask-image:url(../node_modules/lucide-static/icons/bookmark-plus.svg)}
 .icon-trash-2{-webkit-mask-image:url(../node_modules/lucide-static/icons/trash-2.svg);mask-image:url(../node_modules/lucide-static/icons/trash-2.svg)}
 .icon-add{-webkit-mask-image:url(../node_modules/lucide-static/icons/plus.svg);mask-image:url(../node_modules/lucide-static/icons/plus.svg)}
-.icon-library{-webkit-mask-image:url(../node_modules/lucide-static/icons/users.svg);mask-image:url(../node_modules/lucide-static/icons/users.svg)}
 .icon-search{-webkit-mask-image:url(../node_modules/lucide-static/icons/search.svg);mask-image:url(../node_modules/lucide-static/icons/search.svg)}
 .icon-edit{-webkit-mask-image:url(../node_modules/lucide-static/icons/pencil.svg);mask-image:url(../node_modules/lucide-static/icons/pencil.svg)}
 .icon-close{-webkit-mask-image:url(../node_modules/lucide-static/icons/x.svg);mask-image:url(../node_modules/lucide-static/icons/x.svg)}
@@ -223,7 +223,7 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .map-tooltip b{display:block;margin-bottom:4px}
 .tooltip-vector{display:grid;grid-template-columns:70px 1fr;gap:6px;align-items:center;margin-top:4px}
 .tooltip-track{height:5px;background:var(--border);border-radius:var(--r-sm)}
-.tooltip-fill{height:100%;background:var(--accent);border-radius:var(--r-sm)}
+.tooltip-fill{display:block;height:100%;background:var(--accent);border-radius:var(--r-sm)}
 .tooltip-places{display:block;margin-top:6px;padding-top:5px;border-top:1px solid var(--border);color:var(--muted)}
 .leaflet-control-attribution{background:var(--elevated)!important;color:var(--muted)!important;font-size:12px!important}
 .leaflet-control-attribution a{color:var(--accent)!important}

@@ -1,3 +1,10 @@
+## 2026-11-24T09:04:19Z
+
+- Rechecked CI for `58a65f0`: run `45359353679` passed both the 115-test job and the Cloudflare deploy job, so the deterministic service-worker fix is live as `zg852-v46`.
+- Reproduced the two new live reports with Playwright on `https://zg852.pages.dev/`. The pinned-point tooltip contained the title, all six category labels, and 100/98/92/80/73/98 ratings, but every bar looked empty because `.tooltip-fill` was an inline `<i>` with no `display:block`, so its width and height were ignored. The saved-people button used Lucide `users.svg`, not a bookmark.
+- Fixed `.tooltip-fill` with `display:block`, replaced the header library icon with `bookmark.svg`, and added regressions for visible tooltip fill boxes and the bookmark mask. Bumped the service-worker cache to `zg852-v47` and synced `tests/audit-sw.spec.js`.
+- `npm run lint` passes and the full CI-mode Playwright suite passes 116/116. These newest fixes are uncommitted; deploy and live re-verification are next.
+
 ## 2026-11-24T08:45:33Z
 
 - CI run `45356656564` failed at `npm test` on `tests/map-fixes.spec.js` near-tied travel times; the same test passed locally without `CI=true` and passed on immediate reruns, so I reproduced and instrumented the flake.

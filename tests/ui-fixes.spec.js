@@ -22,6 +22,12 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
 });
 
+test('the saved-people button uses the bookmark icon', async ({ page }) => {
+  const mask = await page.locator('#library .icon').evaluate(el => getComputedStyle(el).maskImage);
+  expect(mask).toContain('lucide-bookmark');
+  expect(mask).not.toContain('lucide-users');
+});
+
 test('an exact typed local place commits with Enter', async ({ page }) => {
   const card = page.locator('.card').first();
   const input = card.locator('.start-input');
