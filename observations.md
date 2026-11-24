@@ -1,3 +1,9 @@
+## 2026-11-24T09:08:26Z
+
+- Pushed commit `4f940c7`; CI run `45361731268` passed the 116-test job and the Cloudflare deploy job.
+- Live verification at `https://zg852.pages.dev/` confirms SW `zg852-v47`, a `lucide-bookmark` mask on the saved-people button, and a visible pinned-point tooltip. All six tooltip fills now have real layout boxes (about 142, 139, 131, 114, 104, and 139 px wide at 5 px high), and the screenshot shows the red bars and bookmark icon correctly.
+- Only untracked audit screenshots remain outside version control; no application regressions found.
+
 ## 2026-11-24T09:04:19Z
 
 - Rechecked CI for `58a65f0`: run `45359353679` passed both the 115-test job and the Cloudflare deploy job, so the deterministic service-worker fix is live as `zg852-v46`.
