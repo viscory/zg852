@@ -57,7 +57,6 @@ export function applyBetaFeatures(){
   const section=$('vectorSection');if(section)section.hidden=!enabled;
   const legendKey=$('legendVectorKey');if(legendKey)legendKey.hidden=!enabled;
   const diagnostics=$('exportDiagnostics');if(diagnostics)diagnostics.hidden=!enabled;
-  if(!enabled){store.POI={cells:{}};store.poiLoaded=false;}
 }
 export function applySettingsToDom(){
   document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',String(store.settings.modes.includes(c.dataset.mode))));

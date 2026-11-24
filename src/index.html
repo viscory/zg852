@@ -91,11 +91,10 @@
           <h2 id="detailTitle" data-i18n="map.areaTitle">Meeting area</h2>
           <p class="district-line" id="detailDistrict"></p>
           <p class="sub" id="detailSub" data-i18n="map.areaHint">Tap a red area to see routes.</p>
-          <section class="interest-ratings" id="interestRatings" hidden>
-            <div class="fit-head"><span data-i18n="vector.ratings">Interest ratings</span><b id="fitOverall"></b></div>
-            <p class="note fit-scale" data-i18n="vector.ratingScale">Log-normalised 0–100 by category</p>
-            <div class="fit-grid" id="fitGrid"></div>
-          </section>
+          <details class="interest-ratings" id="interestRatings">
+            <summary data-i18n="vector.ratings">Interest ratings</summary>
+            <div class="interest-body"><div class="fit-grid" id="fitGrid"></div></div>
+          </details>
           <div class="steps" id="steps" aria-label="Routes" data-i18n-aria-label="results.routes"></div>
           <p class="note fare-note" data-i18n="results.fareNote">Total adult Octopus fare estimate. Check the operator for exact fares.</p>
         </section>

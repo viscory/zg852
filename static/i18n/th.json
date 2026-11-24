@@ -154,8 +154,5 @@
   "diag.downloaded": "ดาวน์โหลดข้อมูลวินิจฉัยแล้ว",
   "diag.failed": "ไม่สามารถส่งออกข้อมูลวินิจฉัยได้",
   "route.walkTo": "เดิน {time} ถึง{to}",
-  "vector.ratings": "คะแนนความสนใจ",
-  "vector.ratingScale": "ปรับเป็นสเกลลอการิทึก 0–100 ตามหมวดหมู่",
-  "vector.overall": "โดยรวม {value}/100",
-  "vector.rating": "{value}/100"
+  "vector.ratings": "คะแนนความสนใจ"
 }

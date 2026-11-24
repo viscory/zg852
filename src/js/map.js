@@ -5,8 +5,8 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,TRAVEL_BUDGET_MINUTES } from './config.js';
 import { store } from './store.js';
 import { $,esc,clamp,isNum,icon,initialsFor,avatarClass,haversine } from './util.js';
-import { t,num,intNum,minuteText } from './i18n.js';
-import { betaVectorsEnabled,preferenceText,cellTopNames,cellRatings,overallRating,ratingText } from './vectors.js';
+import { t,intNum,minuteText } from './i18n.js';
+import { cellTopNames,cellRatings,cellVector,cellCount,cellPreference,overallRating } from './vectors.js';
 import { prepareRoutes,legLabel,fareMarkup,money,cellToResult,interchangeWaitText } from './routing.js';
 import { hkbusUrl,mtrLineCode,districtFor } from './data.js';
 import { displayName } from './state.js';
@@ -148,15 +148,9 @@ export function scheduleCellTooltip(cell,event){
   positionTooltip(event);
   store.tooltipTimer=setTimeout(()=>{
     if(store.hoverCell!==cell)return;
-    const enabled=betaVectorsEnabled();
-    const tooltip=$('mapTooltip');
-    if(enabled){
-      const ratings=cellRatings(cell),places=cellTopNames(cell);
-      tooltip.innerHTML=`<b>${esc(t('map.cellTitle'))}</b>${ratings.map(({key,rating})=>`<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}"><span>${esc(t('vector.'+key))}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${rating}"></i></span></span>`).join('')}${places.length?`<span class="tooltip-places">${esc(places.join(' · '))}</span>`:''}`;
-      tooltip.querySelectorAll('.tooltip-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
-    }else{
-      tooltip.innerHTML=`<b>${esc(t('map.areaTitle'))} · ${esc(t('results.longest',{value:intNum(cell.slowest)}))}</b>`;
-    }
+    const tooltip=$('mapTooltip'),ratings=cellRatings(cell),places=cellTopNames(cell);
+    tooltip.innerHTML=`<b>${esc(t('map.cellTitle'))}</b>${ratings.map(({key,rating})=>`<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}"><span>${esc(t('vector.'+key))}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${rating}"></i></span></span>`).join('')}${places.length?`<span class="tooltip-places">${esc(places.join(' · '))}</span>`:''}`;
+    tooltip.querySelectorAll('.tooltip-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
     tooltip.hidden=false;
   },700);
 }
@@ -208,10 +202,9 @@ export function applySelection(active=store.activePeople){
   selectResult(clamp(Number(store.selection?.index)||0,0,Math.max(0,store.results.length-1)),active);
 }
 function interestRatingMarkup(result){
-  return cellRatings(result).map(({key,rating,count})=>`<div class="fit-row" data-category="${esc(key)}" data-rating="${rating}">
-    <span class="fit-label">${esc(t('vector.'+key))}<small>${esc(num(count))}</small></span>
+  return (result.ratings||cellRatings(result)).map(({key,rating})=>`<div class="fit-row" data-category="${esc(key)}" data-rating="${rating}">
+    <span class="fit-label">${esc(t('vector.'+key))}</span>
     <span class="fit-track"><i class="fit-fill" data-width="${rating}"></i></span>
-    <span class="fit-value">${esc(ratingText(rating))}</span>
   </div>`).join('');
 }
 function legChip(leg){
@@ -250,15 +243,9 @@ export function renderSelection(r,active=store.activePeople){
   L.circleMarker([r.lat,r.lon],{pane:'pointPane',radius:5,color:ACCENT,weight:2,fillColor:ACCENT,fillOpacity:1}).bindPopup(`<b>${esc(r.label)}</b>`).addTo(pointLayer);
   $('detailTitle').textContent=r.label;
   $('detailDistrict').textContent=r.district;
-  const showRatings=betaVectorsEnabled()&&!r.point;
-  $('interestRatings').hidden=!showRatings;
-  if(showRatings){
-    $('fitOverall').textContent=t('vector.overall',{value:num(overallRating(r))});
-    $('fitGrid').innerHTML=interestRatingMarkup(r);
-    $('fitGrid').querySelectorAll('.fit-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
-  }
-  const preference=showRatings?` ${preferenceText(r.fit)}`:'';
-  $('detailSub').textContent=`${t('results.spread',{value:intNum(r.gap)})} ${t('results.longest',{value:intNum(r.slowest)})}${preference}`;
+  $('fitGrid').innerHTML=interestRatingMarkup(r);
+  $('fitGrid').querySelectorAll('.fit-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
+  $('detailSub').textContent=`${t('results.spread',{value:intNum(r.gap)})} ${t('results.longest',{value:intNum(r.slowest)})}`;
   const already=r.times.every(value=>value<=0.5);
   $('steps').innerHTML=legCount?r.routes.map((route,j)=>`<div class="step">
     <span class="dot ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>
@@ -292,11 +279,13 @@ export function selectPoint(lat,lon){
   const times=grids.map(grid=>round(grid[nearest]));
   const slowest=Math.max(...times),fastest=Math.min(...times);
   const label=t('map.pinnedPoint');
+  const cy=Math.floor(store.NODES.lat[nearest]/CELL_SIZE),cx=Math.floor(store.NODES.lon[nearest]/CELL_SIZE),poiCell={key:`${cy},${cx}`};
   const result={
     key:`point:${round(lat)},${round(lon)}`,node:nearest,label,
     district:districtFor(lat,lon),lat,lon,cellLat:lat,cellLon:lon,
     times,fastest:round(fastest),slowest:round(slowest),gap:round(slowest-fastest),
-    score:round(slowest*2),fit:null,vector:null,count:0,point:{lat,lon},
+    score:round(slowest*2),point:{lat,lon},
+    fit:cellPreference(poiCell),vector:cellVector(poiCell),count:cellCount(poiCell),ratings:cellRatings(poiCell),rating:overallRating(poiCell),
   };
   prepareRoutes(result,store.activePeople);
   store.selection={kind:'point',lat,lon,node:nearest};

@@ -154,8 +154,5 @@
   "diag.downloaded": "Diagnostic téléchargé",
   "diag.failed": "Impossible d'exporter le diagnostic",
   "route.walkTo": "Marcher {time} jusqu'à {to}",
-  "vector.ratings": "Évaluations des centres d’intérêt",
-  "vector.ratingScale": "Normalisation logarithmique 0–100 par catégorie",
-  "vector.overall": "Global {value}/100",
-  "vector.rating": "{value}/100"
+  "vector.ratings": "Évaluations des centres d’intérêt"
 }

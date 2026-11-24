@@ -22,7 +22,7 @@ async function init(){
   store.locale=LOCALES.includes(storedLocale)?storedLocale:'en';
   setDocumentLocale();
   if(!applySharedState())restoreState();else applySettingsToDom();
-  if(betaVectorsEnabled())await loadPoi();
+  await loadPoi();
   restoreDirectory();
   applyStaticText();
   renderCards();
@@ -48,7 +48,7 @@ async function setBetaEnabled(enabled){
   store.settings.beta={vectors:!!enabled};
   save();
   applyBetaFeatures();
-  if(betaVectorsEnabled())await loadPoi();
+  await loadPoi();
   if(store.results.length)triggerSearch();
 }
 $('betaBadge').onclick=()=>setBetaEnabled(!betaVectorsEnabled());

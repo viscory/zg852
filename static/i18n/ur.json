@@ -154,8 +154,5 @@
   "diag.downloaded": "تشخیصی ڈیٹا ڈاؤن لوڈ ہو گیا",
   "diag.failed": "تشخیصی ڈیٹا برآمد نہیں ہو سکا",
   "route.walkTo": "{to} تک پیدل {time}",
-  "vector.ratings": "دلچسپی کی درجہ بندی",
-  "vector.ratingScale": "زمرے کے حساب سے لاگاریتھمک 0–100",
-  "vector.overall": "مجموعی {value}/100",
-  "vector.rating": "{value}/100"
+  "vector.ratings": "دلچسپی کی درجہ بندی"
 }

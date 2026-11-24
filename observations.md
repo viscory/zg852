@@ -1,3 +1,12 @@
+## 2026-11-24T04:00:07Z
+
+- Made the POI index load unconditionally at startup instead of only when beta vectors are enabled, and stopped `applyBetaFeatures()` from clearing it. Interest ratings are therefore available in bounded and unbounded modes; beta still only controls the preference sliders and their ranking effect.
+- Fixed the bounded-mode heat-cell tooltip. It now always renders “Area interest fit” with six category-label + filled-bar rows, no scores and no counts, instead of the near-empty title-only tooltip.
+- Converted the rightbar interest panel into a native `<details>` accordion with an “Interest ratings” summary. Removed the overall `/100`, per-category `/100`, counts, scale note, and preference sentence; the panel now contains only category labels and bars.
+- Unbounded pinned-point results now compute `fit`/`vector`/`count`/`ratings`/`rating` from the POI cell key of the nearest transit node, so the interest accordion also appears for pinned points. Removed the old `betaVectorsEnabled() && !r.point` gate.
+- Removed the unused `vector.ratingScale`, `vector.overall`, and `vector.rating` keys from FALLBACK and all 15 catalogues (156 keys). Bumped service-worker cache `zg852-v40` → `zg852-v41`.
+- Verification clean: `npm run lint` (156 keys × 15 catalogues, 106 literal keys), `npm test` 65/65, `npm run build`, `git diff --check`. Changes are in the working tree but not yet committed.
+
 ## 2026-11-23T17:09:40Z
 
 - Replaced the literal “Diagnostics beta” footer text with a muted download icon button in `.legal-links` after Process. It is hidden by default and only shown by `applyBetaFeatures()` when beta vectors are on; accessible label/tooltip remain, and the unused `diag.beta` key was removed from FALLBACK and all 15 catalogues (159 keys).

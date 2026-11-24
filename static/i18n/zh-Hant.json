@@ -154,8 +154,5 @@
   "diag.downloaded": "診斷資料已下載",
   "diag.failed": "無法匯出診斷資料",
   "route.walkTo": "步行 {time} 至{to}",
-  "vector.ratings": "興趣評分",
-  "vector.ratingScale": "各類別以對數正規化為 0–100",
-  "vector.overall": "整體 {value}/100",
-  "vector.rating": "{value}/100"
+  "vector.ratings": "興趣評分"
 }

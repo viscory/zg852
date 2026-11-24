@@ -154,8 +154,5 @@
   "diag.downloaded": "診断データをダウンロードしました",
   "diag.failed": "診断データを書き出せませんでした",
   "route.walkTo": "{to}まで徒歩 {time}",
-  "vector.ratings": "興味評価",
-  "vector.ratingScale": "カテゴリごとに対数正規化した 0〜100",
-  "vector.overall": "総合 {value}/100",
-  "vector.rating": "{value}/100"
+  "vector.ratings": "興味評価"
 }

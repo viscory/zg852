@@ -2,7 +2,6 @@ import { HKBUS_SEARCH_URL,MTR_LINE_COLORS,MTR_LINE_DEFAULT_COLOR } from './confi
 import { store } from './store.js';
 import { isNum,haversine } from './util.js';
 import { t } from './i18n.js';
-import { betaVectorsEnabled } from './vectors.js';
 
 export function nodePriority(kind){return kind===1?0:kind===3?1:kind===4?2:3;}
 export function catKey(priority){return priority===0?'station':priority===1?'exit':'bus';}
@@ -43,7 +42,6 @@ export async function loadDistricts(){
   store.DISTRICTS=await fetch('data/districts.json').then(r=>r.json());
 }
 export async function loadPoi(){
-  if(!betaVectorsEnabled()){store.POI={cells:{}};return null;}
   if(store.poiLoaded)return store.POI;
   if(store.poiLoading)return store.poiLoading;
   store.poiLoading=(async()=>{

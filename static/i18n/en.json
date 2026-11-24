@@ -154,8 +154,5 @@
   "diag.downloaded": "Diagnostics downloaded",
   "diag.failed": "Could not export diagnostics",
   "route.walkTo": "Walk {time} to {to}",
-  "vector.ratings": "Interest ratings",
-  "vector.ratingScale": "Log-normalised 0–100 by category",
-  "vector.overall": "Overall {value}/100",
-  "vector.rating": "{value}/100"
+  "vector.ratings": "Interest ratings"
 }

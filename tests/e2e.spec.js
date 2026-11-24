@@ -655,6 +655,9 @@ test('tolerance runs from 5% to 300%, then opens free point picking', async ({ p
   await expect(page.locator('#steps .route-meta').first()).toContainText('HK$');
   const splitWalks = await page.locator('#steps .step').evaluateAll(steps => steps.filter(step => !step.querySelector('.ride-leg') && step.querySelectorAll('.walk-leg').length > 1).length);
   expect(splitWalks).toBe(0);
+  await expect(page.locator('#interestRatings')).toBeVisible();
+  await expect(page.locator('.fit-row')).toHaveCount(6);
+  await expect(page.locator('#interestRatings')).not.toContainText('/100');
 
   await page.locator('#clearPoint').click();
   await expect(page.locator('#pointBanner')).toBeHidden();
@@ -764,8 +767,8 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
-  expect(expected).toHaveLength(159);
-  for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'vector.ratings', 'vector.ratingScale', 'vector.overall', 'vector.rating', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
+  expect(expected).toHaveLength(156);
+  for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'vector.ratings', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
   for (const key of ['app.meaning', 'people.focusLabel', 'people.focusTime', 'people.focusCost']) {
@@ -948,10 +951,7 @@ test('beta interest vectors default off and recompute the map with labelled pref
   await expect(page.locator('#vectorSection')).toBeHidden();
   await expect(page.locator('#legendVectorKey')).toBeHidden();
   await expect(page.locator('#exportDiagnostics')).toBeHidden();
-  await Promise.all([
-    page.waitForResponse(response => response.url().includes('poi-index.json')),
-    page.locator('#betaBadge').click(),
-  ]);
+  await page.locator('#betaBadge').click();
   await expect(page.locator('#vectorSection')).toBeVisible();
   await expect(page.locator('#legendVectorKey')).toBeVisible();
   await expect(page.locator('#exportDiagnostics')).toBeVisible();
@@ -964,12 +964,16 @@ test('beta interest vectors default off and recompute the map with labelled pref
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   await expect(page.locator('#interestRatings')).toBeVisible();
+  await expect(page.locator('#interestRatings summary')).toHaveText('Interest ratings');
+  await page.locator('#interestRatings summary').click();
   await expect(page.locator('.fit-row')).toHaveCount(6);
-  await expect(page.locator('#fitOverall')).toHaveText(/^Overall \d+\/100$/);
-  for (const key of ['food', 'drinks', 'activities', 'culture', 'outdoors', 'shopping']) {
-    await expect(page.locator(`.fit-row[data-category="${key}"] .fit-value`)).toHaveText(/^\d+\/100$/);
-  }
-  await expect(page.locator('#detailSub')).toContainText('No preference applied');
+  await expect(page.locator('#fitOverall')).toHaveCount(0);
+  await expect(page.locator('.fit-value')).toHaveCount(0);
+  await expect(page.locator('#interestRatings')).not.toContainText('/100');
+  const rightbarWidths = await page.locator('#fitGrid .fit-fill').evaluateAll(fills => fills.map(fill => fill.style.width));
+  expect(rightbarWidths).toHaveLength(6);
+  expect(rightbarWidths.every(width => /^\d+%$/.test(width))).toBe(true);
+  await expect(page.locator('#detailSub')).not.toContainText('preference');
 
   await page.evaluate(() => {
     window.__searchStates = [];
@@ -996,7 +1000,7 @@ test('beta interest vectors default off and recompute the map with labelled pref
   await expect(page.locator('#vectorSection')).toBeHidden();
   await expect(page.locator('#legendVectorKey')).toBeHidden();
   await expect(page.locator('#exportDiagnostics')).toBeHidden();
-  await expect(page.locator('#interestRatings')).toBeHidden();
+  await expect(page.locator('#interestRatings')).toBeVisible();
   await expect.poll(() => page.locator('#detailSub').textContent()).not.toContain('preference');
 });
 
@@ -1005,18 +1009,16 @@ test('heat cells reveal delayed interest tooltips and open a breakdown', async (
   const point = await clickableHeatCell(page);
   await page.mouse.move(point.x, point.y);
   await expect(page.locator('#mapTooltip')).toBeVisible({ timeout: 2500 });
-  await expect(page.locator('#mapTooltip .tooltip-vector')).toHaveCount(0);
-  await expect(page.locator('#mapTooltip')).not.toContainText('Area interest fit');
+  await expect(page.locator('#mapTooltip')).toContainText('Area interest fit');
+  await expect(page.locator('#mapTooltip .tooltip-vector')).toHaveCount(6);
+  await expect(page.locator('#mapTooltip')).not.toContainText('/100');
   await page.mouse.click(point.x, point.y);
   await expect(page.locator('#detail')).toBeVisible();
   await expect(page.locator('#detailTitle')).not.toBeEmpty();
 });
 
 test('interest tooltip shows normalized category ratings when beta is on', async ({ page }) => {
-  await Promise.all([
-    page.waitForResponse(response => response.url().includes('poi-index.json')),
-    page.locator('#betaBadge').click(),
-  ]);
+  await page.locator('#betaBadge').click();
   await page.locator('#go').click();
   const point = await clickableHeatCell(page);
   await page.mouse.move(point.x, point.y);

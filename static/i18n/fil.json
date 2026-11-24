@@ -154,8 +154,5 @@
   "diag.downloaded": "Na-download ang diagnostics",
   "diag.failed": "Hindi ma-export ang diagnostics",
   "route.walkTo": "Lakad {time} patungong {to}",
-  "vector.ratings": "Mga rating ng interes",
-  "vector.ratingScale": "Log-normalisado 0–100 bawat kategorya",
-  "vector.overall": "Kabuuan {value}/100",
-  "vector.rating": "{value}/100"
+  "vector.ratings": "Mga rating ng interes"
 }
