@@ -163,5 +163,17 @@
   "people.count_one": "व्यक्ति",
   "people.count_other": "मानिस",
   "results.totalTime": "कुल {value}",
-  "results.walkOnly": "पैदल मात्र"
+  "results.walkOnly": "पैदल मात्र",
+  "nav.plan": "योजना",
+  "nav.map": "नक्शा",
+  "nav.main": "मुख्य नेभिगेसन",
+  "options.settings": "यात्रा सेटिङ",
+  "results.emptyShort": "अहिलेसम्म कुनै उपयुक्त क्षेत्र छैन।",
+  "results.emptyHint": "भेट्ने मानिसहरू सेट गर्नुहोस्, त्यसपछि उपयुक्त क्षेत्र खोज्नुहोस्।",
+  "results.goPlan": "भेटको योजना बनाउनुहोस्",
+  "results.edit": "सम्पादन",
+  "map.close": "बन्द गर्नुहोस्",
+  "beta.on": "खुला",
+  "beta.off": "बन्द",
+  "map.pinHint": "यो सुरु स्थान सेट गर्न नक्शामा ट्याप गर्नुहोस्।"
 }

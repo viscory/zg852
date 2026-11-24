@@ -163,5 +163,17 @@
   "people.count_one": "명",
   "people.count_other": "명",
   "results.totalTime": "총 {value}",
-  "results.walkOnly": "도보만"
+  "results.walkOnly": "도보만",
+  "nav.plan": "계획",
+  "nav.map": "지도",
+  "nav.main": "주요 탐색",
+  "options.settings": "여행 설정",
+  "results.emptyShort": "아직 공평한 지역이 없습니다.",
+  "results.emptyHint": "만나는 사람을 설정한 뒤 공평한 지역을 찾으세요.",
+  "results.goPlan": "만남 계획",
+  "results.edit": "편집",
+  "map.close": "닫기",
+  "beta.on": "켜짐",
+  "beta.off": "꺼짐",
+  "map.pinHint": "지도를 눌러 출발지를 설정하세요."
 }

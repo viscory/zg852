@@ -163,5 +163,17 @@
   "people.count_one": "persona",
   "people.count_other": "personas",
   "results.totalTime": "Total {value}",
-  "results.walkOnly": "Solo caminando"
+  "results.walkOnly": "Solo caminando",
+  "nav.plan": "Plan",
+  "nav.map": "Mapa",
+  "nav.main": "Navegación principal",
+  "options.settings": "Ajustes del viaje",
+  "results.emptyShort": "Aún no hay zonas equitativas.",
+  "results.emptyHint": "Indica quién se reúne y busca zonas equitativas.",
+  "results.goPlan": "Planifica un encuentro",
+  "results.edit": "Editar",
+  "map.close": "Cerrar",
+  "beta.on": "Activado",
+  "beta.off": "Desactivado",
+  "map.pinHint": "Toca el mapa para fijar este inicio."
 }

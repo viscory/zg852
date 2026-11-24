@@ -143,12 +143,12 @@ test('the unlimited hint waits for network and results', async ({ page }) => {
   await expect(page.locator('#unboundedHint')).toBeVisible();
 });
 
-test.describe('mobile pane stability', () => {
+test.describe('mobile screen stability', () => {
   test.use(iphone);
 
-  test('recomputes do not move the user out of People or Route', async ({ page }) => {
-    await page.locator('#mobileNav [data-mobile-pane="people"]').click();
-    await expect(page.locator('body')).toHaveAttribute('data-mobile-pane', 'people');
+  test('recomputes do not move the user off Plan or Map', async ({ page }) => {
+    await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'plan');
+    await expect(page.locator('#mobileTabbar')).toBeVisible();
 
     await page.locator('.card').first().locator('[data-walk]').evaluate(el => {
       el.value = '30';
@@ -156,12 +156,17 @@ test.describe('mobile pane stability', () => {
     });
     await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
     await page.waitForTimeout(700);
-    await expect(page.locator('body')).toHaveAttribute('data-mobile-pane', 'people');
+    await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'plan');
+    await expect(page.locator('.side-left')).toBeVisible();
 
-    await page.locator('#mobileNav [data-mobile-pane="route"]').click();
-    await expect(page.locator('body')).toHaveAttribute('data-mobile-pane', 'route');
+    await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
+    await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'map');
+    await page.locator('#mobileTabbar [data-mobile-view="plan"]').click();
     await setRange(page, '#tolerance', '0.2');
     await page.waitForTimeout(900);
-    await expect(page.locator('body')).toHaveAttribute('data-mobile-pane', 'route');
+    await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'plan');
+
+    await page.locator('#go').click();
+    await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'results');
   });
 });

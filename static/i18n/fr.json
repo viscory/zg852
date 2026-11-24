@@ -163,5 +163,17 @@
   "people.count_one": "personne",
   "people.count_other": "personnes",
   "results.totalTime": "Total {value}",
-  "results.walkOnly": "Marche uniquement"
+  "results.walkOnly": "Marche uniquement",
+  "nav.plan": "Plan",
+  "nav.map": "Carte",
+  "nav.main": "Navigation principale",
+  "options.settings": "Réglages du trajet",
+  "results.emptyShort": "Aucune zone équitable pour l’instant.",
+  "results.emptyHint": "Indiquez qui se rencontre, puis cherchez les zones équitables.",
+  "results.goPlan": "Planifier une rencontre",
+  "results.edit": "Modifier",
+  "map.close": "Fermer",
+  "beta.on": "Activé",
+  "beta.off": "Désactivé",
+  "map.pinHint": "Touchez la carte pour définir ce départ."
 }

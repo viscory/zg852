@@ -85,13 +85,20 @@ export function createMap(){
     if(store.unbounded){selectPoint(e.latlng.lat,e.latlng.lng);return;}
     if(isMobileLayout()){
       const cell=magneticCell(e.latlng);
-      if(cell){
-        selectCell(cell);
-        if(e.originalEvent)scheduleCellTooltip(cell,e.originalEvent,0);
-      }
+      if(cell)selectCell(cell);
     }
   });
   window.addEventListener('resize',()=>map.invalidateSize());
+  window.addEventListener('mobile:map-shown',()=>{
+    requestAnimationFrame(()=>{
+      map.invalidateSize();
+      if(!store.mobile.mapShown){
+        store.mobile.mapShown=true;
+        if(store.results.length)recenterMap();
+        else fitMapTo([]);
+      }
+    });
+  });
   const glLayer=maplibreGL({style:CLEAN_STYLE,interactive:false,attributionControl:false});
   try{
     glLayer.addTo(map);
@@ -127,18 +134,19 @@ export function drawOrigins(active=store.activePeople){
 // must carry its own value: reserving the mobile sheet at both ends leaves no
 // room for the fit and pushes the selected marker under the sheet.
 const MAP_INSET=24;
-const MOBILE_TOP_INSET=80;
+const MOBILE_TOP_INSET=24;
 const MIN_FIT_HEIGHT=80;
 function mapPadding(){
   if(!isMobileLayout())return {paddingTopLeft:[MAP_INSET,MAP_INSET],paddingBottomRight:[MAP_INSET,MAP_INSET]};
-  const snap=document.body.dataset.mobileSnap;
-  const sheet=snap==='peek'?112:snap==='full'?Math.max(0,window.innerHeight-118):Math.round(window.innerHeight*.62);
-  // Keep a positive fit area even when the sheet is snapped fully open.
-  const bottom=Math.min(sheet,Math.max(0,map.getSize().y-MOBILE_TOP_INSET-MIN_FIT_HEIGHT));
+  const size=map.getSize().y;
+  // The route card floats over the lower part of the map. Reserve that space
+  // when fitting a route, but keep a meaningful strip of map above it.
+  const wanted=document.body.classList.contains('mobile-route-open')?Math.round(size*.62):MAP_INSET;
+  const bottom=Math.min(wanted,Math.max(0,size-MOBILE_TOP_INSET-MIN_FIT_HEIGHT));
   return {paddingTopLeft:[MAP_INSET,MOBILE_TOP_INSET],paddingBottomRight:[MAP_INSET,bottom]};
 }
 export function fitMapTo(points){
-  if(points.length){map.fitBounds(points,{...mapPadding(),maxZoom:14,animate:false});return;}
+  if(points.length){map.fitBounds(points,{...mapPadding(),maxZoom:isMobileLayout()?15:14,animate:false});return;}
   map.setView([22.31,114.17],12,{animate:false});
 }
 export function recenterMap(){
@@ -390,6 +398,7 @@ export function renderSelection(r,active=store.activePeople,fit=false){
 }
 export function selectResult(i,active=store.activePeople,reveal=false){
   const r=store.results[i];if(!r)return;
+  hideTooltip();
   clearStalePointSelection();
   store.selection={kind:'result',index:i};store.sharedSelection=null;
   persistSelection();

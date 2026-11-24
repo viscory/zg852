@@ -82,8 +82,7 @@ test.describe('coarse-pointer adaptive deck', () => {
     test(`${viewport.width}x${viewport.height} uses the mobile deck with #go on screen`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await expect.poll(() => page.evaluate(() => matchMedia('(max-width: 1024px) and (pointer: coarse)').matches)).toBe(true);
-      await expect(page.locator('#mobileNav')).toBeVisible();
-      await expect(page.locator('#sheetHandle')).toBeVisible();
+      await expect(page.locator('#mobileTabbar')).toBeVisible();
       await expect(page.locator('.layout')).toHaveCSS('display', 'block');
       const metrics = await page.evaluate(() => {
         const go = document.querySelector('#go').getBoundingClientRect();
@@ -106,6 +105,7 @@ test.describe('coarse-pointer adaptive deck', () => {
   test('attribution and legend stay visible on coarse layouts', async ({ page }) => {
     for (const viewport of [{ width: 393, height: 659 }, { width: 852, height: 393 }, { width: 768, height: 1024 }]) {
       await page.setViewportSize(viewport);
+      await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
       const info = await page.evaluate(() => ({
         attribution: getComputedStyle(document.querySelector('.leaflet-control-attribution')).display,
         legend: getComputedStyle(document.querySelector('.legend')).display,
@@ -120,30 +120,28 @@ test.describe('coarse-pointer adaptive deck', () => {
     }
   });
 
-  test('half and full snaps give the results much more usable height', async ({ page }) => {
+  test('Fair areas uses the screen and Map keeps its height for the map', async ({ page }) => {
     await page.locator('#go').click();
     await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
-    const halfHeight = await page.locator('.results-section').evaluate(el => el.getBoundingClientRect().height);
-    await expect.poll(() => halfHeight).toBeGreaterThan(140);
-    const visibleResults = () => page.evaluate(() => {
-      const results = document.querySelector('.results-section').getBoundingClientRect();
-      const sheet = document.querySelector('.side-right').getBoundingClientRect();
+    const results = await page.evaluate(() => {
+      const section = document.querySelector('.results-section').getBoundingClientRect();
+      const side = document.querySelector('.side-right').getBoundingClientRect();
       const first = document.querySelector('.result-row').getBoundingClientRect();
-      return {
-        height: Math.max(0, Math.min(results.bottom, sheet.bottom) - Math.max(results.top, sheet.top)),
-        visibleFirstResult: Math.max(0, Math.min(first.bottom, sheet.bottom) - Math.max(first.top, sheet.top)),
-        navBottom: document.querySelector('#mobileNav').getBoundingClientRect().bottom,
-        sheetTop: sheet.top,
-      };
+      return { section: section.height, side: side.height, first: first.height, view: document.body.dataset.mobileView };
     });
-    const half = await visibleResults();
-    expect(half.visibleFirstResult).toBeGreaterThan(100);
+    expect(results.view).toBe('results');
+    expect(results.section).toBeGreaterThan(400);
+    expect(results.first).toBeGreaterThan(100);
 
-    await page.locator('#sheetHandle').click();
-    await expect(page.locator('body')).toHaveAttribute('data-mobile-snap', 'full');
-    await expect.poll(async () => (await visibleResults()).height).toBeGreaterThan(260);
-    const full = await visibleResults();
-    expect(full.height).toBeGreaterThan(half.height + 80);
-    expect(full.navBottom).toBeLessThanOrEqual(full.sheetTop + 1);
+    await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
+    const map = await page.evaluate(() => {
+      const map = document.querySelector('#map').getBoundingClientRect();
+      const tab = document.querySelector('#mobileTabbar').getBoundingClientRect();
+      return { height: map.height, bottom: map.bottom, tabTop: tab.top, view: document.body.dataset.mobileView };
+    });
+    expect(map.view).toBe('map');
+    expect(map.height).toBeGreaterThan(420);
+    expect(map.bottom).toBeLessThanOrEqual(map.tabTop + 1);
   });
+
 });

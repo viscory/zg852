@@ -163,5 +163,17 @@
   "people.count_one": "شخص",
   "people.count_other": "لوگ",
   "results.totalTime": "کل {value}",
-  "results.walkOnly": "صرف پیدل"
+  "results.walkOnly": "صرف پیدل",
+  "nav.plan": "منصوبہ",
+  "nav.map": "نقشہ",
+  "nav.main": "مرکزی نیویگیشن",
+  "options.settings": "سفر کی ترتیبات",
+  "results.emptyShort": "ابھی کوئی منصفانہ علاقہ نہیں۔",
+  "results.emptyHint": "ملنے والے افراد مقرر کریں، پھر منصفانہ علاقے تلاش کریں۔",
+  "results.goPlan": "ملاقات کا منصوبہ بنائیں",
+  "results.edit": "ترمیم کریں",
+  "map.close": "بند کریں",
+  "beta.on": "آن",
+  "beta.off": "آف",
+  "map.pinHint": "یہ مقام منتخب کرنے کے لیے نقشے پر ٹیپ کریں۔"
 }

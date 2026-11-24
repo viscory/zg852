@@ -163,5 +163,17 @@
   "people.count_one": "person",
   "people.count_other": "people",
   "results.totalTime": "Total {value}",
-  "results.walkOnly": "Walk only"
+  "results.walkOnly": "Walk only",
+  "nav.plan": "Plan",
+  "nav.map": "Map",
+  "nav.main": "Main navigation",
+  "options.settings": "Trip settings",
+  "results.emptyShort": "No fair areas yet.",
+  "results.emptyHint": "Set up who is meeting, then find fair areas.",
+  "results.goPlan": "Plan a meet",
+  "results.edit": "Edit",
+  "map.close": "Close",
+  "beta.on": "On",
+  "beta.off": "Off",
+  "map.pinHint": "Tap the map to set this start."
 }

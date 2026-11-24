@@ -172,16 +172,12 @@ test.describe('narrow fine-pointer desktops use the adaptive deck', () => {
     await openApp(page);
     expect(await page.evaluate(() => getComputedStyle(document.documentElement)
       .getPropertyValue('--mobile-deck').trim())).toBe('1');
-    await expect(page.locator('#mobileNav')).toBeVisible();
+    await expect(page.locator('#mobileTabbar')).toBeVisible();
     await expect(page.locator('.layout')).toHaveCSS('display', 'block');
   });
 
   test('legend keys stay visible and long tolerance labels wrap', async ({ page }) => {
     await openApp(page);
-    const keyDisplays = await page.evaluate(() => ['.legend .route-key', '.legend .pin-key', '.legend .recenter-key']
-      .map(selector => getComputedStyle(document.querySelector(selector)).display));
-    expect(keyDisplays.every(display => display !== 'none')).toBe(true);
-
     await page.locator('#locale').selectOption('de');
     await expect(page.locator('html')).toHaveAttribute('lang', 'de');
     const label = await page.locator('.tolerance-row label').evaluate(element => ({
@@ -191,5 +187,10 @@ test.describe('narrow fine-pointer desktops use the adaptive deck', () => {
     }));
     expect(label.overflow).not.toBe('hidden');
     expect(label.scrollHeight).toBeLessThanOrEqual(label.clientHeight + 1);
+
+    await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
+    const keyDisplays = await page.evaluate(() => ['.legend .route-key', '.legend .pin-key', '.legend .recenter-key']
+      .map(selector => getComputedStyle(document.querySelector(selector)).display));
+    expect(keyDisplays.every(display => display !== 'none')).toBe(true);
   });
 });

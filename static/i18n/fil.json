@@ -163,5 +163,17 @@
   "people.count_one": "tao",
   "people.count_other": "tao",
   "results.totalTime": "Kabuuan {value}",
-  "results.walkOnly": "Paglalakad lang"
+  "results.walkOnly": "Paglalakad lang",
+  "nav.plan": "Plano",
+  "nav.map": "Mapa",
+  "nav.main": "Pangunahing nabigasyon",
+  "options.settings": "Mga setting ng biyahe",
+  "results.emptyShort": "Wala pang patas na lugar.",
+  "results.emptyHint": "I-set up kung sino ang magkikita, pagkatapos hanapin ang patas na lugar.",
+  "results.goPlan": "Magplano ng pagkikita",
+  "results.edit": "I-edit",
+  "map.close": "Isara",
+  "beta.on": "Naka-on",
+  "beta.off": "Naka-off",
+  "map.pinHint": "I-tap ang mapa para itakda ang simula."
 }

@@ -163,5 +163,17 @@
   "people.count_one": "人",
   "people.count_other": "人",
   "results.totalTime": "总计 {value}",
-  "results.walkOnly": "仅步行"
+  "results.walkOnly": "仅步行",
+  "nav.plan": "计划",
+  "nav.map": "地图",
+  "nav.main": "主导航",
+  "options.settings": "行程设置",
+  "results.emptyShort": "暂无公平区域。",
+  "results.emptyHint": "设置成员，然后寻找公平区域。",
+  "results.goPlan": "计划聚会",
+  "results.edit": "编辑",
+  "map.close": "关闭",
+  "beta.on": "开启",
+  "beta.off": "关闭",
+  "map.pinHint": "点击地图设置此出发地。"
 }

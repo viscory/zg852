@@ -163,5 +163,17 @@
   "people.count_one": "orang",
   "people.count_other": "orang",
   "results.totalTime": "Total {value}",
-  "results.walkOnly": "Jalan kaki saja"
+  "results.walkOnly": "Jalan kaki saja",
+  "nav.plan": "Rencana",
+  "nav.map": "Peta",
+  "nav.main": "Navigasi utama",
+  "options.settings": "Pengaturan perjalanan",
+  "results.emptyShort": "Belum ada area yang adil.",
+  "results.emptyHint": "Atur siapa yang bertemu, lalu cari area yang adil.",
+  "results.goPlan": "Rencanakan pertemuan",
+  "results.edit": "Edit",
+  "map.close": "Tutup",
+  "beta.on": "Aktif",
+  "beta.off": "Nonaktif",
+  "map.pinHint": "Ketuk peta untuk menetapkan titik awal."
 }

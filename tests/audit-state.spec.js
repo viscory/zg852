@@ -193,11 +193,15 @@ test('a shared pinned point survives reload', async ({ page }) => {
   await page.reload();
 
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
-  // The selection is restored persistently, but the banner stays hidden until
-  // a search has produced results that a point can be pinned against.
-  await expect(page.locator('#pointBanner')).toBeHidden();
+  // A share link with a selection now re-runs the search on load so the
+  // recipient arrives at the pinned point, not an empty panel.
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('#pointBanner')).toBeVisible();
+  await expect(page.locator('#detailTitle')).toHaveText('Pinned point');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  // After the hash is consumed the results are gone again; the banner waits
+  // for a search, while the persisted selection and tolerance remain.
   await expect(page.locator('#pointBanner')).toBeHidden();
   await expect(page.locator('#tolerance')).toHaveValue('3.05');
 

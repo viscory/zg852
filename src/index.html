@@ -24,7 +24,7 @@
 <link rel="stylesheet" href="styles.css">
 <script src="preview-noindex.js"></script>
 </head>
-<body data-mobile-pane="results" data-mobile-snap="half">
+<body data-mobile-view="plan">
 <header>
   <div class="brand">
     <div class="logo" aria-hidden="true">ZG</div>
@@ -70,14 +70,6 @@
   </div>
 </header>
 <div class="layout">
-  <div class="mobile-nav" id="mobileNav" role="group" data-i18n-aria-label="results.title" aria-label="Fair areas">
-    <button type="button" data-mobile-pane="people" aria-pressed="false" data-i18n="people.tab">People</button>
-    <button type="button" data-mobile-pane="results" aria-pressed="true" data-i18n="results.title">Fair areas</button>
-    <button type="button" data-mobile-pane="route" aria-pressed="false" data-i18n="sidebar.routeTitle">Route</button>
-  </div>
-  <button class="mobile-sheet-handle" id="sheetHandle" type="button" aria-expanded="true" data-i18n-aria-label="results.title" aria-label="Fair areas">
-    <span class="sheet-grip" aria-hidden="true"></span><span id="sheetHandleLabel" data-i18n="results.title">Fair areas</span>
-  </button>
   <aside class="side side-left" aria-label="People and selected route">
     <div class="sec-title">
       <span id="peopleHeading" data-face="people" data-i18n="people.title">People and start places</span>
@@ -98,6 +90,9 @@
       </div>
       <div class="face" data-face="detail" hidden>
         <section class="detail-panel" id="detail" hidden aria-live="polite">
+          <button class="icon-button mobile-route-close" id="closeRoute" type="button" aria-label="Close" data-i18n-aria-label="map.close" title="Close" data-i18n-tooltip="map.close">
+            <span class="icon icon-close" aria-hidden="true"></span>
+          </button>
           <h2 id="detailTitle" data-i18n="map.areaTitle">Meeting area</h2>
           <p class="district-line" id="detailDistrict"></p>
           <p class="sub" id="detailSub" data-i18n="map.areaHint">Tap a red area to see routes.</p>
@@ -117,6 +112,7 @@
     <div class="pin-banner" id="pinBanner" hidden>
       <span class="avatar" id="pinAvatar" aria-hidden="true"></span>
       <span id="pinLabel"></span>
+      <span class="pin-hint" data-i18n="map.pinHint">Tap the map to set this start.</span>
       <button class="icon-button" id="cancelPin" type="button" data-i18n-tooltip="map.cancelPin" data-i18n-aria-label="map.cancelPin" aria-label="Cancel pin mode" title="Cancel pin mode" data-tooltip="Cancel pin mode">
         <span class="icon icon-close" aria-hidden="true"></span>
       </button>
@@ -148,7 +144,7 @@
   </main>
   <aside class="side side-right" aria-label="Parameters and results">
     <div class="options-panel" id="optionsPanel">
-      <button class="section-title options-title options-toggle" id="optionsToggle" type="button" aria-expanded="true" aria-controls="optionsAdvanced"><span data-i18n="options.title">Parameters</span></button>
+      <div class="section-title options-title" id="optionsHeading" data-i18n="options.title">Parameters</div>
       <div class="chips" role="group" aria-label="Transport modes" data-i18n-aria-label="options.modes">
         <button class="chip" type="button" aria-pressed="true" data-mode="rail" data-i18n-tooltip="options.rail" data-i18n-aria-label="options.rail" aria-label="MTR" title="MTR" data-tooltip="MTR">
           <span class="icon icon-rail" aria-hidden="true"></span><span class="sr-only" data-i18n="options.rail">MTR</span>
@@ -157,7 +153,6 @@
           <span class="icon icon-bus" aria-hidden="true"></span><span class="sr-only" data-i18n="options.bus">Bus / minibus</span>
         </button>
       </div>
-      <div class="options-advanced" id="optionsAdvanced">
       <div class="headway-section">
         <label class="toggle-row" for="includeHeadway">
           <input type="checkbox" id="includeHeadway" data-i18n-aria-label="options.includeHeadway">
@@ -170,6 +165,9 @@
       </div>
       <input type="range" id="tolerance" min="0.05" max="3.05" step="0.05" value="0.1">
       <div class="slider-row ends"><span data-i18n="options.toleranceNear">Near equal</span><span data-i18n="options.toleranceFlexible">More flexible</span></div>
+      <button class="mobile-beta-row" id="mobileBeta" type="button" aria-pressed="false" data-i18n-tooltip="beta.badgeTip" data-tooltip="Turns on experimental features. Interest preferences can change which areas the map shows.">
+        <span class="icon icon-scan" aria-hidden="true"></span><span data-i18n="beta.title">Beta features</span><span class="mobile-beta-state" id="mobileBetaState" data-i18n="beta.off">Off</span>
+      </button>
       <div class="vector-section" id="vectorSection" hidden>
         <div class="section-title vector-title" data-i18n="options.interests">Nearby interests</div>
         <p class="note vector-help" data-i18n="options.interestsHelp">Areas are chosen by travel time. Preferences can make nearby interests count. Off adds no preference.</p>
@@ -183,7 +181,6 @@
         </div>
         <div class="slider-row ends vector-ends"><span data-i18n="vector.avoidStrong">Strong avoid</span><span data-i18n="vector.off">Off</span><span data-i18n="vector.preferStrong">Strong prefer</span></div>
       </div>
-      </div>
     </div>
     <button class="go" id="go" type="button" data-i18n-tooltip="options.search" data-i18n-aria-label="options.search" aria-label="Find fair areas" title="Find fair areas" data-tooltip="Find fair areas">
       <span class="icon icon-search" aria-hidden="true"></span><span class="go-text" id="goLabel" data-i18n="options.search">Find fair areas</span>
@@ -194,7 +191,18 @@
         <span id="resultsHeading" data-i18n="results.title">Fair areas</span>
         <span class="count" id="nres"></span>
       </div>
+      <div class="mobile-scenario" id="mobileScenarioRow" hidden>
+        <span id="mobileScenarioText"></span>
+        <button type="button" class="mobile-link" id="editSetup" data-i18n="results.edit">Edit</button>
+      </div>
       <p class="result-state" id="resultState" data-i18n="results.empty">Name your people, choose start places, then run the search to see fair areas on the map.</p>
+      <div class="mobile-results-empty" id="mobileResultsEmpty" hidden>
+        <p class="mobile-empty-title" id="mobileEmptyTitle" data-i18n="results.emptyShort">No fair areas yet.</p>
+        <p class="note" id="mobileEmptyHint" data-i18n="results.emptyHint">Set up who is meeting, then find fair areas.</p>
+        <button class="go secondary" id="goPlan" type="button" data-i18n-aria-label="results.goPlan" aria-label="Plan a meet">
+          <span class="go-text" data-i18n="results.goPlan">Plan a meet</span>
+        </button>
+      </div>
       <div id="resultsList" role="list"></div>
       <button class="go secondary" id="emptyRun" type="button" data-i18n-aria-label="results.emptyRun" aria-label="Find fair areas" title="Find fair areas" hidden>
         <span class="icon icon-search" aria-hidden="true"></span><span class="go-text" id="emptyRunLabel" data-i18n="results.emptyRun">Find fair areas</span>
@@ -213,6 +221,17 @@
       <output class="diag-status" id="diagStatus" role="status" aria-live="polite" hidden></output>
     </footer>
   </aside>
+  <nav class="mobile-tabbar" id="mobileTabbar" aria-label="Main" data-i18n-aria-label="nav.main">
+    <button type="button" data-mobile-view="plan" aria-current="page">
+      <span class="icon icon-sliders" aria-hidden="true"></span><span data-i18n="nav.plan">Plan</span>
+    </button>
+    <button type="button" data-mobile-view="results">
+      <span class="icon icon-list" aria-hidden="true"></span><span data-i18n="results.title">Fair areas</span>
+    </button>
+    <button type="button" data-mobile-view="map">
+      <span class="icon icon-map" aria-hidden="true"></span><span data-i18n="nav.map">Map</span>
+    </button>
+  </nav>
 </div>
 <div class="mobile-error" id="mobileError" role="alert" hidden></div>
 <dialog class="dialog" id="peopleDialog" aria-labelledby="libraryTitle">

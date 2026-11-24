@@ -2,82 +2,140 @@ import { store } from './store.js';
 import { $ } from './util.js';
 import { t } from './i18n.js';
 
-const SNAPS=['peek','half','full'];
-const PANE_KEYS={people:'people.title',results:'results.title',route:'sidebar.routeTitle'};
+const VIEWS=['plan','results','map'];
 
-// styles.css owns the coarse-pointer deck query and exposes the result as --mobile-deck.
+// styles.css owns the mobile deck query and exposes the result as --mobile-deck.
 export function isMobileLayout(){
   return getComputedStyle(document.documentElement).getPropertyValue('--mobile-deck').trim()==='1';
 }
 
-export function snapMobileSheet(snap){
-  if(!isMobileLayout()||!SNAPS.includes(snap))return;
-  store.mobile.snap=snap;
-  document.body.dataset.mobileSnap=snap;
-  const handle=$('sheetHandle');
-  if(handle)handle.setAttribute('aria-expanded',String(snap!=='peek'));
+export function mobileView(){
+  return VIEWS.includes(store.mobile?.view)?store.mobile.view:'plan';
 }
-export function cycleMobileSheet(){
-  if(!isMobileLayout())return;
-  const index=SNAPS.indexOf(store.mobile.snap);
-  snapMobileSheet(SNAPS[(index+1)%SNAPS.length]);
-}
-export function setMobilePane(pane,snap){
-  if(!isMobileLayout())return;
-  const next=PANE_KEYS[pane]?pane:'results';
-  store.mobile.pane=next;
-  document.body.dataset.mobilePane=next;
-  document.querySelectorAll('#mobileNav [data-mobile-pane]').forEach(button=>{
-    button.setAttribute('aria-pressed',String(button.dataset.mobilePane===next));
+
+function syncTabs(){
+  document.querySelectorAll('#mobileTabbar [data-mobile-view]').forEach(button=>{
+    const active=button.dataset.mobileView===mobileView();
+    if(active)button.setAttribute('aria-current','page');
+    else button.removeAttribute('aria-current');
   });
-  const key=PANE_KEYS[next];
-  const label=$('sheetHandleLabel');
-  if(label){label.dataset.i18n=key;label.textContent=t(key);}
-  const handle=$('sheetHandle');
-  if(handle){handle.dataset.i18nAriaLabel=key;handle.setAttribute('aria-label',t(key));}
-  if(snap)snapMobileSheet(snap);
 }
-export function showMobileRoute(snap='half'){setMobilePane('route',snap);}
+
+function syncCopy(){
+  const mobile=isMobileLayout();
+  const people=$('peopleHeading');
+  if(people){
+    const key=mobile?'people.tab':'people.title';
+    if(people.dataset.i18n!==key){people.dataset.i18n=key;people.textContent=t(key);}
+  }
+  const options=$('optionsHeading');
+  if(options){
+    const key=mobile?'options.settings':'options.title';
+    if(options.dataset.i18n!==key){options.dataset.i18n=key;options.textContent=t(key);}
+  }
+}
+
+function syncFace(view){
+  if(!isMobileLayout())return;
+  const people=document.querySelector('#flipStage [data-face="people"]');
+  const detail=document.querySelector('#flipStage [data-face="detail"]');
+  if(view==='plan'){
+    if(people)people.hidden=false;
+    if(detail)detail.hidden=true;
+    store.sidebarFace='people';
+  }else if(view==='map'){
+    if(people)people.hidden=true;
+    if(detail)detail.hidden=!document.body.classList.contains('mobile-route-open');
+    if(document.body.classList.contains('mobile-route-open'))store.sidebarFace='detail';
+  }
+}
+
+function syncLegend(){
+  const legend=$('mapLegend');
+  if(legend)legend.open=!isMobileLayout();
+}
+
+export function setMobileView(view,{focus=false}={}){
+  if(!isMobileLayout())return;
+  const next=VIEWS.includes(view)?view:'plan';
+  store.mobile.view=next;
+  document.body.dataset.mobileView=next;
+  syncTabs();
+  syncCopy();
+  syncFace(next);
+  if(next==='map'){
+    // Leaflet measured a zero-size container while the map screen was hidden.
+    requestAnimationFrame(()=>{
+      window.dispatchEvent(new Event('resize'));
+      window.dispatchEvent(new CustomEvent('mobile:map-shown'));
+    });
+  }
+  if(focus){
+    const tab=document.querySelector(`#mobileTabbar [data-mobile-view="${next}"]`);
+    tab?.focus?.({preventScroll:true});
+  }
+}
+
+// The route card is contextual: it only exists on the Map screen and only
+// while an area is selected. It is not a fourth destination and has no snaps.
+export function openMobileRoute(){
+  if(!isMobileLayout())return;
+  document.body.classList.add('mobile-route-open');
+  setMobileView('map');
+  const people=document.querySelector('#flipStage [data-face="people"]');
+  const detail=document.querySelector('#flipStage [data-face="detail"]');
+  if(people)people.hidden=true;
+  if(detail)detail.hidden=false;
+  store.sidebarFace='detail';
+}
+export function closeMobileRoute(){
+  document.body.classList.remove('mobile-route-open');
+}
+export function showMobileRoute(){openMobileRoute();}
+
+function syncViewState(){
+  if(isMobileLayout()){
+    if(!VIEWS.includes(store.mobile.view))store.mobile.view='plan';
+    document.body.dataset.mobileView=store.mobile.view;
+    syncLegend();syncCopy();
+    document.querySelectorAll('#mobileTabbar [data-mobile-view]').forEach(button=>{
+      button.hidden=false;
+      button.tabIndex=0;
+    });
+    syncTabs();
+  }else{
+    // Desktop keeps the original three-column tool; the mobile attributes are
+    // left in place but every mobile rule is scoped to the media query.
+    syncLegend();syncCopy();
+    document.body.classList.remove('mobile-route-open');
+    document.querySelectorAll('#mobileTabbar [data-mobile-view]').forEach(button=>{
+      button.removeAttribute('tabindex');
+    });
+  }
+}
 
 export function initMobile(){
-  const handle=$('sheetHandle');
-  if(!handle)return;
-  // The full key would cover most of a phone map. Collapse it to a small
-  // "Map key" pill there; desktop keeps it open.
-  const syncLegend=()=>{const legend=$('mapLegend');if(legend)legend.open=!isMobileLayout();};
-  const syncOptions=()=>{const toggle=$('optionsToggle');if(toggle)toggle.setAttribute('aria-expanded',String(!isMobileLayout()));};
-  syncLegend();syncOptions();
-  window.matchMedia?.('(max-width:1024px)').addEventListener?.('change',()=>{syncLegend();syncOptions();});
-  let startY=0,dragging=false,moved=false;
-  handle.addEventListener('pointerdown',event=>{
-    if(!isMobileLayout())return;
-    startY=event.clientY;dragging=true;moved=false;
-    handle.setPointerCapture?.(event.pointerId);
+  const tabs=$('mobileTabbar');
+  if(!tabs)return;
+  if(!store.mobile)store.mobile={};
+  if(!VIEWS.includes(store.mobile.view))store.mobile.view=document.body.dataset.mobileView||'plan';
+  document.querySelectorAll('#mobileTabbar [data-mobile-view]').forEach(button=>{
+    button.addEventListener('click',()=>setMobileView(button.dataset.mobileView,{focus:true}));
   });
-  handle.addEventListener('pointermove',event=>{
-    if(!dragging)return;
-    const delta=event.clientY-startY;
-    if(Math.abs(delta)>4)moved=true;
-    document.body.style.setProperty('--sheet-drag',`${Math.max(-240,Math.min(240,delta))}px`);
+  $('editSetup')?.addEventListener('click',()=>setMobileView('plan'));
+  $('goPlan')?.addEventListener('click',()=>setMobileView('plan'));
+  window.matchMedia?.('(max-width:1024px)').addEventListener?.('change',syncViewState);
+  // The keyboard owns the lower half of the screen; get the persistent bars
+  // out of its way while someone is editing a start place.
+  document.addEventListener('focusin',event=>{
+    if(event.target?.classList?.contains('start-input'))document.body.classList.add('keyboard-open');
   });
-  handle.addEventListener('pointerup',event=>{
-    if(!dragging)return;
-    dragging=false;
-    const delta=event.clientY-startY;
-    document.body.style.removeProperty('--sheet-drag');
-    if(Math.abs(delta)>36){
-      const index=SNAPS.indexOf(store.mobile.snap);
-      const next=Math.max(0,Math.min(SNAPS.length-1,index+(delta<0?1:-1)));
-      snapMobileSheet(SNAPS[next]);
-    }else if(!moved)cycleMobileSheet();
+  document.addEventListener('focusout',event=>{
+    if(event.target?.classList?.contains('start-input')){
+      setTimeout(()=>{
+        if(!document.activeElement?.classList?.contains('start-input'))document.body.classList.remove('keyboard-open');
+      },80);
+    }
   });
-  handle.addEventListener('pointercancel',()=>{
-    dragging=false;
-    document.body.style.removeProperty('--sheet-drag');
-  });
-  handle.addEventListener('keydown',event=>{
-    if(event.key!=='Enter'&&event.key!==' ')return;
-    event.preventDefault();
-    cycleMobileSheet();
-  });
+  syncViewState();
 }

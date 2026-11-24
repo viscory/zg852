@@ -163,5 +163,17 @@
   "people.count_one": "người",
   "people.count_other": "người",
   "results.totalTime": "Tổng {value}",
-  "results.walkOnly": "Chỉ đi bộ"
+  "results.walkOnly": "Chỉ đi bộ",
+  "nav.plan": "Kế hoạch",
+  "nav.map": "Bản đồ",
+  "nav.main": "Điều hướng chính",
+  "options.settings": "Cài đặt chuyến đi",
+  "results.emptyShort": "Chưa có khu vực công bằng.",
+  "results.emptyHint": "Thiết lập người gặp nhau, rồi tìm khu vực công bằng.",
+  "results.goPlan": "Lên kế hoạch gặp",
+  "results.edit": "Sửa",
+  "map.close": "Đóng",
+  "beta.on": "Bật",
+  "beta.off": "Tắt",
+  "map.pinHint": "Nhấn bản đồ để đặt điểm bắt đầu."
 }

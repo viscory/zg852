@@ -163,5 +163,17 @@
   "people.count_one": "人",
   "people.count_other": "人",
   "results.totalTime": "總計 {value}",
-  "results.walkOnly": "只步行"
+  "results.walkOnly": "只步行",
+  "nav.plan": "計劃",
+  "nav.map": "地圖",
+  "nav.main": "主要導覽",
+  "options.settings": "行程設定",
+  "results.emptyShort": "暫無公平區域。",
+  "results.emptyHint": "設定成員，然後尋找公平區域。",
+  "results.goPlan": "計劃聚會",
+  "results.edit": "編輯",
+  "map.close": "關閉",
+  "beta.on": "開啟",
+  "beta.off": "關閉",
+  "map.pinHint": "點擊地圖設定此出發地。"
 }

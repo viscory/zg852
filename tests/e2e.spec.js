@@ -784,7 +784,7 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
-  expect(expected).toHaveLength(165);
+  expect(expected).toHaveLength(177);
   for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'vector.ratings', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
@@ -866,7 +866,7 @@ test('map pin fallback saves a coordinate origin', async ({ page }) => {
   await page.locator('#map').click({ position: { x: 320, y: 220 } });
   await expect(page.locator('#map')).not.toHaveClass(/pinning/);
   await expect(page.locator('#pinBanner')).toBeHidden();
-  await expect(page.locator('.start-input').first()).toHaveValue(/^Pin /);
+  await expect(page.locator('.start-input').first()).toHaveValue(/^Pinned point /);
   await expect(page.locator('.hint')).toHaveCount(0);
 
   await page.locator('#go').click();
@@ -1233,28 +1233,32 @@ test('legal buttons open the dialog with loaded documents and direct pages still
   }
 });
 
-test('mobile layout keeps the map, both panels, and the legend usable', async ({ page }) => {
+test('mobile tabs show one job at a time and keep the map key usable', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.locator('#map')).toBeVisible();
-  await expect(page.locator('#mobileNav')).toBeVisible();
+  await expect(page.locator('#mobileTabbar')).toBeVisible();
+  await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'plan');
+  await expect(page.locator('.main')).toBeHidden();
 
-  // The deck shows one pane at a time; each nav button must expose its panel.
-  await page.locator('#mobileNav [data-mobile-pane="people"]').click();
-  await expect(page.locator('.side-left')).toBeVisible();
-  await expect(page.locator('.side-right')).toBeHidden();
-  await page.locator('#mobileNav [data-mobile-pane="results"]').click();
+  await page.locator('#mobileTabbar [data-mobile-view="results"]').click();
   await expect(page.locator('.side-right')).toBeVisible();
+  await expect(page.locator('.side-left')).toBeHidden();
+  await expect(page.locator('.main')).toBeHidden();
+
+  await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
+  await expect(page.locator('.main')).toBeVisible();
+  await expect(page.locator('.side-right')).toBeHidden();
   await expect(page.locator('.side-left')).toBeHidden();
 
   await expect(page.locator('.legend')).toBeVisible();
   await expect(page.locator('.legend-head')).toBeVisible();
   // The key starts collapsed on phones so it does not cover the map.
   await expect(page.locator('#mapLegend')).not.toHaveAttribute('open', '');
-  await page.locator('#mapLegend summary').click();
-  await expect(page.locator('.legend .vector-key')).toBeHidden();
+  await page.locator('#mapLegend summary').click({ force: true });
+  await expect(page.locator('#mapLegend')).toHaveAttribute('open', '');
+  await expect(page.locator('.legend .cloud-key')).toBeVisible();
+  await expect(page.locator('.legend .route-key')).toBeVisible();
   await expect(page.locator('.legend .pin-key')).toBeVisible();
   await expect(page.locator('.legend .recenter-key')).toBeVisible();
-  await expect(page.locator('.legend .cloud-key')).toBeVisible();
 });
 
 test('changing a start place recomputes without pressing search', async ({ page }) => {
@@ -1457,17 +1461,21 @@ test('legal pages include social preview tags', async ({ page }) => {
 test('the first start field rises above the bottom keyboard zone when focused', async ({ page }) => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 640 }]) {
     await page.setViewportSize(viewport);
-    await page.locator('#mobileNav [data-mobile-pane="people"]').click();
+    await page.evaluate(() => document.activeElement?.blur?.());
+    await page.waitForTimeout(100);
+    await page.locator('#mobileTabbar [data-mobile-view="plan"]').click();
     const input = page.locator('.start-input').first();
     await input.focus();
-    await expect(page.locator('body')).toHaveAttribute('data-mobile-snap', 'full');
+    await expect(page.locator('body')).toHaveClass(/keyboard-open/);
+    await expect(page.locator('#mobileTabbar')).toBeHidden();
     await expect.poll(async () => (await input.boundingBox())?.y ?? Infinity).toBeLessThanOrEqual(viewport.height - 300);
   }
 });
 
 test('mobile-only deck controls stay hidden on desktop', async ({ page }) => {
-  await expect(page.locator('#mobileNav')).toBeHidden();
-  await expect(page.locator('#sheetHandle')).toBeHidden();
+  await expect(page.locator('#mobileTabbar')).toBeHidden();
+  await expect(page.locator('#closeRoute')).toBeHidden();
+  await expect(page.locator('#mobileBeta')).toBeHidden();
   await expect(page.locator('.layout')).toHaveCSS('display', 'grid');
 });
 

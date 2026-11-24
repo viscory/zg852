@@ -20,8 +20,9 @@ async function search(page) {
 async function mapGeometry(page) {
   return page.evaluate(() => {
     const map = document.querySelector('#map').getBoundingClientRect();
-    const nav = document.querySelector('#mobileNav').getBoundingClientRect();
-    const handle = document.querySelector('#sheetHandle').getBoundingClientRect();
+    const tab = document.querySelector('#mobileTabbar').getBoundingClientRect();
+    const card = document.querySelector('.side-left');
+    const cardBox = getComputedStyle(card).display === 'none' ? null : card.getBoundingClientRect();
     const pin = document.querySelector('.point-pin')?.getBoundingClientRect();
     const routes = [...document.querySelectorAll('path.route-line')].map(el => {
       const box = el.getBoundingClientRect();
@@ -30,8 +31,8 @@ async function mapGeometry(page) {
     return {
       mapTop: map.top,
       mapBottom: map.bottom,
-      navBottom: nav.bottom,
-      visibleBottom: Math.min(handle.top, map.bottom),
+      tabTop: tab.top,
+      visibleBottom: cardBox ? Math.min(cardBox.top, map.bottom) : map.bottom,
       pin: pin ? { top: pin.top, bottom: pin.bottom, left: pin.left, right: pin.right } : null,
       routes,
     };
@@ -40,7 +41,7 @@ async function mapGeometry(page) {
 
 function pinIsVisible(geo, width) {
   return Boolean(geo.pin)
-    && geo.pin.top >= geo.navBottom - 4
+    && geo.pin.top >= geo.mapTop - 4
     && geo.pin.bottom <= geo.visibleBottom - 4
     && geo.pin.left >= -4
     && geo.pin.right <= width + 4;
@@ -48,18 +49,17 @@ function pinIsVisible(geo, width) {
 
 function routesAreVisible(geo, width) {
   return geo.routes.length > 0 && geo.routes.every(route =>
-    route.top >= geo.navBottom - 8
+    route.top >= geo.mapTop - 8
     && route.bottom <= geo.visibleBottom + 8
     && route.left >= -8
     && route.right <= width + 8);
 }
 
-test('selecting a result fits the marker and routes above the mobile sheet, and recenter keeps them there', async ({ page }) => {
+test('selecting a result fits the marker and routes above the route card, and recenter keeps them there', async ({ page }) => {
   await search(page);
-  await page.locator('#mobileNav [data-mobile-pane="results"]').click();
-  await expect(page.locator('body')).toHaveAttribute('data-mobile-pane', 'results');
   await page.locator('.result-row').nth(1).click();
-  await expect(page.locator('body')).toHaveAttribute('data-mobile-pane', 'route');
+  await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'map');
+  await expect(page.locator('body')).toHaveClass(/mobile-route-open/);
 
   const width = await page.evaluate(() => window.innerWidth);
   await expect.poll(async () => {
@@ -89,26 +89,29 @@ test('heat cells are labelled, roving-focusable and keyboard-activatable', async
   await expect(cell).toHaveAttribute('role', 'button');
   await expect(cell).toHaveAttribute('aria-label', /^Meeting area: \d+ min$/);
 
-  await page.locator('#mobileNav [data-mobile-pane="people"]').click();
-  await expect(page.locator('body')).toHaveAttribute('data-mobile-pane', 'people');
+  await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
+  await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'map');
   await cell.focus();
   await expect(cell).toHaveAttribute('data-focused', '');
   await page.keyboard.press('Enter');
-  await expect(page.locator('body')).toHaveAttribute('data-mobile-pane', 'route');
+  await expect(page.locator('body')).toHaveClass(/mobile-route-open/);
   await expect(page.locator('#detail')).toBeVisible();
 
-  await page.locator('#mobileNav [data-mobile-pane="people"]').click();
-  await expect(page.locator('body')).toHaveAttribute('data-mobile-pane', 'people');
+  await page.locator('#closeRoute').click();
+  await expect(page.locator('body')).not.toHaveClass(/mobile-route-open/);
   await cell.focus();
   await page.keyboard.press('Space');
-  await expect(page.locator('body')).toHaveAttribute('data-mobile-pane', 'route');
+  await expect(page.locator('body')).toHaveClass(/mobile-route-open/);
 });
 
 test('an unbounded tap before Search reports that data is still loading without selecting a point', async ({ page }) => {
-  const snapshot = await page.evaluate(() => {
+  await page.evaluate(() => {
     const slider = document.querySelector('#tolerance');
     slider.value = '3.05';
     slider.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
+  const snapshot = await page.evaluate(() => {
     const mapEl = document.querySelector('#map');
     const box = mapEl.getBoundingClientRect();
     mapEl.dispatchEvent(new MouseEvent('click', {
@@ -132,4 +135,9 @@ test('an unbounded tap before Search reports that data is still loading without 
   expect(snapshot.bannerHidden).toBe(true);
   expect(snapshot.detailHidden).toBe(true);
   expect(snapshot.pins).toBe(0);
+  await page.locator('#mobileTabbar [data-mobile-view="plan"]').click();
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
+  await expect(page.locator('#unboundedHint')).toBeVisible();
 });

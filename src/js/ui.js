@@ -1,7 +1,7 @@
 import { LETTERS,VECTOR_KEYS,travelTolerance,isUnboundedTolerance } from './config.js';
 import { store } from './store.js';
 import { $,esc,clamp,icon,initialsFor,avatarClass,clone } from './util.js';
-import { t,tp,num,intNum,minuteText } from './i18n.js';
+import { t,tp,intNum,minuteText } from './i18n.js';
 import { normalizeVectors,vectorLabel,betaVectorsEnabled } from './vectors.js';
 import { searchPlaces,districtFor } from './data.js';
 import { dedupePlaces,normLabel,photonSearch } from './search.js';
@@ -9,9 +9,9 @@ import { fareMarkup } from './routing.js';
 import { displayName,save,saveDirectory,profileFromPerson,profileLabel,profileDistrict } from './state.js';
 import { scheduleRecompute } from './engine.js';
 import { hideTooltip,clearMapOutput,selectResult } from './map.js';
-import { isMobileLayout,setMobilePane,snapMobileSheet } from './mobile.js';
+import { isMobileLayout,setMobileView } from './mobile.js';
 
-const MOBILE_PANE_KEYS={people:'people.title',results:'results.title',route:'sidebar.routeTitle'};
+
 const LEGAL_KINDS=['privacy','terms','credits','process'];
 const originStates=new WeakMap();
 function originState(input,patch={}){
@@ -166,9 +166,8 @@ export function applyBetaFeatures(){
   const section=$('vectorSection');if(section)section.hidden=!enabled;
   const legendKey=$('legendVectorKey');if(legendKey)legendKey.hidden=!enabled;
   const diagnostics=$('exportDiagnostics');if(diagnostics)diagnostics.hidden=!enabled;
-  // Enabling Beta adds controls inside the advanced block; open it so the
-  // new interests are not hidden behind the collapsed heading on phones.
-  if(enabled&&isMobileLayout())$('optionsToggle')?.setAttribute('aria-expanded','true');
+  const mobileBeta=$('mobileBeta');if(mobileBeta)mobileBeta.setAttribute('aria-pressed',String(enabled));
+  const mobileBetaState=$('mobileBetaState');if(mobileBetaState){const key=enabled?'beta.on':'beta.off';mobileBetaState.dataset.i18n=key;mobileBetaState.textContent=t(key);}
 }
 export function applySettingsToDom(){
   document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',String(store.settings.modes.includes(c.dataset.mode))));
@@ -198,6 +197,31 @@ export function readSettingsFromDom(){
   save();
   scheduleRecompute();
 }
+export function syncMobileResults(mode='ready',active=store.activePeople){
+  const row=$('mobileScenarioRow'),text=$('mobileScenarioText'),empty=$('mobileResultsEmpty');
+  const title=$('mobileEmptyTitle'),hint=$('mobileEmptyHint'),button=$('goPlan');
+  if(!row||!empty)return;
+  if(!isMobileLayout()){row.hidden=true;empty.hidden=true;return;}
+  if(mode==='loading'){
+    row.hidden=true;empty.hidden=false;
+    if(title){title.dataset.i18n='options.searching';title.textContent=t('options.searching');}
+    if(hint)hint.hidden=true;
+    if(button)button.hidden=true;
+    return;
+  }
+  if(store.results.length){
+    const labels=active.filter(person=>person.origin?.label).map(person=>person.origin.label);
+    const summary=labels.length>2?`${labels[0]} → ${labels[1]} +${labels.length-2}`:labels.join(' → ');
+    row.hidden=!summary;
+    if(text)text.textContent=summary;
+    empty.hidden=true;
+  }else{
+    row.hidden=true;empty.hidden=false;
+    if(title){title.dataset.i18n='results.emptyShort';title.textContent=t('results.emptyShort');}
+    if(hint){hint.hidden=false;hint.dataset.i18n='results.emptyHint';hint.textContent=t('results.emptyHint');}
+    if(button){button.hidden=false;}
+  }
+}
 export function renderResults(active=store.activePeople){
   const list=$('resultsList'),state=$('resultState'),count=$('nres'),emptyRun=$('emptyRun');
   if(!list||!state||!count)return;
@@ -207,12 +231,14 @@ export function renderResults(active=store.activePeople){
     state.hidden=false;
     count.textContent='';
     if(emptyRun)emptyRun.hidden=false;
+    syncMobileResults('ready',active);
     applyUnboundedUi();
     return;
   }
   state.hidden=true;
   if(emptyRun)emptyRun.hidden=true;
   count.textContent=t('results.areas',{count:store.results.length});
+  syncMobileResults('ready',active);
   // Never switch mobile panes from a recompute: only explicit navigation or
   // selecting a result may move the user out of the pane they are editing.
   list.innerHTML=store.results.map((r,i)=>`<div role="listitem"><button class="result-row" type="button" data-index="${i}" aria-label="${esc(`${t('results.selectTitle')}: ${r.label}`)}">
@@ -239,6 +265,7 @@ export function renderSkeleton(){
   if(state){state.textContent=t('options.searching');state.hidden=false;}
   if(count)count.textContent='';
   if(emptyRun)emptyRun.hidden=true;
+  syncMobileResults('loading');
   applyUnboundedUi();
 }
 export function setWorking(working){
@@ -357,9 +384,8 @@ export function makeCard(person){
     // zone. Expanding the sheet and scrolling the focused field into view
     // keeps it reachable on short phones without changing desktop layout.
     if(!isMobileLayout())return;
-    setMobilePane('people');
-    snapMobileSheet('full');
-    input.scrollIntoView({block:'start'});
+    setMobileView('plan');
+    input.scrollIntoView({block:'center'});
   });
   input.addEventListener('input',()=>{
     cancelSearch();
@@ -479,6 +505,7 @@ export function refreshTranslatedNames(){
 export function commitPeople(){renderCards();save();scheduleRecompute();}
 export function clearPinMode(){
   store.pinTarget=null;
+  document.body.classList.remove('mobile-picking');
   $('map')?.classList.remove('pinning');
   const banner=$('pinBanner');if(banner)banner.hidden=true;
   applyUnboundedUi();
@@ -487,12 +514,14 @@ export function clearPinMode(){
 export function startPinMode(id,input,sug){
   const idx=store.people.findIndex(p=>p.id===id);if(idx<0)return;
   store.pinTarget=id;
+  document.body.classList.add('mobile-picking');
   $('map').classList.add('pinning');
   const banner=$('pinBanner'),avatar=$('pinAvatar'),label=$('pinLabel');
   avatar.textContent=initialsFor(displayName(store.people[idx],idx));
   avatar.className=`avatar ${avatarClass(idx)}`;
   label.textContent=t('map.pinActive',{name:displayName(store.people[idx],idx)});
   banner.hidden=false;
+  if(isMobileLayout())setMobileView('map');
   // A queued Photon response must not reopen the panel we just dismissed.
   originState(input)?.cancel?.();
   if(sug){sug.hidden=true;input?.setAttribute('aria-expanded','false');}
@@ -501,9 +530,11 @@ export function startPinMode(id,input,sug){
 }
 export function setPinOrigin(id,lat,lon){
   const idx=store.people.findIndex(p=>p.id===id);if(idx<0)return;
-  store.people[idx].origin={kind:'coords',source:'pin',label:`${t('people.pin')} ${num(lat)}, ${num(lon)}`,lat,lon,district:districtFor(lat,lon)};
+  const district=districtFor(lat,lon);
+  store.people[idx].origin={kind:'coords',source:'pin',label:`${t('map.pinnedPoint')} · ${district}`,lat,lon,district};
   clearPinMode();
   clearError();commitPeople();
+  if(isMobileLayout())setMobileView('plan');
 }
 export function savePersonToDirectory(person){
   if(!person.origin){showError(t('people.hintEmpty'));return;}
@@ -648,16 +679,6 @@ document.addEventListener('click',event=>{
   event.preventDefault();event.stopPropagation();
   openLegal(button.dataset.legal);
 });
-function syncMobileNavLabel(){
-  const nav=$('mobileNav');if(!nav)return;
-  const pane=document.body?.dataset?.mobilePane;
-  const key=MOBILE_PANE_KEYS[pane]?pane:'results';
-  const labelKey=MOBILE_PANE_KEYS[key];
-  if(nav.dataset.i18nAriaLabel!==labelKey){
-    nav.dataset.i18nAriaLabel=labelKey;
-    nav.setAttribute('aria-label',t(labelKey));
-  }
-}
 function installUiListeners(){
   // Resolve typed text before the app's own search handler runs; unresolved
   // text is blocked here as well as by hasPendingOrigins() in the engine.
@@ -676,10 +697,6 @@ function installUiListeners(){
       originState(input)?.cancel?.();
     });
   },true);
-  if(typeof MutationObserver!=='undefined'&&document.body){
-    new MutationObserver(syncMobileNavLabel).observe(document.body,{attributes:true,attributeFilter:['data-mobile-pane']});
-  }
-  syncMobileNavLabel();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installUiListeners,{once:true});
 else installUiListeners();

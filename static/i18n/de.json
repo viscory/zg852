@@ -163,5 +163,17 @@
   "people.count_one": "Person",
   "people.count_other": "Personen",
   "results.totalTime": "Gesamt {value}",
-  "results.walkOnly": "Nur zu Fuß"
+  "results.walkOnly": "Nur zu Fuß",
+  "nav.plan": "Plan",
+  "nav.map": "Karte",
+  "nav.main": "Hauptnavigation",
+  "options.settings": "Reiseeinstellungen",
+  "results.emptyShort": "Noch keine fairen Gebiete.",
+  "results.emptyHint": "Legen Sie fest, wer sich trifft, und suchen Sie dann faire Gebiete.",
+  "results.goPlan": "Treffen planen",
+  "results.edit": "Bearbeiten",
+  "map.close": "Schließen",
+  "beta.on": "An",
+  "beta.off": "Aus",
+  "map.pinHint": "Tippen Sie auf die Karte, um diesen Start festzulegen."
 }

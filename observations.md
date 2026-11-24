@@ -1,3 +1,12 @@
+## 2026-11-24T10:30:00Z
+
+- Replaced the mobile sheet/pane model with three real destinations: **Plan**, **Fair areas**, and **Map**, driven by `data-mobile-view` and a fixed 56 px bottom tab bar. Removed the top mobile tabs, sheet handle, peek/half/full snaps, pane state, and mobile people/route flip.
+- Plan now stacks People and Trip settings in one scroll with a fixed Find fair areas CTA, a mobile Beta row, and the legal links at the end. Fair areas gets the whole screen: count, scenario line, Edit, full-height cards, its own empty/loading state. Map gets the whole screen, a collapsed Map key pill, zoom/recenter above a contextual route card, and a full-screen pin-picking mode that returns to Plan.
+- The route card reuses the existing detail panel, caps at 44dvh, and moves Leaflet controls/attribution above itself. Heat-cell tooltips are suppressed on mobile so they do not cover the card. Phone-map taps now fit at zoom 15 for larger cells.
+- Desktop is scoped back to `DESIGN.md`: 360/340 rails, 52 px header, sticky Parameters with a desktop max-height for beta, static legend with no toggle, icon-only Find button, footer, and the people/detail flip. All new layout rules live inside `@media (max-width:1024px)`.
+- Added `nav.plan`, `nav.map`, `nav.main`, `options.settings`, mobile results/empty copy, `map.close`, `map.pinHint`, and Beta on/off in all 15 catalogues plus `FALLBACK`; i18n check now covers 177 keys. Pinned starts read `Pinned point · {district}`.
+- Rewrote the mobile, map, CSS, UI, state, and e2e specs for the new flow; `npm run lint` is clean and `CI=true npm test` passes 121/121. SW cache bumped to `zg852-v49`. Commit, push, CI deploy, and live verification are next.
+
 ## 2026-11-24T09:45:00Z
 
 - Audited the live `https://zg852.pages.dev/` on an emulated iPhone 15 (393×852 DPR 3, touch, coarse pointer), plus the realistic 393×664 Safari visible area and 852×393 landscape. No source, test, or deploy changes were made; screenshots and JSON evidence are under untracked `audit/`.

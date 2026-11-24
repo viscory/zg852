@@ -163,5 +163,17 @@
   "people.count_one": "คน",
   "people.count_other": "คน",
   "results.totalTime": "รวม {value}",
-  "results.walkOnly": "เดินเท่านั้น"
+  "results.walkOnly": "เดินเท่านั้น",
+  "nav.plan": "แผน",
+  "nav.map": "แผนที่",
+  "nav.main": "การนำทางหลัก",
+  "options.settings": "การตั้งค่าการเดินทาง",
+  "results.emptyShort": "ยังไม่มีพื้นที่ที่เป็นธรรม",
+  "results.emptyHint": "ตั้งค่าว่าใครจะพบกัน แล้วค้นหาพื้นที่ที่เป็นธรรม",
+  "results.goPlan": "วางแผนนัดพบ",
+  "results.edit": "แก้ไข",
+  "map.close": "ปิด",
+  "beta.on": "เปิด",
+  "beta.off": "ปิด",
+  "map.pinHint": "แตะแผนที่เพื่อกำหนดจุดเริ่มต้นนี้"
 }

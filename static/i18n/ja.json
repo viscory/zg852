@@ -163,5 +163,17 @@
   "people.count_one": "人",
   "people.count_other": "人",
   "results.totalTime": "合計 {value}",
-  "results.walkOnly": "徒歩のみ"
+  "results.walkOnly": "徒歩のみ",
+  "nav.plan": "計画",
+  "nav.map": "地図",
+  "nav.main": "メインナビゲーション",
+  "options.settings": "旅行設定",
+  "results.emptyShort": "公平なエリアはまだありません。",
+  "results.emptyHint": "メンバーを設定してから、公平なエリアを探します。",
+  "results.goPlan": "待ち合わせを計画",
+  "results.edit": "編集",
+  "map.close": "閉じる",
+  "beta.on": "オン",
+  "beta.off": "オフ",
+  "map.pinHint": "地図をタップして出発地を設定します。"
 }
