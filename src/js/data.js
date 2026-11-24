@@ -15,16 +15,24 @@ export function mtrColor(line){
   return code?MTR_LINE_COLORS[code]:MTR_LINE_DEFAULT_COLOR;
 }
 
+async function fetchJson(url,label){
+  const response=await fetch(url);
+  if(!response.ok)throw new Error(`${label} ${response.status}`);
+  return response.json();
+}
 export async function loadNodes(){
-  store.NODES=await fetch('data/nodes.json').then(r=>r.json());
+  const nodes=await fetchJson('data/nodes.json','Nodes');
+  if(!nodes||!Array.isArray(nodes.names)||!Array.isArray(nodes.kind)||!Array.isArray(nodes.lat)||!Array.isArray(nodes.lon))throw new Error('Nodes data is invalid');
+  store.NODES=nodes;
   store.surface=[];
   for(let i=0;i<store.NODES.names.length;i++)if(store.NODES.kind[i]===1||store.NODES.kind[i]===3||store.NODES.kind[i]===4)store.surface.push(i);
   store.lowerNames=store.NODES.names.map(name=>String(name).toLowerCase());
 }
 export async function loadNetwork(){
   if(store.NET)return store.NET;
-  store.NET=await fetch('data/network.json').then(r=>r.json());
-  try{store.HKBUS_URLS=await fetch('data/hkbus.json').then(r=>r.json());}
+  store.NET=await fetchJson('data/network.json','Timetable');
+  if(!store.NET||!Array.isArray(store.NET.walk)||!Array.isArray(store.NET.lines))throw new Error('Timetable data is invalid');
+  try{store.HKBUS_URLS=await fetchJson('data/hkbus.json','Bus URLs');}
   catch(err){console.error(err);store.HKBUS_URLS=[];}
   const n=store.NODES.names.length;
   store.walkAdj=Array.from({length:n},()=>[]);
@@ -39,17 +47,15 @@ export async function loadNetwork(){
   return store.NET;
 }
 export async function loadDistricts(){
-  store.DISTRICTS=await fetch('data/districts.json').then(r=>r.json());
+  store.DISTRICTS=await fetchJson('data/districts.json','Districts');
+  if(!Array.isArray(store.DISTRICTS))throw new Error('Districts data is invalid');
 }
 export async function loadPoi(){
   if(store.poiLoaded)return store.POI;
   if(store.poiLoading)return store.poiLoading;
   store.poiLoading=(async()=>{
-    try{
-      const response=await fetch('data/poi-index.json');
-      if(!response.ok)throw new Error(`POI index ${response.status}`);
-      store.POI=await response.json();
-    }catch(err){console.error(err);store.POI={cells:{}};}
+    try{store.POI=await fetchJson('data/poi-index.json','POI index');}
+    catch(err){console.error(err);store.POI={cells:{}};}
     store.poiLoaded=true;
     return store.POI;
   })();

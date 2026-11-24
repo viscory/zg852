@@ -4,37 +4,67 @@ import { $ } from './js/util.js';
 import { t,ensureCatalog,detectLocale,setDocumentLocale,changeLocale,applyStaticText } from './js/i18n.js';
 import { loadNodes,loadDistricts,loadNetwork,loadPoi } from './js/data.js';
 import { betaVectorsEnabled } from './js/vectors.js';
-import { defaultName,applySharedState,restoreState,restoreDirectory,shareScenario,readHashState,save } from './js/state.js';
+import { applySharedState,restoreState,restoreDirectory,restoreSelection,readSavedSelection,shareScenario,readHashState,save } from './js/state.js';
 import { triggerSearch } from './js/engine.js';
 import { createMap,drawOrigins } from './js/map.js';
-import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,commitPeople,setSidebarFace,flashTooltip } from './js/ui.js';
+import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,applyUnboundedUi,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,commitPeople,setSidebarFace,flashTooltip } from './js/ui.js';
 import { exportDiagnostics } from './js/diagnostics.js';
 import { clearPoint } from './js/map.js';
 import { initMobile,setMobilePane } from './js/mobile.js';
 
+function storedValue(key){
+  try{return localStorage.getItem(key);}
+  catch(err){console.error(err);return null;}
+}
+function loadFailure(label,err){
+  const message=`${label}: ${err?.message||String(err)}`;
+  return t(label==='Timetable'?'error.timetableFailed':'error.searchFailed',{message});
+}
 async function init(){
+  const errors=[];
   let mapError=null;
   try{createMap();}catch(err){console.error(err);mapError=err;}
-  await Promise.all([loadNodes(),loadDistricts(),ensureCatalog('en')]);
-  store.EN=store.I18N.en;
+  const sources=await Promise.allSettled([loadNodes(),loadDistricts(),ensureCatalog('en')]);
+  ['Nodes','Districts','English catalogue'].forEach((label,i)=>{
+    const result=sources[i];
+    if(result.status==='rejected'){
+      console.error(result.reason);
+      errors.push(loadFailure(label,result.reason));
+    }
+  });
+  if(sources[2].status==='fulfilled')store.EN=store.I18N.en;
+  if(sources[0].status==='rejected')document.documentElement.dataset.net='error';
   const hashLocale=readHashState()?.locale;
-  const storedLocale=LOCALES.includes(hashLocale)?hashLocale:(localStorage.getItem(KEY.locale)||detectLocale());
-  if(storedLocale!=='en'){try{await ensureCatalog(storedLocale);}catch(e){store.I18N[storedLocale]=store.EN;}}
+  const storedLocale=LOCALES.includes(hashLocale)?hashLocale:(storedValue(KEY.locale)||detectLocale());
+  if(storedLocale!=='en'){
+    try{await ensureCatalog(storedLocale);}
+    catch(err){console.error(err);store.I18N[storedLocale]=store.EN;errors.push(loadFailure(`${storedLocale} catalogue`,err));}
+  }
   store.locale=LOCALES.includes(storedLocale)?storedLocale:'en';
   setDocumentLocale();
   if(!applySharedState())restoreState();else applySettingsToDom();
+  const pendingSelection=readSavedSelection();
   await loadPoi();
   restoreDirectory();
   applyStaticText();
   renderCards();
   renderEmpty();
   renderDirectoryList();
-  if(mapError)showError(t('error.mapFailed',{message:mapError.message||String(mapError)}));
+  restoreSelection(pendingSelection);
+  applyUnboundedUi();
+  if(mapError)errors.push(t('error.mapFailed',{message:mapError.message||String(mapError)}));
+  if(errors.length)showError(errors.join(' '));
   try{drawOrigins();}catch(err){console.error(err);}
-  loadNetwork().catch(err=>{console.error(err);showError(t('error.timetableFailed',{message:err.message}));});
+  if(document.documentElement.dataset.net!=='error'&&store.NODES?.names?.length){
+    loadNetwork().catch(err=>{
+      console.error(err);
+      document.documentElement.dataset.net='error';
+      showError([...errors,loadFailure('Timetable',err)].join(' '));
+    });
+  }
 }
 
-$('add').onclick=()=>{if(store.people.length<8){store.people.push({id:`p${store.seq++}`,name:defaultName(store.people.length),origin:null,walkMinutes:20});commitPeople();}};
+$('add').onclick=()=>{if(store.people.length<8){store.people.push({id:`p${store.seq++}`,name:'',origin:null,walkMinutes:20});commitPeople();}};
 $('library').onclick=openDirectory;
 $('libraryClose').onclick=()=>closeDialog($('peopleDialog'));
 $('directorySearch').oninput=renderDirectoryList;
@@ -85,4 +115,8 @@ document.addEventListener('keydown',e=>{
 });
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 initMobile();
-init();
+init().catch(err=>{
+  console.error(err);
+  if(document.documentElement.dataset.net!=='ready')document.documentElement.dataset.net='error';
+  showError(t('error.searchFailed',{message:err?.message||String(err)}));
+});

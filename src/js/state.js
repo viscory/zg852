@@ -7,6 +7,33 @@ import { loadGeoCache } from './search.js';
 import { findExact,districtFor } from './data.js';
 import { applySettingsToDom,flashTooltip } from './ui.js';
 
+const SELECTION_KEY='hkfair.v2.selection';
+
+function readStorage(key){
+  try{return localStorage.getItem(key);}
+  catch(err){console.error(err);return null;}
+}
+function writeStorage(key,value){
+  try{localStorage.setItem(key,value);}
+  catch(err){console.error(err);}
+}
+function parseStored(raw){
+  if(raw==null)return null;
+  try{return JSON.parse(raw);}
+  catch(err){console.error(err);return null;}
+}
+// A default name is never a real name: it is a placeholder for the current
+// locale. English literals are checked explicitly so old saved profiles are
+// recognised even before any non-English catalogue has been loaded.
+export function isDefaultName(value,i){
+  const name=String(value??'').trim();
+  if(!name||/^Person\s+[A-H]$/i.test(name))return true;
+  const letters=Number.isInteger(i)?[LETTERS[((i%8)+8)%8]]:[...LETTERS];
+  const templates=[store.EN?.['people.defaultName'],...Object.values(store.I18N||{}).map(catalog=>catalog?.['people.defaultName'])].filter(Boolean);
+  return templates.some(template=>letters.some(letter=>String(template).replaceAll('{letter}',letter)===name));
+}
+function cleanName(value,i){return isDefaultName(value,i)?'':String(value??'').trim();}
+
 export function defaultName(i){return t('people.defaultName',{letter:LETTERS[i%8]});}
 export const normIncludeHeadway=value=>value===false?false:true;
 export function nextSeq(people){return Math.max(1,...people.map(p=>Number(String(p.id).replace(/\D/g,''))||0))+1;}
@@ -14,7 +41,10 @@ function buildSettings(stored,modes){
   stored=stored&&typeof stored==='object'?stored:{};
   return{modes:Array.isArray(modes)&&modes.length?modes:['rail','bus'],tolerance:travelTolerance(stored.tolerance),includeHeadway:normIncludeHeadway(stored.includeHeadway),vectors:migrateVectors(stored.vectors),beta:{vectors:!!stored.beta?.vectors}};
 }
-export function displayName(person,i){return (person?.name||'').trim()||defaultName(i);}
+export function displayName(person,i){
+  const index=Number.isInteger(i)?i:Math.max(0,store.people.indexOf(person));
+  return cleanName(person?.name,index)||defaultName(index);
+}
 export function profileLabel(profile){return profile.origin?.label||t('people.hintEmpty');}
 export function profileDistrict(profile){return profile.origin?.district||districtFor(profile.origin?.lat,profile.origin?.lon);}
 export function normalizePerson(raw,i){
@@ -23,54 +53,97 @@ export function normalizePerson(raw,i){
   const validNode=origin&&origin.kind==='node'&&Number.isInteger(origin.node)&&origin.node>=0&&store.NODES&&origin.node<store.NODES.names.length;
   const validCoords=origin&&origin.kind==='coords'&&isNum(origin.lat)&&isNum(origin.lon)&&origin.lat>=HK_BBOX[1]&&origin.lat<=HK_BBOX[3]&&origin.lon>=HK_BBOX[0]&&origin.lon<=HK_BBOX[2];
   if(!validNode&&!validCoords)return null;
-  return{id:`p${i+1}`,name:raw.name||defaultName(i),origin,directoryId:raw.directoryId||null,walkMinutes:clamp(Number(raw.walkMinutes),0,60,20)};
+  return{id:`p${i+1}`,name:cleanName(raw.name,i),origin,directoryId:raw.directoryId||null,walkMinutes:clamp(Number(raw.walkMinutes),0,60,20)};
 }
 export function defaultPeople(){
   return ['Tsuen Wan','North Point'].map((name,i)=>{
     const node=findExact(name);
-    return{id:`p${i+1}`,name:defaultName(i),walkMinutes:20,origin:node==null?null:{kind:'node',node,label:store.NODES.names[node],lat:store.NODES.lat[node],lon:store.NODES.lon[node],district:districtFor(store.NODES.lat[node],store.NODES.lon[node])}};
+    return{id:`p${i+1}`,name:'',walkMinutes:20,origin:node==null?null:{kind:'node',node,label:store.NODES.names[node],lat:store.NODES.lat[node],lon:store.NODES.lon[node],district:districtFor(store.NODES.lat[node],store.NODES.lon[node])}};
   }).filter(p=>p.origin);
 }
 export function save(){
-  localStorage.setItem(KEY.people,JSON.stringify(store.people.map(p=>({id:p.id,name:p.name,origin:p.origin,directoryId:p.directoryId||null,walkMinutes:clamp(Number(p.walkMinutes),0,60,20)}))));
+  writeStorage(KEY.people,JSON.stringify(store.people.map((p,i)=>({id:p.id,name:cleanName(p.name,i),origin:p.origin,directoryId:p.directoryId||null,walkMinutes:clamp(Number(p.walkMinutes),0,60,20)}))));
   store.settings.includeHeadway=normIncludeHeadway(store.settings.includeHeadway);
-  localStorage.setItem(KEY.settings,JSON.stringify(store.settings));
-  localStorage.setItem(KEY.locale,store.locale);
+  writeStorage(KEY.settings,JSON.stringify(store.settings));
+  writeStorage(KEY.locale,store.locale);
 }
-export function saveDirectory(){localStorage.setItem(KEY.directory,JSON.stringify(store.directory));}
+export function saveDirectory(){
+  store.directory.forEach((p,i)=>{p.name=cleanName(p.name,i)||displayName({name:''},i);});
+  writeStorage(KEY.directory,JSON.stringify(store.directory));
+}
 export function profileFromPerson(person){
-  return{id:person.directoryId||`d${store.directorySeq++}`,name:person.name||defaultName(0),origin:clone(person.origin),walkMinutes:clamp(Number(person.walkMinutes),0,60,20),updated:Date.now()};
+  const index=Math.max(0,store.people.indexOf(person));
+  const profile={id:person.directoryId||`d${store.directorySeq++}`,name:displayName(person,index),origin:clone(person.origin),walkMinutes:clamp(Number(person.walkMinutes),0,60,20),updated:Date.now()};
+  person.directoryId=profile.id;
+  return profile;
 }
 export function restoreState(){
   loadGeoCache();
   let loaded=false;
   try{
-    const raw=JSON.parse(localStorage.getItem(KEY.people));
+    const raw=parseStored(readStorage(KEY.people));
     if(Array.isArray(raw)&&raw.length>=2){store.people=raw.map(normalizePerson).filter(Boolean);loaded=true;}
-  }catch(e){}
+  }catch(err){console.error(err);}
   if(!loaded||store.people.length<2){
     try{
-      const raw=JSON.parse(localStorage.getItem(KEY.oldLoc));
-      if(Array.isArray(raw)&&raw.length>=2){store.people=raw.map((l,i)=>({id:`p${i+1}`,name:defaultName(i),walkMinutes:20,origin:l.i!=null&&store.NODES&&l.i<store.NODES.names.length?{kind:'node',node:l.i,label:l.name,lat:l.lat,lon:l.lon}:null})).filter(p=>p.origin);loaded=true;}
-    }catch(e){}
+      const raw=parseStored(readStorage(KEY.oldLoc));
+      if(Array.isArray(raw)&&raw.length>=2){store.people=raw.map((l,i)=>({id:`p${i+1}`,name:'',walkMinutes:20,origin:l.i!=null&&store.NODES&&l.i<store.NODES.names.length?{kind:'node',node:l.i,label:l.name,lat:l.lat,lon:l.lon}:null})).filter(p=>p.origin);loaded=true;}
+    }catch(err){console.error(err);}
   }
   if(store.people.length<2)store.people=defaultPeople();
   store.seq=nextSeq(store.people);
-  let stored=null;
-  try{stored=JSON.parse(localStorage.getItem(KEY.settings));}catch(e){}
+  const stored=parseStored(readStorage(KEY.settings));
   let modes=Array.isArray(stored?.modes)?stored.modes:null;
-  if(!modes){try{const m=JSON.parse(localStorage.getItem(KEY.oldModes));if(Array.isArray(m))modes=m;}catch(e){}}
+  if(!modes){const legacy=parseStored(readStorage(KEY.oldModes));if(Array.isArray(legacy))modes=legacy;}
   store.settings=buildSettings(stored,modes);
   applySettingsToDom();
   save();
 }
 export function restoreDirectory(){
+  let entries=null;
   try{
-    const raw=JSON.parse(localStorage.getItem(KEY.directory));
-    if(Array.isArray(raw))store.directory=raw.filter(p=>p&&p.origin).map(p=>({id:p.id||`d${Date.now()}`,name:p.name||defaultName(0),origin:p.origin,walkMinutes:clamp(Number(p.walkMinutes),0,60,20),updated:p.updated||Date.now()}));
-  }catch(e){}
-  if(!store.directory.length)store.directory=store.people.map(profileFromPerson);
+    const raw=readStorage(KEY.directory);
+    if(raw!==null){const parsed=JSON.parse(raw);if(Array.isArray(parsed))entries=parsed;}
+  }catch(err){console.error(err);}
+  store.directory=entries?entries.filter(p=>p&&p.origin).map((p,i)=>({
+    id:p.id||`d${Date.now()}`,name:cleanName(p.name,i)||displayName({name:''},i),origin:p.origin,
+    walkMinutes:clamp(Number(p.walkMinutes),0,60,20),updated:p.updated||Date.now(),
+  })):store.people.map(profileFromPerson);
+  store.directorySeq=nextSeq(store.directory);
+  store.people.forEach((person,i)=>{
+    if(person.directoryId&&store.directory.some(profile=>profile.id===person.directoryId))return;
+    const match=store.directory.find((profile,j)=>displayName(profile,j)===displayName(person,i)&&profile.origin?.label===person.origin?.label);
+    if(match)person.directoryId=match.id;
+  });
   saveDirectory();
+  save();
+}
+export function normalizeSelection(value){
+  if(!value||typeof value!=='object')return null;
+  if(value.kind==='result')return{kind:'result',index:Math.max(0,Math.round(Number(value.index)||0))};
+  if(value.kind==='cell'&&typeof value.key==='string')return{kind:'cell',key:value.key,node:Number.isInteger(value.node)?value.node:undefined,lat:isNum(value.lat)?value.lat:undefined,lon:isNum(value.lon)?value.lon:undefined};
+  if(value.kind==='point'&&isNum(value.lat)&&isNum(value.lon))return{kind:'point',lat:value.lat,lon:value.lon,node:Number.isInteger(value.node)?value.node:undefined};
+  return null;
+}
+function readSelectionRecord(){
+  const stored=parseStored(readStorage(SELECTION_KEY));
+  if(!stored||typeof stored!=='object')return null;
+  return 'selection' in stored||'sharedSelection' in stored?stored:{selection:stored,sharedSelection:null};
+}
+export function saveSelection(){
+  writeStorage(SELECTION_KEY,JSON.stringify({selection:store.selection,sharedSelection:store.sharedSelection}));
+}
+export function readSavedSelection(){return normalizeSelection(readSelectionRecord()?.selection);}
+export function restoreSelection(value=readSavedSelection(),shared=readSelectionRecord()?.sharedSelection){
+  const selection=normalizeSelection(value);
+  const pending=normalizeSelection(shared);
+  if(!selection&&!pending)return false;
+  if(selection)store.selection=selection;
+  store.sharedSelection=pending||selection;
+  if(selection?.kind==='point'&&store.unbounded)store.pointSelection={lat:selection.lat,lon:selection.lon,node:selection.node,label:t('map.pinnedPoint')};
+  else if(selection?.kind!=='point')store.pointSelection=null;
+  saveSelection();
+  return true;
 }
 export async function copyText(text){
   if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);return;}
@@ -107,19 +180,27 @@ export function readHashState(){
   try{
     const state=JSON.parse(decodeBase64Url(location.hash.slice(3)));
     return state&&state.v===1&&Array.isArray(state.people)?state:null;
-  }catch(e){return null;}
+  }catch(err){return null;}
+}
+function clearShareHash(){
+  try{history.replaceState(null,'',location.pathname+location.search);}
+  catch(err){console.error(err);}
 }
 export function applySharedState(){
+  if(!location.hash.startsWith('#s='))return false;
   const state=readHashState();
-  if(!state)return false;
+  if(!state){clearShareHash();return false;}
   const sharedPeople=state.people.map(normalizePerson).filter(Boolean);
-  if(sharedPeople.length<2)return false;
+  if(sharedPeople.length<2){clearShareHash();return false;}
   store.people=sharedPeople;
   const modes=Array.isArray(state.settings?.modes)?state.settings.modes.filter(m=>m==='rail'||m==='bus'):null;
   store.settings=buildSettings({...state.settings,includeHeadway:normIncludeHeadway(state.settings?.includeHeadway)},modes);
   if(LOCALES.includes(state.locale))store.locale=state.locale;
   store.sharedSelection=state.selected&&typeof state.selected==='object'?state.selected:null;
+  store.selection=normalizeSelection(store.sharedSelection)||{kind:'result',index:0};
   store.seq=nextSeq(store.people);
-  history.replaceState(null,'',location.pathname+location.search);
+  save();
+  saveSelection();
+  clearShareHash();
   return true;
 }
