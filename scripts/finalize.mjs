@@ -1,10 +1,48 @@
-import { cp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { cp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'public');
+
+const COMPRESSIBLE_EXTENSIONS = new Set(['.css', '.html', '.js', '.json', '.mjs', '.svg', '.txt', '.xml']);
+const CONTENT_TYPES = {
+  '.css': 'text/css; charset=utf-8',
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
+};
+
+async function findCompressibleAssets(directory, prefix = '') {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const found = [];
+  for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+    const absolute = join(directory, entry.name);
+    const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      found.push(...await findCompressibleAssets(absolute, relative));
+      continue;
+    }
+    if (!entry.isFile() || relative.endsWith('.gz') || relative === '_headers' || relative === 'sw.js') continue;
+    const extension = extname(entry.name).toLowerCase();
+    if (COMPRESSIBLE_EXTENSIONS.has(extension) && (await stat(absolute)).size >= 1024) {
+      found.push({ absolute, relative, extension });
+    }
+  }
+  return found;
+}
+
+function cacheControlFor(relative) {
+  return /^(data|i18n)\//.test(relative) || ['llms.txt', 'robots.txt', 'sitemap.xml'].includes(relative)
+    ? 'public, max-age=3600'
+    : 'no-cache';
+}
 
 const headers = `/*
   X-Content-Type-Options: nosniff
@@ -96,6 +134,17 @@ const swPath = join(out, 'sw.js');
 await writeFile(swPath, patchServiceWorker(await readFile(swPath, 'utf8')));
 const strayStyles = join(out, 'styles.css');
 if (existsSync(strayStyles)) await rm(strayStyles);
-await writeFile(join(out, '_headers'), headers);
 
-console.log(`Finalized ${out}`);
+// Ship deterministic precompressed copies alongside the originals. Hosts that
+// can map an asset request to its .gz sibling get a real compressed response;
+// plain static servers keep serving the uncompressed files as before.
+const compressedAssets = await findCompressibleAssets(out);
+for (const { absolute } of compressedAssets) {
+  await writeFile(`${absolute}.gz`, gzipSync(await readFile(absolute), { level: 9, mtime: 0 }));
+}
+const compressionHeaders = compressedAssets.map(({ relative, extension }) =>
+  `/${relative}.gz\n  Content-Type: ${CONTENT_TYPES[extension]}\n  Content-Encoding: gzip\n  Cache-Control: ${cacheControlFor(relative)}\n`
+).join('\n');
+await writeFile(join(out, '_headers'), `${headers}\n${compressionHeaders}`);
+
+console.log(`Finalized ${out} (${compressedAssets.length} precompressed assets)`);
