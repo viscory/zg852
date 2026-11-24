@@ -1,3 +1,10 @@
+## 2026-11-24T08:45:33Z
+
+- CI run `45356656564` failed at `npm test` on `tests/map-fixes.spec.js` near-tied travel times; the same test passed locally without `CI=true` and passed on immediate reruns, so I reproduced and instrumented the flake.
+- Root cause: the production service worker installs with `skipWaiting()`/`clients.claim()` and can take over the page mid-test. `page.route()` does not intercept service-worker requests, so later same-origin fetches (`data/network.json`, `data/hkbus.json`) sometimes loaded real data while `data/nodes.json` used the four-node synthetic stub, producing `TypeError: Cannot read properties of undefined (reading 'push')` and `data-net="error"`.
+- Fixed the test deterministically: `tests/map-fixes.spec.js` now sets `test.use({ serviceWorkers: 'block' })` and serves all synthetic data through one wildcard `**/data/*.json` route. Twelve consecutive `CI=true` runs of the previously flaky test passed.
+- Full-suite verification, commit, push, and live deployment are pending; the earlier push did not deploy because its CI test job failed.
+
 ## 2026-11-24T08:26:32Z
 
 - Integrated verification found one regression: the adaptive deck placed the first start field below the 300px keyboard zone on a 360×640 phone. Fixed it in `src/js/ui.js` by snapping the sheet to `full` and scrolling the focused start field into view, and retargeted the e2e assertion to verify that focus behaviour.

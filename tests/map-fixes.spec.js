@@ -1,5 +1,10 @@
 const { test, expect } = require('@playwright/test');
 
+// The production service worker calls clients.claim(), which can take over the
+// page mid-test and bypass page.route() for later data fetches. Blocking it here
+// keeps the synthetic node/timetable pair deterministic.
+test.use({ serviceWorkers: 'block' });
+
 async function openApp(page) {
   await page.route('**/sw.js', route => route.abort());
   await page.route('**/tiles.openfreemap.org/**', route => route.abort());
@@ -124,26 +129,34 @@ test('route leg text is re-translated when the locale changes', async ({ page })
 test('near-tied travel times prefer an MTR exit over a bus interchange', async ({ page }) => {
   // A tiny synthetic network makes the timing difference deterministic: both
   // candidates are 10-ish minutes from both origins and the bus is 0.5 min
-  // faster. Travel time stays primary for wider gaps.
-  await page.route('**/data/nodes.json', route => route.fulfill({ json: {
-    names: ['Tsuen Wan', 'North Point', 'MTR Exit', 'Bus Interchange'],
-    kind: [1, 1, 3, 4],
-    lat: [22.37, 22.29, 22.31, 22.33],
-    lon: [114.11, 114.22, 114.15, 114.17],
-  } }));
+  // faster. Travel time stays primary for wider gaps. One wildcard route keeps
+  // the node list and timetable in sync; separate routes can race and let the
+  // real timetable load against only four synthetic nodes.
   const line = (l, n, c, s, e) => ({ l, n, c, w: 0, h: 0, s, e, g: [] });
-  await page.route('**/data/network.json', route => route.fulfill({ json: {
-    walk: [],
-    lines: [
-      line('TWL', 'Rail out', 0, [0, 2, 1], [10.5, 10.5]),
-      line('TWL-R', 'Rail back', 0, [1, 2, 0], [10.5, 10.5]),
-      line('B1', 'Bus out', 1, [0, 3, 1], [10, 10]),
-      line('B2', 'Bus back', 1, [1, 3, 0], [10, 10]),
-    ],
-  } }));
-  await page.route('**/data/hkbus.json', route => route.fulfill({ json: [] }));
-  await page.route('**/data/districts.json', route => route.fulfill({ json: [] }));
-  await page.route('**/data/poi-index.json', route => route.fulfill({ json: { cells: {} } }));
+  const stubs = {
+    'nodes.json': {
+      names: ['Tsuen Wan', 'North Point', 'MTR Exit', 'Bus Interchange'],
+      kind: [1, 1, 3, 4],
+      lat: [22.37, 22.29, 22.31, 22.33],
+      lon: [114.11, 114.22, 114.15, 114.17],
+    },
+    'network.json': {
+      walk: [],
+      lines: [
+        line('TWL', 'Rail out', 0, [0, 2, 1], [10.5, 10.5]),
+        line('TWL-R', 'Rail back', 0, [1, 2, 0], [10.5, 10.5]),
+        line('B1', 'Bus out', 1, [0, 3, 1], [10, 10]),
+        line('B2', 'Bus back', 1, [1, 3, 0], [10, 10]),
+      ],
+    },
+    'hkbus.json': [],
+    'districts.json': [],
+    'poi-index.json': { cells: {} },
+  };
+  await page.route('**/data/*.json', route => {
+    const name = new URL(route.request().url()).pathname.split('/').pop();
+    return stubs[name] ? route.fulfill({ json: stubs[name] }) : route.continue();
+  });
 
   await openApp(page);
   await search(page);
