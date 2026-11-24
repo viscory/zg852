@@ -4,13 +4,16 @@ import { $ } from './util.js';
 import { t,applyStaticText } from './i18n.js';
 import { districtFor,loadNetwork } from './data.js';
 import { cellFitScore } from './vectors.js';
-import { sourcesFor,solve,bestTimes,walkTimes,walkBudget,buildCells,prepareRoutes,cellToResult } from './routing.js';
+import { sourcesFor,solve,bestTimes,walkTimes,walkBudget,buildCells,prepareRoutes,cellToResult,meetingTieBreak,legLabel } from './routing.js';
 import { save } from './state.js';
-import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,refreshTranslatedNames,setWorking,setSidebarFace,applyUnboundedUi } from './ui.js';
+import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,refreshTranslatedNames,setWorking,setSidebarFace,applyUnboundedUi,hasPendingOrigins } from './ui.js';
 import { drawOrigins,drawCloud,applySelection,applyMapLabels } from './map.js';
 
 export function compute(reveal=false){
   clearError();
+  // Typed but unchosen place names must not silently fall back to an older
+  // origin: ask for a suggestion before any origin is read.
+  if(hasPendingOrigins()){renderEmpty();showError(t('search.selectSuggestion'));return;}
   if(!store.NET){renderEmpty();showError(t('error.loading'));return;}
   if(store.people.some(p=>!p.origin)){renderEmpty();showError(t('error.missingOrigins'));return;}
   store.activePeople=store.people.filter(p=>p.origin);
@@ -44,7 +47,7 @@ export function compute(reveal=false){
   store.effectiveGrids=effectiveGrids;
   // Unbounded mode keeps every reachable node available for free-point picks.
   const cells=buildCells(effectiveGrids,store.unbounded?Infinity:tolerance,TRAVEL_BUDGET_MINUTES);
-  const ordered=cells.map(cell=>({cell,fitScore:cellFitScore(cell)})).sort((a,b)=>a.fitScore-b.fitScore||a.cell.score-b.cell.score||a.cell.key.localeCompare(b.cell.key));
+  const ordered=cells.map(cell=>({cell,fitScore:cellFitScore(cell)})).sort((a,b)=>meetingTieBreak(a,b,item=>item.fitScore));
   store.cloudCells=ordered.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
   store.results=ordered.slice(0,7).map(({cell:c})=>cellToResult(c));
   store.results.forEach(r=>prepareRoutes(r,store.activePeople));
@@ -87,7 +90,15 @@ export function rerender(){
   applyMapLabels();
   store.people.forEach(p=>{if(p.origin)p.origin.district=districtFor(p.origin.lat,p.origin.lon);});
   store.directory.forEach(p=>{p.district=districtFor(p.origin.lat,p.origin.lon);});
-  store.results.forEach(r=>{r.district=districtFor(r.lat,r.lon);});
+  store.results.forEach(r=>{
+    r.district=districtFor(r.lat,r.lon);
+    // describe() baked the old locale into leg.text; rebuild it so step chips
+    // and route summaries follow the newly selected language.
+    r.routes.forEach(route=>{
+      route.legs.forEach(leg=>{leg.text=legLabel(leg);});
+      route.text=route.legs.map(leg=>leg.text).join(' -> ')||t('route.already');
+    });
+  });
   updateSettingsLabels();
   applyUnboundedUi();
   // Keep cards (and any in-progress input) in place; refresh their translated

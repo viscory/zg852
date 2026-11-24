@@ -154,5 +154,9 @@
   "diag.downloaded": "Diagnose heruntergeladen",
   "diag.failed": "Diagnose konnte nicht exportiert werden",
   "route.walkTo": "{time} zu Fuß bis {to}",
-  "vector.ratings": "Interessenbewertungen"
+  "vector.ratings": "Interessenbewertungen",
+  "people.max": "Sie können höchstens 8 Personen hinzufügen.",
+  "search.selectSuggestion": "Wählen Sie einen Vorschlag oder verwenden Sie eine Kartenmarkierung für diesen Startort.",
+  "share.invalid": "Dieser Freigabelink ist ungültig.",
+  "legal.englishOnly": "Dieses Dokument ist nur auf Englisch verfügbar."
 }

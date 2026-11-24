@@ -101,10 +101,16 @@ test('renaming a person updates result rows and route steps without losing focus
 test('result rows and saved-directory rows expose listitem semantics', async ({ page }) => {
   await expect(page.locator('#resultsList')).toHaveAttribute('role', 'list');
   await page.locator('#go').click();
-  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
-  const resultRoles = await page.locator('.result-row').evaluateAll(rows => rows.map(row => row.getAttribute('role')));
-  expect(resultRoles.length).toBeGreaterThan(0);
-  expect(resultRoles.every(role => role === 'listitem')).toBe(true);
+  await expect(page.locator('#go')).toBeEnabled();
+  const resultItems = page.locator('#resultsList > [role="listitem"]');
+  await expect.poll(() => resultItems.count()).toBeGreaterThan(0);
+  const resultCount = await resultItems.count();
+  for (let index = 0; index < resultCount; index += 1) {
+    const item = resultItems.nth(index);
+    await expect(item).toHaveAttribute('role', 'listitem');
+    await expect(item.locator('button')).not.toHaveCount(0);
+    await expect(item.locator('button').first()).toHaveAccessibleName(/\S/);
+  }
 
   // Search reveals the detail face; swap back to reach the save button.
   await expect(page.locator('.side-left .face[data-face="detail"]')).toBeVisible();

@@ -154,5 +154,9 @@
   "diag.downloaded": "診斷資料已下載",
   "diag.failed": "無法匯出診斷資料",
   "route.walkTo": "步行 {time} 至{to}",
-  "vector.ratings": "興趣評分"
+  "vector.ratings": "興趣評分",
+  "people.max": "最多只能加入 8 位成員。",
+  "search.selectSuggestion": "請從建議中選擇地點，或使用地圖標記。",
+  "share.invalid": "此分享連結無效。",
+  "legal.englishOnly": "本文件僅提供英文版本。"
 }

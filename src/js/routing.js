@@ -281,6 +281,21 @@ export function describe(sol,origin,target,walkMinutes=WALK_TOLERANCE_DEFAULT,ta
   const path=dedupePath(legs.flatMap(leg=>leg.coords));
   return{text,legs,path,fares:best.fares};
 }
+const MEETING_TIE_MINUTES=1;
+// A rail station or MTR exit is a more practical rendezvous than a roadside
+// bus stop. This never replaces the travel-time ranking: it only breaks ties
+// between candidates within roughly a minute of each other.
+export function meetingSuitability(cell){
+  // Accepts either a cell or an engine sort item that wraps one.
+  const target=cell?.cell??cell;
+  return nodePriority(store.NODES?.kind?.[target?.node]);
+}
+export function meetingTieBreak(a,b,score=item=>item.score){
+  const diff=(score(a)??0)-(score(b)??0);
+  if(Math.abs(diff)>MEETING_TIE_MINUTES)return diff;
+  return meetingSuitability(a)-meetingSuitability(b)||diff||
+    String(a?.cell?.key??a?.key??'').localeCompare(String(b?.cell?.key??b?.key??''));
+}
 export function buildCells(grids,tolerance,budget){
   const cells=new Map();
   for(const idx of store.surface){
@@ -297,7 +312,7 @@ export function buildCells(grids,tolerance,budget){
     if(priority<cell.priority){cell.label=store.NODES.names[idx];cell.priority=priority;cell.keyCat=catKey(priority);}
     if(score<cell.score||score===cell.score&&gap<cell.gap){cell.node=idx;cell.times=times;cell.fastest=fastest;cell.slowest=slowest;cell.gap=gap;cell.score=score;}
   }
-  return[...cells.values()].sort((a,b)=>a.score-b.score||a.gap-b.gap||a.key.localeCompare(b.key));
+  return[...cells.values()].sort((a,b)=>meetingTieBreak(a,b));
 }
 export function cellToResult(cell){
   const lat=store.NODES.lat[cell.node],lon=store.NODES.lon[cell.node],round=v=>Math.round(v*10)/10;

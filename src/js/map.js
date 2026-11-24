@@ -9,7 +9,7 @@ import { t,intNum,minuteText } from './i18n.js';
 import { cellTopNames,cellRatings,cellVector,cellCount,cellPreference,overallRating } from './vectors.js';
 import { prepareRoutes,legLabel,fareMarkup,money,cellToResult,interchangeWaitText } from './routing.js';
 import { hkbusUrl,mtrLineCode,districtFor } from './data.js';
-import { displayName } from './state.js';
+import { displayName,saveSelection } from './state.js';
 import { isMobileLayout,showMobileRoute } from './mobile.js';
 import { markSelectedResult,setPinOrigin,setLabel,setSidebarFace,showError,applyUnboundedUi } from './ui.js';
 
@@ -144,6 +144,20 @@ export function fitMapTo(points){
 export function recenterMap(){
   const points=store.results.flatMap(result=>result.paths.flat()).concat(store.activePeople.filter(person=>person.origin).map(person=>[person.origin.lat,person.origin.lon]));
   if(store.selection?.kind==='point'&&isNum(store.selection.lat)&&isNum(store.selection.lon))points.push([store.selection.lat,store.selection.lon]);
+  // A heat cell picked directly is drawn by renderSelection() even when it is
+  // outside the top results, so it has to join the fit too.
+  if(store.selection?.kind==='cell'){
+    const selected=store.selection;
+    let {lat,lon}=selected;
+    if(!isNum(lat)||!isNum(lon)){
+      const cell=store.cloudCells.find(candidate=>candidate.key===selected.key)||
+        store.cloudCells.find(candidate=>candidate.node===selected.node);
+      if(cell&&store.NODES?.lat?.[cell.node]!=null&&store.NODES?.lon?.[cell.node]!=null){
+        lat=store.NODES.lat[cell.node];lon=store.NODES.lon[cell.node];
+      }
+    }
+    if(isNum(lat)&&isNum(lon))points.push([lat,lon]);
+  }
   fitMapTo(points);
 }
 function magneticCell(latlng){
@@ -179,8 +193,14 @@ export function drawCloud(budget){
       cellNode.setAttribute('role','button');
       cellNode.setAttribute('aria-label',`${t('map.areaTitle')}: ${minuteText(c.slowest)}`);
       cellNode.setAttribute('data-heat-cell','');
-      cellNode.addEventListener('focus',()=>cellNode.setAttribute('data-focused',''));
-      cellNode.addEventListener('blur',()=>cellNode.removeAttribute('data-focused'));
+      cellNode.addEventListener('focus',()=>{
+        cellNode.setAttribute('data-focused','');
+        // Keyboard users get the same rating detail as hover users, anchored
+        // to the focused rectangle instead of a mouse pointer.
+        const box=cellNode.getBoundingClientRect();
+        scheduleCellTooltip(c,{clientX:box.left+box.width/2,clientY:box.top+box.height/2},250);
+      });
+      cellNode.addEventListener('blur',()=>{cellNode.removeAttribute('data-focused');hideTooltip();});
       cellNode.addEventListener('keydown',event=>{
         if(event.key!=='Enter'&&event.key!==' ')return;
         event.preventDefault();
@@ -232,13 +252,25 @@ export function resultMatches(result,sel){
 export function buildResultFromCell(cell,active=store.activePeople){
   return prepareRoutes(cellToResult(cell),active);
 }
+function clearStalePointSelection(){
+  // A pinned point only belongs to the unbounded view. Selecting a bounded
+  // area or cell must retire its banner before the detail panel is shown.
+  if(!store.unbounded&&store.pointSelection){store.pointSelection=null;applyUnboundedUi();}
+}
+function persistSelection(){
+  // A shared selection is still pending during startup; leave the stored
+  // record alone until applySelection() has consumed it.
+  if(!store.sharedSelection)saveSelection();
+}
 export function selectCell(cell){
   hideTooltip();
+  clearStalePointSelection();
   const active=store.activePeople,match=store.results.findIndex(result=>resultMatches(result,{key:cell.key,node:cell.node}));
   if(match>=0){store.selection={kind:'result',index:match};store.sharedSelection=null;selectResult(match,active,true);return;}
   const result=buildResultFromCell(cell,active);
   store.selection={kind:'cell',key:cell.key,node:cell.node,lat:result.lat,lon:result.lon};
   store.sharedSelection=null;
+  persistSelection();
   setSidebarFace('detail');
   showMobileRoute();
   renderSelection(result,active,true);
@@ -251,7 +283,7 @@ export function applySelection(active=store.activePeople){
     else index=store.results.findIndex(result=>resultMatches(result,shared));
     if(index>=0&&store.results[index]){store.selection={kind:'result',index};store.sharedSelection=null;selectResult(index,active);return;}
     const cell=store.cloudCells.find(candidate=>resultMatches({key:candidate.key,node:candidate.node,lat:store.NODES.lat[candidate.node],lon:store.NODES.lon[candidate.node]},shared));
-    if(cell){store.selection={kind:'cell',key:cell.key,node:cell.node};store.sharedSelection=null;renderSelection(buildResultFromCell(cell,active),active);return;}
+    if(cell){clearStalePointSelection();store.selection={kind:'cell',key:cell.key,node:cell.node};store.sharedSelection=null;persistSelection();renderSelection(buildResultFromCell(cell,active),active);return;}
     store.sharedSelection=null;
   }
   if(store.selection?.kind==='point'){
@@ -331,7 +363,9 @@ export function renderSelection(r,active=store.activePeople,fit=false){
 }
 export function selectResult(i,active=store.activePeople,reveal=false){
   const r=store.results[i];if(!r)return;
+  clearStalePointSelection();
   store.selection={kind:'result',index:i};store.sharedSelection=null;
+  persistSelection();
   if(reveal){setSidebarFace('detail');showMobileRoute();}
   renderSelection(r,active,reveal);
 }
@@ -370,6 +404,7 @@ export function selectPoint(lat,lon){
   store.selection={kind:'point',lat,lon,node:nearest};
   store.pointSelection={lat,lon,node:nearest,label};
   store.sharedSelection=null;
+  persistSelection();
   setSidebarFace('detail');
   showMobileRoute();
   applyUnboundedUi();
@@ -379,5 +414,6 @@ export function clearPoint(){
   store.pointSelection=null;
   store.selection={kind:'result',index:0};
   applyUnboundedUi();
+  persistSelection();
   selectResult(0,store.activePeople);
 }

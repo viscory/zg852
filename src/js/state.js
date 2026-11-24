@@ -5,9 +5,24 @@ import { t } from './i18n.js';
 import { migrateVectors } from './vectors.js';
 import { loadGeoCache } from './search.js';
 import { findExact,districtFor } from './data.js';
-import { applySettingsToDom,flashTooltip } from './ui.js';
+import { applySettingsToDom,flashTooltip,showError } from './ui.js';
 
 const SELECTION_KEY='hkfair.v2.selection';
+// Share errors are raised while init() is still setting up. init() calls
+// renderEmpty() before restoreSelection(), and renderEmpty() clears #error, so
+// keep the message and re-show it from restoreSelection(), the last state call
+// after the shell has been rendered.
+let pendingShareError=null;
+function flagShareError(key){
+  pendingShareError=key;
+  showError(t(key));
+}
+function flushShareError(){
+  if(!pendingShareError)return;
+  const key=pendingShareError;
+  pendingShareError=null;
+  showError(t(key));
+}
 
 function readStorage(key){
   try{return localStorage.getItem(key);}
@@ -84,15 +99,15 @@ export function restoreState(){
   let loaded=false;
   try{
     const raw=parseStored(readStorage(KEY.people));
-    if(Array.isArray(raw)&&raw.length>=2){store.people=raw.map(normalizePerson).filter(Boolean);loaded=true;}
+    if(Array.isArray(raw)&&raw.length){store.people=raw.map(normalizePerson).filter(Boolean);loaded=store.people.length>0;}
   }catch(err){console.error(err);}
-  if(!loaded||store.people.length<2){
+  if(!loaded){
     try{
       const raw=parseStored(readStorage(KEY.oldLoc));
-      if(Array.isArray(raw)&&raw.length>=2){store.people=raw.map((l,i)=>({id:`p${i+1}`,name:'',walkMinutes:20,origin:l.i!=null&&store.NODES&&l.i<store.NODES.names.length?{kind:'node',node:l.i,label:l.name,lat:l.lat,lon:l.lon}:null})).filter(p=>p.origin);loaded=true;}
+      if(Array.isArray(raw)&&raw.length){store.people=raw.map((l,i)=>({id:`p${i+1}`,name:'',walkMinutes:20,origin:l.i!=null&&store.NODES&&l.i<store.NODES.names.length?{kind:'node',node:l.i,label:l.name,lat:l.lat,lon:l.lon}:null})).filter(p=>p.origin);loaded=store.people.length>0;}
     }catch(err){console.error(err);}
   }
-  if(store.people.length<2)store.people=defaultPeople();
+  if(!loaded||store.people.length<1)store.people=defaultPeople();
   store.seq=nextSeq(store.people);
   const stored=parseStored(readStorage(KEY.settings));
   let modes=Array.isArray(stored?.modes)?stored.modes:null;
@@ -137,6 +152,7 @@ export function saveSelection(){
 }
 export function readSavedSelection(){return normalizeSelection(readSelectionRecord()?.selection);}
 export function restoreSelection(value=readSavedSelection(),shared=readSelectionRecord()?.sharedSelection){
+  flushShareError();
   const selection=normalizeSelection(value);
   const pending=normalizeSelection(shared);
   if(!selection&&!pending)return false;
@@ -191,9 +207,10 @@ function clearShareHash(){
 export function applySharedState(){
   if(!location.hash.startsWith('#s='))return false;
   const state=readHashState();
-  if(!state){clearShareHash();return false;}
+  if(!state){flagShareError('share.invalid');clearShareHash();return false;}
   const sharedPeople=state.people.map(normalizePerson).filter(Boolean);
-  if(sharedPeople.length<2){clearShareHash();return false;}
+  if(!sharedPeople.length){flagShareError('share.invalid');clearShareHash();return false;}
+  const needTwo=sharedPeople.length<2;
   store.people=sharedPeople;
   const modes=Array.isArray(state.settings?.modes)?state.settings.modes.filter(m=>m==='rail'||m==='bus'):null;
   store.settings=buildSettings({...state.settings,includeHeadway:normIncludeHeadway(state.settings?.includeHeadway)},modes);
@@ -204,5 +221,6 @@ export function applySharedState(){
   save();
   saveSelection();
   clearShareHash();
+  if(needTwo)flagShareError('error.needTwo');
   return true;
 }

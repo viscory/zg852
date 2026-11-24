@@ -154,5 +154,9 @@
   "diag.downloaded": "Đã tải dữ liệu chẩn đoán",
   "diag.failed": "Không thể xuất dữ liệu chẩn đoán",
   "route.walkTo": "Đi bộ {time} đến {to}",
-  "vector.ratings": "Điểm sở thích"
+  "vector.ratings": "Điểm sở thích",
+  "people.max": "Bạn có thể thêm tối đa 8 người.",
+  "search.selectSuggestion": "Hãy chọn một gợi ý hoặc dùng ghim bản đồ cho điểm xuất phát này.",
+  "share.invalid": "Liên kết chia sẻ này không hợp lệ.",
+  "legal.englishOnly": "Tài liệu này chỉ có bằng tiếng Anh."
 }

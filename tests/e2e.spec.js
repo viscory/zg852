@@ -778,7 +778,7 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
-  expect(expected).toHaveLength(156);
+  expect(expected).toHaveLength(160);
   for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'vector.ratings', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
@@ -1206,7 +1206,7 @@ test('legal buttons open the dialog with loaded documents and direct pages still
     { key: 'process', title: 'Process', body: 'Routing runs in this browser' },
   ];
   for (const document of documents) {
-    await page.locator(`[data-legal="${document.key}"]`).click();
+    await page.locator(`.legal-links [data-legal="${document.key}"]`).click();
     await expect(page.locator('#legalDialog')).toBeVisible();
     await expect(page.locator('#legalTitle')).toHaveText(document.title);
     await expect(page.locator('#legalBody')).toContainText(document.body);
@@ -1215,7 +1215,7 @@ test('legal buttons open the dialog with loaded documents and direct pages still
     await expect(page.locator('#legalDialog')).toBeHidden();
   }
 
-  await page.locator('[data-legal="privacy"]').click();
+  await page.locator('.legal-links [data-legal="privacy"]').click();
   await expect(page.locator('#legalBody')).toContainText('What stays on your device');
   await page.locator('#legalClose').click();
   await expect(page.locator('#legalDialog')).toBeHidden();
@@ -1230,8 +1230,16 @@ test('legal buttons open the dialog with loaded documents and direct pages still
 test('mobile layout keeps the map, both panels, and the legend usable', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator('#map')).toBeVisible();
+  await expect(page.locator('#mobileNav')).toBeVisible();
+
+  // The deck shows one pane at a time; each nav button must expose its panel.
+  await page.locator('#mobileNav [data-mobile-pane="people"]').click();
   await expect(page.locator('.side-left')).toBeVisible();
+  await expect(page.locator('.side-right')).toBeHidden();
+  await page.locator('#mobileNav [data-mobile-pane="results"]').click();
   await expect(page.locator('.side-right')).toBeVisible();
+  await expect(page.locator('.side-left')).toBeHidden();
+
   await expect(page.locator('.legend')).toBeVisible();
   await expect(page.locator('.legend-head')).toBeVisible();
   await expect(page.locator('.legend .vector-key')).toBeHidden();
@@ -1437,11 +1445,14 @@ test('legal pages include social preview tags', async ({ page }) => {
   }
 });
 
-test('the first start field sits above the bottom keyboard zone', async ({ page }) => {
+test('the first start field rises above the bottom keyboard zone when focused', async ({ page }) => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 640 }]) {
     await page.setViewportSize(viewport);
-    const box = await page.locator('.start-input').first().boundingBox();
-    expect(box.y).toBeLessThanOrEqual(viewport.height - 300);
+    await page.locator('#mobileNav [data-mobile-pane="people"]').click();
+    const input = page.locator('.start-input').first();
+    await input.focus();
+    await expect(page.locator('body')).toHaveAttribute('data-mobile-snap', 'full');
+    await expect.poll(async () => (await input.boundingBox())?.y ?? Infinity).toBeLessThanOrEqual(viewport.height - 300);
   }
 });
 

@@ -154,5 +154,9 @@
   "diag.downloaded": "診断データをダウンロードしました",
   "diag.failed": "診断データを書き出せませんでした",
   "route.walkTo": "{to}まで徒歩 {time}",
-  "vector.ratings": "興味評価"
+  "vector.ratings": "興味評価",
+  "people.max": "追加できるのは最大 8 人です。",
+  "search.selectSuggestion": "候補から地点を選ぶか、地図のピンを使用してください。",
+  "share.invalid": "この共有リンクは無効です。",
+  "legal.englishOnly": "この文書は英語のみで提供されています。"
 }

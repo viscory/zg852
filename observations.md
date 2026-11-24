@@ -1,3 +1,96 @@
+## 2026-11-24T08:26:32Z
+
+- Integrated verification found one regression: the adaptive deck placed the first start field below the 300px keyboard zone on a 360×640 phone. Fixed it in `src/js/ui.js` by snapping the sheet to `full` and scrolling the focused start field into view, and retargeted the e2e assertion to verify that focus behaviour.
+- `npm run lint` is clean (15 catalogues, 160 keys each, 108 literal keys verified). The full Playwright suite now passes 115/115 against built `public/`; the earlier run was 114 passed with only the keyboard-zone assertion failing.
+- All fix-round changes remain uncommitted and unpushed; next steps are final diff review, commit, push, CI/deploy verification, and live-site checks.
+
+## 2026-11-24T08:14:40Z
+
+- Map/engine workstream reported complete: adaptive deck now covers narrow fine-pointer viewports, selection persists and clears stale point banners, heat-cell focus tooltips work, recenter includes selected cells, route legs retranslate, meeting-suitability breaks near ties, and typed-origin validation is wired from `engine.compute()`. Reviewed diffs; the main integration dependency is `hasPendingOrigins()`/`search.selectSuggestion` from the remaining UI stream.
+- Seven deterministic regression tests were added in `tests/map-fixes.spec.js`.
+
+## 2026-11-24T08:09:46Z
+
+- CI workstream reported complete: mobile heat/point taps now wait for the full search and poll the sheet transition; result-row tests expect listitem wrappers around native buttons; CI gained concurrency cancellation, timeouts, `CI=true`, and one retry; `tests/ci-workflow.spec.js` was added. Reviewed diffs; changes are consistent with the pending UI wrapper fix.
+- Still waiting on UI/autocomplete/i18n and map/engine/routing streams.
+
+## 2026-11-24T08:09:18Z
+
+- State workstream reported complete: one-person scenarios now persist, malformed/one-person share hashes raise inline errors, and `tests/state-fixes.spec.js` was added. Reviewed the diff; the existing `state.js` → `ui.js` import cycle is unchanged apart from adding `showError`, and `app.js` still calls `restoreSelection()` after `renderEmpty()` so the pending share error is flushed correctly.
+- Still waiting on UI, map/engine, and CI streams before integration and verification.
+
+## 2026-11-24T08:07:31Z
+
+- Confirmed scope with user: fix all 25 findings (20 from `docs/new-audit-round2.md` plus the five live defects) and repair GitHub CI; publish by pushing/deploying after verification.
+- Launched four non-overlapping workstreams: state/share persistence, UI/autocomplete/i18n/accessibility, map/engine/routing/layout, and CI/test hardening. Each owns disjoint files and adds Playwright regressions.
+- Bumped service-worker cache `zg852-v45` → `zg852-v46` and synced `tests/audit-sw.spec.js`; confirmed `origin/main` is reachable and still at `a7caad2`.
+- No integration run, commit, push, or deploy yet; waiting for the four streams to report before running lint/build/full suite.
+
+## 2026-11-24T06:27:16Z
+
+- Drove the live https://zg852.pages.dev/ with Playwright at 393×659 and 1440×900: clean first run, suggestion-click journey (Central + North Point) produced ranked areas, fares, routes and map paths; locale switch translated chrome but left route step words/stop names in English.
+- Reproduced two high-severity live defects: typing "Kowloon Tong" without clicking a suggestion left the stored origin as Tsuen Wan and the search used Tsuen Wan; removing Person B, setting Central and reloading restored default Tsuen Wan/North Point (one-person state loss).
+- Noted a utility limitation: top-ranked "fair areas" can be road/bus interchanges (e.g. Western Harbour Crossing Bus-Bus Interchange), which are not practical meeting spots.
+- Confirmed deployment lag: live SW is `zg852-v42` and `origin/main` is `a7caad2`, while local HEAD `c67964e` is 9 commits ahead at `zg852-v45`; the recent fixes are not public. Local `npm test` still passes 98/98 and lint/i18n passes.
+- Gave an honest verdict: genuine niche utility, but not ready for unsupervised public use; beta/demo only until the two data-integrity bugs are fixed and pending commits are deployed. No application code changed; screenshot saved under ignored `.playwright-mcp/`.
+
+## 2026-11-24T06:18:38Z
+
+- Answered a readiness/utility judgment call: the app has a real, specific use case for choosing fair meeting points by travel time, but the fresh audit's remaining high/medium defects (typed origin ignored, one-person state loss, silent 8-person limit, late autocomplete reopening, navigation and i18n issues) mean it is suitable for a labelled beta/demo, not unsupervised public production use. No code changes were made.
+
+## 2026-11-24T06:08:11Z
+
+- The temporary built-output audit server on `127.0.0.1:8878` reached its 900-second timeout and stopped cleanly (SIGTERM). This does not affect the completed round-2 findings or any files; no server restart is needed unless further browser checks are requested.
+
+## 2026-11-24T06:02:02Z
+
+- Ran a fresh Playwright audit against built `public/` on desktop, 800×600 fine-pointer desktop, iPhone 15, coarse landscape/tablet, RTL/i18n, dialogs, share links, persistence, autocomplete and offline paths. Excluded all 20 issues from `docs/full-audit.md`; found 20 new reproducible problems.
+- Wrote `docs/new-audit-round2.md` with exact repro steps and browser evidence. Highest-impact new issues: typed start-place text is ignored unless a suggestion is clicked, deleting down to one person restores both defaults on reload, the 8-person limit silently no-ops, result rows lose button semantics, late Photon responses reopen dismissed suggestions, narrow fine-pointer desktops still use the stacked layout, and the Process dialog body link navigates away from the app. Raw probe reports and screenshots are under `/tmp/opencode/`.
+- No application source was changed in this audit round; only `docs/new-audit-round2.md` was added and `observations.md` updated. Local HEAD remains `c67964e` and nothing was pushed.
+
+## 2026-11-24T05:42:33Z
+
+- Integrated all five audit workstreams into main and resolved the two cross-stream regressions: the shared pinned-point test now waits for results before expecting the banner (matching the new pre-Search gating), and default-name detection is position-aware so a saved profile called `Person B` is not renumbered to `Person D` when added as the fourth person. `profileFromPerson()` now preserves an explicit profile name. Bumped SW cache `zg852-v44` → `zg852-v45` and synced the SW test.
+- Committed `docs/full-audit.md` as `87e98e1` and the integration fixes as `c67964e`. Final verification clean: lint/i18n (15 catalogues, 156 keys each), build with 28 precompressed assets, all 98 Playwright tests against built `public/`, and `git diff --check`. Only `observations.md` remains locally modified.
+
+## 2026-11-24T05:36:42Z
+
+- Merged the map workstream from `f2443cf` into main as `c0ac7ba`: fitBounds now uses separate top/bottom padding so the mobile sheet is not double-counted, recenter includes the pinned point, heat cells are keyboard-accessible with localized labels, and early Unlimited taps show an inline loading error. Integration lint and build remain clean; agent reported 74/74 tests in its worktree.
+
+## 2026-11-24T05:33:48Z
+
+- Merged the state/persistence workstream from `31f112b` into main as `d98d570`: startup fetches/storage are guarded with inline errors and `data-net="error"`, directory IDs/sequence and deliberate empty directories persist, shared scenarios and selection survive hash cleanup, and default names no longer freeze English literals. Integration lint and build pass with 28 precompressed assets.
+
+## 2026-11-24T05:32:47Z
+
+- Merged the UI/i18n workstream from `01ea4e8` into main as `a82ca39`: pin mode clears on person removal, recomputes no longer force the Results pane, locale switches preserve active search state, renames refresh result/step labels, result/directory rows gain listitem semantics, and the Unlimited hint is gated on a solved/completed search. Updated `tests/e2e.spec.js` and committed `2d08c68` so the old test now expects the hint only after Search.
+
+## 2026-11-24T05:28:02Z
+
+- Merged the service-worker/payload workstream from worktree commit `3c3a3ee` into main as `5061828`: normalized cache keys ignore query strings (fixes offline map worker), only OK same-origin responses are cached, build now emits deterministic `.gz` variants with `_headers` rules, cache bumped to `zg852-v44`, and `tests/audit-sw.spec.js` added. Agent reported lint/build plus targeted SW and production-smoke specs passing; raw payload on hosts without compression remains a deployment limitation.
+
+## 2026-11-24T05:23:59Z
+
+- User confirmed “these as well” meant all 20 audit findings, not a missing attachment. Committed the unbounded pinned-point tooltip fix as `7da9270` after lint, build and 71/71 Playwright tests passed.
+- Created five isolated worktrees and dispatched non-overlapping fix streams: state persistence (issues 2–5, 19), UI/i18n (10–13, 17–19), map fitting/access (1, 17, unbounded safety), responsive CSS (6–9, 14), and service worker/payload (15, 16, 20). Each stream owns disjoint files, adds its own regression spec, runs lint/build, and commits locally for later merge.
+
+## 2026-11-24T04:56:39Z
+
+- Finished the full PC/mobile qualitative audit against built `public/` via Playwright MCP (1440×900 desktop, iPhone 15 393×659, 852×393 landscape, 768×1024 coarse tablet, 320×568) plus read-only source review. Wrote `docs/full-audit.md` with 20 prioritized very-bad issues and concrete reproduction/evidence; no application code was changed.
+- Live-confirmed the strongest findings: mobile fitBounds double-counts the sheet and hides routes; blocked `nodes.json` or throwing `localStorage.setItem` blanks the app with no inline error; saved-people IDs collide after reload causing wrong-record edit/delete; deleting all saved people resurrects them on reload; shared scenarios vanish on reload in a fresh context; removing a pinned person leaves pin mode stuck; mobile recomputes force the Results pane; locale switching wipes place queries/focus and leaves default Person A/B names; renaming a person leaves stale result/step text; Unlimited mode advertises map taps that do nothing before Search.
+- Recalled prior live evidence for desktop footer overlap, RTL horizontal overflow, landscape/tablet stacked fallback, tiny mobile results sheet, offline worker errors, hidden mobile attribution/legend, inaccessible heat cells/list semantics, and the ~10MB uncompressed asset payload. Diagnostics export, legal dialogs, clipboard share, basic autocomplete, and offline data/search mostly worked and were excluded from the top 20.
+- Reconciled two read-only static audit reports; their file:line root causes (especially `src/js/map.js:126-132`, `src/js/state.js:67-74,112-124`, `src/js/ui.js:232`, `static/sw.js:8-10`) were folded into the durable audit note. Working tree now contains `observations.md` and the new `docs/full-audit.md` only.
+
+## 2026-11-24T04:51:41Z
+
+- Ran a read-only static audit of `src/`, `static/`, `scripts/`, config and data flows at `a7caad2`; no app code, tests, config or assets changed and no Playwright was used. Highest-severity findings with exact evidence: mobile fitBounds double-counts the sheet in both padding axes (`src/js/map.js:126-132`); shared scenarios are stripped from the URL but never persisted (`src/app.js:25`, `src/js/state.js:112-124`); deleting all saved profiles is undone on reload (`src/js/state.js:67-74`); `directorySeq` is not restored so new profiles collide with persisted `d1`/`d2` ids (`src/js/store.js:5`, `src/js/state.js:41-42,67-74`); removing a pinned person leaves pin mode stuck (`src/js/ui.js:232`); unguarded init fetches and localStorage writes leave a blank app (`src/app.js:18,88`, `src/js/data.js:19,42`, `src/js/state.js:34-39,65`); shared pinned-point selections are never restored (`src/js/map.js:209-219`, `src/js/state.js:86-88`); Unlimited taps do nothing before the first Search (`src/js/map.js:82-86,294-295`).
+- Medium findings: locale switches destroy in-progress input/focus (`src/js/i18n.js:101`, `src/js/ui.js:242-247`); Photon cache ignores locale (`src/js/search.js:48-55,69`); renaming a person does not refresh result rows (`src/js/ui.js:214`); mobile recomputes force the Results pane (`src/js/ui.js:107`); autocomplete never updates `aria-selected` and short ASCII edits leave stale requests (`src/js/ui.js:150-163,221-228`); service worker caches non-OK responses (`static/sw.js:8-10`); `role="list"` containers have no listitem children (`src/index.html:192,220`); invalid share hashes and library filters persist (`src/js/state.js:105-116`, `src/js/ui.js:355-358`). Reported as a prioritized list to the parent session.
+
+## 2026-11-24T04:48:28Z
+
+- Completed the read-only audit at `a7caad2` against built `public/` output, with short Playwright probes only (no builds/test suite). Confirmed high-severity failures: mobile route fitting double-counts the bottom sheet and puts selected points off-screen; deleting all saved people is undone on reload; reloaded saved profiles reuse `d1`/`d2` IDs so edit/delete hits the wrong profile; removing a pinned person leaves pin mode stuck; pin mode is unusable in Unlimited before Search; shared scenarios disappear on reload once the hash is consumed; and init failures leave a blank app with no inline error.
+- Also confirmed medium-severity UX/i18n/state issues: mobile recomputes force the Results pane; locale switching destroys an in-progress place query and focus; Photon results are cached by query only, so locale changes reuse old-language labels; renaming a person does not refresh existing result/route text; library search filters persist across reopening; invalid share hashes are not cleared; suggestion options never update `aria-selected`; service-worker fetch caching stores non-OK responses; and unguarded localStorage writes can break startup/locale changes. No app source, config, tests, or static assets were changed.
+
 ## 2026-11-24T04:28:17Z
 
 - Confirmed the final mobile command-deck work is pushed as `39466d5` (`feat: adaptive mobile command deck for phones`) and the working tree is clean. The implementation adds the iPhone 15 audit, mobile-only bottom sheet/navigation, magnetic heat-cell selection, 44px touch targets, safe-area handling, mobile Playwright coverage, and a desktop guard test; lint, i18n checks, 71/71 tests, build and diff checks all passed.

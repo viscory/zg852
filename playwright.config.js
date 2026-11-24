@@ -6,6 +6,7 @@ module.exports = defineConfig({
   testDir: './tests',
   fullyParallel: true,
   reporter: 'list',
+  retries: process.env.CI ? 1 : 0,
   use: {
     baseURL: externalBaseURL || 'http://127.0.0.1:8765',
     ...devices['Desktop Chrome'],

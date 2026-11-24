@@ -154,5 +154,9 @@
   "diag.downloaded": "Diagnóstico descargado",
   "diag.failed": "No se pudo exportar el diagnóstico",
   "route.walkTo": "Caminar {time} hasta {to}",
-  "vector.ratings": "Valoraciones de intereses"
+  "vector.ratings": "Valoraciones de intereses",
+  "people.max": "Puedes añadir hasta 8 personas.",
+  "search.selectSuggestion": "Elige una sugerencia o usa un pin del mapa para este punto de partida.",
+  "share.invalid": "Este enlace para compartir no es válido.",
+  "legal.englishOnly": "Este documento solo está disponible en inglés."
 }

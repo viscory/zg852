@@ -338,25 +338,11 @@ html[dir="rtl"] .legend{left:auto;right:24px}
 @media(max-width:1100px){
   .layout{grid-template-columns:320px minmax(0,1fr) 300px}
 }
-@media(max-width:900px){
-  header{height:auto;min-height:var(--header);flex-wrap:wrap;padding:8px 16px}
-  .brand h1{font-size:16px}
-  .brand p{font-size:11px}
-  .header-end{width:100%;justify-content:space-between}
-  .layout{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(240px,48vh) auto;overflow-y:auto;align-content:start}
-  .main{grid-column:1;grid-row:2;min-height:0}
-  .side-left{grid-column:1;grid-row:1;border-right:0;border-left:0;border-top:0;padding:16px;overflow:visible}
-  .side-right{grid-column:1;grid-row:3;border-left:0;border-top:1px solid var(--border);padding:16px;overflow:visible}
-  .side-right::before{margin-top:0}
-  .options-panel{position:static;box-shadow:none;padding-top:0}
-  .legend{left:8px;bottom:8px;max-width:calc(100% - 16px);padding:6px 8px;font-size:11px}
-  html[dir="rtl"] .layout{grid-template-columns:minmax(0,1fr)}
-  html[dir="rtl"] .side-left{grid-column:1;grid-row:1;border-right:0;border-left:0;border-top:0}
-  html[dir="rtl"] .side-right{grid-column:1;grid-row:3;border-left:0;border-right:0;border-top:1px solid var(--border)}
-  html[dir="rtl"] .main{grid-column:1;grid-row:2}
-}
 .mobile-nav,.mobile-sheet-handle{display:none}
-@media (max-width:1024px) and (pointer:coarse){
+/* The adaptive deck covers every layout up to 1024px, pointer or no pointer.
+   The old <=900px stacked fallback is gone: it fought the deck on narrow
+   fine-pointer desktops and pushed controls below the viewport. */
+@media (max-width:1024px){
   :root{--mobile-deck:1;--field:44px;--header:56px}
   html,body{height:100%;height:100dvh}
   body{overscroll-behavior:none}
@@ -395,7 +381,7 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   .options-title,.chips,.tolerance-row,#tolerance,.slider-row.ends,.go,.error,.vector-section{grid-column:1/-1}
   .headway-section{grid-column:1;align-self:end}
   .tolerance-row{grid-column:2;align-self:end}
-  .tolerance-row label{font-size:11px;line-height:1.25;max-height:28px;overflow:hidden}
+  .tolerance-row label{font-size:11px;line-height:1.25}
   .chips{grid-template-columns:1fr 1fr;margin-bottom:0}
   .headway-section,.slider-row.ends{margin:0}
   #tolerance{margin-top:0}
@@ -426,7 +412,8 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   .unbounded-hint{pointer-events:none}
   .legend{left:8px;right:auto;bottom:calc(100dvh - var(--header) - 94px);max-width:calc(100% - 16px);padding:4px 8px;gap:2px;font-size:10px;line-height:1.25}
   .legend-head{font-size:11px}
-  .legend .route-key,.legend .vector-key,.legend .pin-key,.legend .recenter-key{display:none}
+  /* Keep route/pin/recenter keys in the deck legend; the beta vector key is
+     hidden by its own [hidden] attribute, not by a blanket display rule. */
   .leaflet-control-attribution{position:relative;bottom:20px;font-size:11px!important;line-height:1.2;padding:2px 6px!important;max-width:calc(100vw - 16px)}
   .leaflet-control-attribution a{display:inline-flex;align-items:center;min-height:44px}
   .leaflet-bottom.leaflet-right .leaflet-control-attribution{margin-right:60px}
@@ -438,7 +425,7 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   html[dir="rtl"] .legend{left:auto;right:8px}
 }
 
-@media (max-width:1024px) and (pointer:coarse) and (max-height:520px){
+@media (max-width:1024px) and (max-height:520px){
   body[data-mobile-snap="half"]{--sheet-height:60dvh}
   .options-title,.slider-row.ends{display:none}
   .options-panel{grid-template-columns:repeat(3,minmax(0,1fr));column-gap:6px;row-gap:4px;--field:40px}

@@ -9,6 +9,14 @@ async function setRange(page, id, value) {
   }, value);
 }
 
+// A search re-enables #go only after rendering results and drawing the map,
+// so waiting for both removes the race with stale heat cells/coordinates.
+async function waitForSearch(page, { heat = false } = {}) {
+  await expect(page.locator('#go')).toBeEnabled();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  if (heat) await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+}
+
 test.beforeEach(async ({ page }) => {
   await page.route('**/sw.js', route => route.abort());
   await page.route('**/basemaps.cartocdn.com/**', route => route.abort());
@@ -66,7 +74,7 @@ test('beta parameters scroll inside the sheet without hiding results', async ({ 
 
 test('bounded heat tap promotes the route sheet with bar-only ratings', async ({ page }) => {
   await page.locator('#go').click();
-  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+  await waitForSearch(page, { heat: true });
   const target = await page.locator('path.heat-cell').evaluateAll(elements => {
     const candidate = elements.map(el => el.getBoundingClientRect())
       .filter(box => box.width > 20 && box.x > 20 && box.x < 320 && box.y > 125 && box.y < 220)
@@ -76,7 +84,7 @@ test('bounded heat tap promotes the route sheet with bar-only ratings', async ({
   });
   expect(target).not.toBeNull();
   await page.mouse.click(target.x + 36, target.y);
-  await expect(page.locator('body')).toHaveAttribute('data-mobile-pane', 'route');
+  await expect.poll(() => page.locator('body').getAttribute('data-mobile-pane')).toBe('route');
   await expect(page.locator('#mapTooltip')).toBeVisible();
   await expect(page.locator('#mapTooltip .tooltip-vector')).toHaveCount(6);
   await expect(page.locator('#mapTooltip')).not.toContainText('/100');
@@ -107,11 +115,11 @@ test('unbounded point tap shows ratings without scores', async ({ page }) => {
   await setRange(page, '#tolerance', '3.05');
   await expect(page.locator('#tolval')).toHaveText('Unlimited');
   await page.locator('#go').click();
+  await waitForSearch(page);
   await expect(page.locator('#unboundedHint')).toBeVisible();
-  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await page.mouse.click(196, 180);
   await expect(page.locator('#pointBanner')).toBeVisible();
-  await expect(page.locator('body')).toHaveAttribute('data-mobile-pane', 'route');
+  await expect.poll(() => page.locator('body').getAttribute('data-mobile-pane')).toBe('route');
   await expect(page.locator('.fit-row')).toHaveCount(6);
   await expect(page.locator('#interestRatings')).not.toContainText('/100');
 });

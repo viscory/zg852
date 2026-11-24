@@ -154,5 +154,9 @@
   "diag.downloaded": "Diagnostics downloaded",
   "diag.failed": "Could not export diagnostics",
   "route.walkTo": "Walk {time} to {to}",
-  "vector.ratings": "Interest ratings"
+  "vector.ratings": "Interest ratings",
+  "people.max": "You can add up to 8 people.",
+  "search.selectSuggestion": "Choose a suggestion or use a map pin for this start place.",
+  "share.invalid": "This share link is invalid.",
+  "legal.englishOnly": "This document is available in English only."
 }

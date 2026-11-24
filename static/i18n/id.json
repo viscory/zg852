@@ -154,5 +154,9 @@
   "diag.downloaded": "Diagnostik dimuat turun",
   "diag.failed": "Gagal mengeksport diagnostik",
   "route.walkTo": "Jalan {time} ke {to}",
-  "vector.ratings": "Peringkat minat"
+  "vector.ratings": "Peringkat minat",
+  "people.max": "Anda dapat menambahkan maksimal 8 orang.",
+  "search.selectSuggestion": "Pilih saran tempat atau gunakan pin peta untuk titik awal ini.",
+  "share.invalid": "Tautan bagikan ini tidak valid.",
+  "legal.englishOnly": "Dokumen ini hanya tersedia dalam bahasa Inggris."
 }

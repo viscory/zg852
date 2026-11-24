@@ -4,15 +4,104 @@ import { $,esc,clamp,icon,initialsFor,avatarClass,clone } from './util.js';
 import { t,tp,num,intNum,minuteText } from './i18n.js';
 import { normalizeVectors,vectorLabel,betaVectorsEnabled } from './vectors.js';
 import { searchPlaces,districtFor } from './data.js';
-import { dedupePlaces,photonSearch } from './search.js';
+import { dedupePlaces,normLabel,photonSearch } from './search.js';
 import { fareMarkup } from './routing.js';
 import { displayName,save,saveDirectory,profileFromPerson,profileLabel,profileDistrict } from './state.js';
 import { scheduleRecompute } from './engine.js';
 import { hideTooltip,clearMapOutput,selectResult } from './map.js';
+import { isMobileLayout,setMobilePane,snapMobileSheet } from './mobile.js';
 
+const MOBILE_PANE_KEYS={people:'people.title',results:'results.title',route:'sidebar.routeTitle'};
+const LEGAL_KINDS=['privacy','terms','credits','process'];
+const originStates=new WeakMap();
+function originState(input,patch={}){
+  if(!input)return null;
+  let state=originStates.get(input);
+  if(!state){state={person:null,sug:null,options:[],query:'',choosing:false,cancel:null};originStates.set(input,state);}
+  return Object.assign(state,patch);
+}
+function placeKey(place){
+  if(place?.kind==='local')return `local:${place.node}`;
+  if(place?.osm?.id!=null)return `osm:${place.osm.type}:${place.osm.id}`;
+  return `coords:${Number(place?.lat).toFixed(5)},${Number(place?.lon).toFixed(5)}:${normLabel(place?.label||'')}`;
+}
+function clearTypedError(input){
+  input?.closest('.start-field')?.querySelector('.typed-origin-error')?.remove();
+}
+function showTypedError(input,message){
+  const field=input?.closest('.start-field');if(!field)return;
+  let el=field.querySelector('.typed-origin-error');
+  if(!el){
+    el=document.createElement('div');
+    el.className='error suggestion-error typed-origin-error';
+    el.setAttribute('role','alert');
+    field.appendChild(el);
+  }
+  el.textContent=message;
+}
+function clearDirectoryError(){
+  $('peopleDialog')?.querySelector('.directory-error')?.remove();
+}
+function showDirectoryError(message){
+  const dialog=$('peopleDialog');if(!dialog)return;
+  let el=dialog.querySelector('.directory-error');
+  if(!el){
+    el=document.createElement('div');
+    el.className='error directory-error';el.setAttribute('role','alert');
+    const list=$('directoryList');
+    if(list)list.before(el);else dialog.appendChild(el);
+  }
+  el.textContent=message;
+}
+function personForInput(input){
+  const state=originStates.get(input);
+  if(state?.person)return state.person;
+  const id=input?.closest('.card')?.dataset?.id;
+  return id?store.people.find(p=>p.id===id)||null:null;
+}
 export function showError(message){const el=$('error');el.textContent=message;el.hidden=false;}
 export function clearError(){const el=$('error');el.textContent='';el.hidden=true;}
 export function setLabel(el,value){if(!el)return;el.setAttribute('aria-label',value);el.title=value;el.dataset.tooltip=value;}
+// Typed start text is only a query until it is resolved to a real place. Keep
+// the query beside the input so Enter, blur and Search can all commit it.
+function resolveTypedOrigin(input,{announce=true,global=true}={}){
+  if(!input)return true;
+  const state=originState(input),person=personForInput(input),typed=input.value.trim();
+  if(!typed||!person||typed===(person.origin?.label||'')){
+    state.query='';clearTypedError(input);return true;
+  }
+  const key=normLabel(typed);
+  const local=searchPlaces(typed,8).filter(place=>place.kind==='local'&&normLabel(place.label)===key);
+  const displayed=state.options||[];
+  let matches=displayed.filter(place=>normLabel(place.label)===key);
+  if(!matches.length)matches=displayed.filter(place=>normLabel(place.label).includes(key));
+  const unique=[...new Map([...local,...matches].map(place=>[placeKey(place),place])).values()];
+  if(unique.length===1){
+    setOrigin(person,unique[0],input,state.sug);
+    state.query='';clearTypedError(input);return true;
+  }
+  state.query=typed;
+  if(announce){
+    const message=t('search.selectSuggestion');
+    showTypedError(input,message);
+    if(global)showError(message);
+  }
+  return false;
+}
+function resolveAllPendingOrigins(){
+  let resolved=true;
+  document.querySelectorAll('.start-input').forEach(input=>{
+    if(!resolveTypedOrigin(input,{announce:true,global:false}))resolved=false;
+  });
+  if(!resolved)showError(t('search.selectSuggestion'));
+  return resolved;
+}
+export function hasPendingOrigins(){
+  return [...document.querySelectorAll('.start-input')].some(input=>{
+    const person=personForInput(input),typed=input.value.trim();
+    return Boolean(person&&typed&&typed!==(person.origin?.label||''));
+  });
+}
 let flipToken=0;
 export function setSidebarFace(face){
   if(face!=='people'&&face!=='detail'||store.sidebarFace===face)return;
@@ -57,7 +146,11 @@ export function isUnboundedReady(){
 export function applyUnboundedUi(){
   const ready=isUnboundedReady();
   if(!ready&&store.pointSelection)store.pointSelection=null;
-  const hint=$('unboundedHint');if(hint)hint.hidden=!ready;
+  const pin=$('pinBanner');
+  const pinning=Boolean(store.pinTarget)||Boolean(pin&&!pin.hidden);
+  // The pin banner and the unlimited hint occupy the same spot; the pin wins
+  // until clearPinMode() restores the hint through this function.
+  const hint=$('unboundedHint');if(hint)hint.hidden=!ready||pinning;
   const banner=$('pointBanner');if(banner)banner.hidden=!ready||!store.pointSelection;
   const label=$('pointLabel');if(label&&ready&&store.pointSelection)label.textContent=t('map.pinnedPoint');
 }
@@ -113,11 +206,11 @@ export function renderResults(active=store.activePeople){
   count.textContent=t('results.areas',{count:store.results.length});
   // Never switch mobile panes from a recompute: only explicit navigation or
   // selecting a result may move the user out of the pane they are editing.
-  list.innerHTML=store.results.map((r,i)=>`<button class="result-row" type="button" role="listitem" data-index="${i}" aria-label="${esc(`${t('results.selectTitle')}: ${r.label}`)}">
+  list.innerHTML=store.results.map((r,i)=>`<div role="listitem"><button class="result-row" type="button" data-index="${i}" aria-label="${esc(`${t('results.selectTitle')}: ${r.label}`)}">
     <span class="result-head"><b>${esc(r.label)}</b><span class="tag">${esc(t('cat.'+r.catKey))}</span><span class="district">${esc(r.district)}</span></span>
     <span class="result-times"><span>${esc(t('results.spread',{value:intNum(r.gap)}))}</span><span>${esc(t('results.longest',{value:intNum(r.slowest)}))}</span></span>
     <span class="result-people">${r.routes.map((route,j)=>`<span class="result-person"><span class="avatar ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span><span class="person-name">${esc(displayName(active[j],j))}</span>${fareMarkup(route)}</span>`).join('')}</span>
-  </button>`).join('');
+  </button></div>`).join('');
   list.querySelectorAll('.result-row').forEach(row=>{row.onclick=()=>selectResult(Number(row.dataset.index),active,true);});
   markSelectedResult();
   applyUnboundedUi();
@@ -146,6 +239,8 @@ export function setWorking(working){
   if(working)renderSkeleton();
 }
 export function setOrigin(person,place,input,sug){
+  const state=originState(input,{sug:sug||null});
+  state.cancel?.();state.query='';state.choosing=false;clearTypedError(input);
   if(place.kind==='local')person.origin={kind:'node',node:place.node,label:place.label,lat:place.lat,lon:place.lon,district:place.district||districtFor(place.lat,place.lon)};
   else person.origin={kind:'coords',source:place.source||'photon',label:place.label,lat:place.lat,lon:place.lon,osm:place.osm||null,district:place.district||districtFor(place.lat,place.lon)};
   if(input)input.value=place.label;
@@ -154,24 +249,41 @@ export function setOrigin(person,place,input,sug){
 }
 export function renderSuggestions(sug,entries,person,input,failed=false,settled=false,onChoose){
   const items=dedupePlaces(entries,8);
+  const state=originState(input,{person,sug,options:items});
   sug.innerHTML='';
   let active=-1;
   const rows=()=>[...sug.querySelectorAll('.suggestion')];
   const highlight=next=>{
     const all=rows();if(!all.length)return;
     active=(next+all.length)%all.length;
-    all.forEach((row,i)=>row.classList.toggle('active',i===active));
+    all.forEach((row,i)=>{
+      row.classList.toggle('active',i===active);
+      row.setAttribute('aria-selected',String(i===active));
+    });
     all[active].scrollIntoView({block:'nearest'});
     input.setAttribute('aria-activedescendant',all[active].id);
   };
-  if(failed||(settled&&!items.length)){
-    const d=document.createElement('div');d.className='suggestion-error';d.textContent=t(failed?'search.unavailable':'search.none');sug.appendChild(d);
-  }
+  const appendError=message=>{
+    const d=document.createElement('div');
+    d.className='suggestion-error';d.textContent=message;
+    d.setAttribute('role','option');d.setAttribute('aria-disabled','true');
+    sug.appendChild(d);
+  };
+  if(failed||(settled&&!items.length))appendError(t(failed?'search.unavailable':'search.none'));
   items.forEach((place,i)=>{
     const d=document.createElement('div');d.className='suggestion';d.id=`${sug.id}-option-${i}`;
     d.setAttribute('role','option');d.setAttribute('aria-selected','false');d.tabIndex=-1;
     d.innerHTML=`<span class="avatar ${avatarClass(i)}">${esc(initialsFor(place.label))}</span><span class="place-main">${esc(place.label)}</span><span class="tag">${esc(t('tag.'+place.tagKey))}</span>${place.count>1?`<span class="tag">${esc(tp('place.stops',place.count))}</span>`:''}<span class="district">${esc(place.district||districtFor(place.lat,place.lon))}</span>`;
-    const choose=()=>{onChoose?.();setOrigin(person,place,input,sug);};
+    const choose=()=>{
+      const current=originState(input,{person,sug});
+      current.choosing=true;
+      try{onChoose?.();}
+      finally{current.cancel?.();current.choosing=false;setOrigin(person,place,input,sug);}
+    };
+    // A pointer press blurs the input before the click lands. Mark the panel so
+    // the blur handler does not treat a suggestion pick as unresolved text.
+    d.onpointerdown=()=>{state.choosing=true;};
+    d.onmousedown=()=>{state.choosing=true;};
     d.onclick=choose;
     sug.appendChild(d);
   });
@@ -182,8 +294,15 @@ export function renderSuggestions(sug,entries,person,input,failed=false,settled=
     else if(e.key==='ArrowUp'){e.preventDefault();highlight(active-1);}
     else if(e.key==='Home'){e.preventDefault();highlight(0);}
     else if(e.key==='End'){e.preventDefault();highlight(rows().length-1);}
-    else if(e.key==='Enter'&&active>=0&&rows()[active]){e.preventDefault();rows()[active].click();}
-    else if(e.key==='Escape'){sug.hidden=true;active=-1;input.setAttribute('aria-expanded','false');input.removeAttribute('aria-activedescendant');}
+    else if(e.key==='Enter'){
+      e.preventDefault();
+      if(active>=0&&rows()[active])rows()[active].click();
+      else resolveTypedOrigin(input);
+    }
+    else if(e.key==='Escape'){
+      e.preventDefault();state.cancel?.();
+      sug.hidden=true;active=-1;input.setAttribute('aria-expanded','false');input.removeAttribute('aria-activedescendant');
+    }
   };
 }
 export function makeCard(person){
@@ -220,12 +339,28 @@ export function makeCard(person){
   const input=card.querySelector('#start-'+CSS.escape(id));
   const sug=card.querySelector('.suggestions');
   let timer=null,controller=null,requestSeq=0;
+  const state=originState(input,{person,sug,options:[],cancel:null});
   const cancelSearch=()=>{clearTimeout(timer);if(controller)controller.abort();requestSeq++;};
+  state.cancel=cancelSearch;
   nameInput.addEventListener('input',()=>{person.name=nameInput.value;save();refreshMeta();refreshPersonLabels();});
+  input.addEventListener('focus',()=>{
+    // The mobile deck can place a start field below the on-screen keyboard
+    // zone. Expanding the sheet and scrolling the focused field into view
+    // keeps it reachable on short phones without changing desktop layout.
+    if(!isMobileLayout())return;
+    setMobilePane('people');
+    snapMobileSheet('full');
+    input.scrollIntoView({block:'start'});
+  });
   input.addEventListener('input',()=>{
-    clearTimeout(timer);if(controller)controller.abort();
+    cancelSearch();
     const q=input.value.trim();
-    if(q.length<2){sug.hidden=true;input.setAttribute('aria-expanded','false');return;}
+    state.query=q;state.options=[];clearTypedError(input);
+    if(q.length<2){
+      sug.hidden=true;sug.innerHTML='';state.options=[];
+      input.setAttribute('aria-expanded','false');input.removeAttribute('aria-activedescendant');
+      return;
+    }
     const local=dedupePlaces(searchPlaces(q,8),8);
     renderSuggestions(sug,local,person,input,false,false,cancelSearch);
     if(q.length<3&&![...q].some(ch=>ch.charCodeAt(0)>127))return;
@@ -237,6 +372,10 @@ export function makeCard(person){
         if(mine===requestSeq)renderSuggestions(sug,local.concat(remote),person,input,false,true,cancelSearch);
       }catch(e){if(mine===requestSeq&&e.name!=='AbortError')renderSuggestions(sug,local,person,input,true,true,cancelSearch);}
     },350);
+  });
+  input.addEventListener('blur',()=>{
+    if(state.choosing)return;
+    resolveTypedOrigin(input);
   });
   card.querySelector('.save-person').onclick=()=>savePersonToDirectory(person);
   card.querySelector('.remove').onclick=()=>{
@@ -261,7 +400,13 @@ export function renderCards(){
 }
 export function refreshMeta(){
   $('count').textContent=store.people.length;
-  $('add').disabled=store.people.length>=8;
+  const add=$('add');
+  if(add){
+    const atMax=store.people.length>=8,key=atMax?'people.max':'people.add';
+    add.disabled=atMax;
+    add.dataset.i18nTooltip=key;add.dataset.i18nAriaLabel=key;
+    setLabel(add,t(key));
+  }
   document.querySelectorAll('.card').forEach(card=>{
     const person=store.people.find(p=>p.id===card.dataset.id);if(!person)return;
     const idx=store.people.indexOf(person),letter=LETTERS[idx%8];
@@ -325,7 +470,8 @@ export function commitPeople(){renderCards();save();scheduleRecompute();}
 export function clearPinMode(){
   store.pinTarget=null;
   $('map')?.classList.remove('pinning');
-  $('pinBanner').hidden=true;
+  const banner=$('pinBanner');if(banner)banner.hidden=true;
+  applyUnboundedUi();
   hideTooltip();
 }
 export function startPinMode(id,input,sug){
@@ -337,7 +483,10 @@ export function startPinMode(id,input,sug){
   avatar.className=`avatar ${avatarClass(idx)}`;
   label.textContent=t('map.pinActive',{name:displayName(store.people[idx],idx)});
   banner.hidden=false;
+  // A queued Photon response must not reopen the panel we just dismissed.
+  originState(input)?.cancel?.();
   if(sug){sug.hidden=true;input?.setAttribute('aria-expanded','false');}
+  applyUnboundedUi();
   hideTooltip();
 }
 export function setPinOrigin(id,lat,lon){
@@ -364,15 +513,30 @@ export function deleteDirectoryPerson(id){
   saveDirectory();save();renderDirectoryList();scheduleRecompute();
 }
 export function addDirectoryPerson(profile){
-  if(store.people.length>=8||!profile)return;
+  if(!profile)return false;
+  if(store.people.length>=8){
+    const message=t('people.max');showDirectoryError(message);showError(message);return false;
+  }
+  clearDirectoryError();
   store.people.push({id:`p${store.seq++}`,name:profile.name,origin:clone(profile.origin),directoryId:profile.id,walkMinutes:clamp(Number(profile.walkMinutes),0,60,20)});
   commitPeople();
+  return true;
 }
 export function editDirectoryPerson(profile){
+  if(!profile)return false;
   let person=store.people.find(p=>p.directoryId===profile.id);
-  if(!person&&store.people.length<8){addDirectoryPerson(profile);person=store.people[store.people.length-1];}
-  if(person){person.name=profile.name;person.origin=clone(profile.origin);person.walkMinutes=clamp(Number(profile.walkMinutes),0,60,20);}
+  if(!person){
+    // Editing a profile that is not on the board would add a ninth person.
+    if(store.people.length>=8){
+      const message=t('people.max');showDirectoryError(message);showError(message);return false;
+    }
+    if(!addDirectoryPerson(profile))return false;
+    person=store.people[store.people.length-1];
+  }
+  clearDirectoryError();
+  person.name=profile.name;person.origin=clone(profile.origin);person.walkMinutes=clamp(Number(profile.walkMinutes),0,60,20);
   commitPeople();
+  return true;
 }
 export function renderDirectoryList(){
   const list=$('directoryList');if(!list)return;
@@ -389,8 +553,8 @@ export function renderDirectoryList(){
     </div></div>`;}).join(''):`<div class="directory-empty">${esc(t('people.libraryEmpty'))}</div>`;
   list.querySelectorAll('button').forEach(button=>button.onclick=()=>{
     const row=button.closest('.directory-row'),profile=store.directory.find(d=>d.id===row?.dataset.id),action=button.dataset.action;
-    if(action==='add'&&profile){addDirectoryPerson(profile);$('peopleDialog').close();}
-    else if(action==='edit'&&profile){editDirectoryPerson(profile);$('peopleDialog').close();}
+    if(action==='add'&&profile){if(addDirectoryPerson(profile))closeDialog($('peopleDialog'));}
+    else if(action==='edit'&&profile){if(editDirectoryPerson(profile))closeDialog($('peopleDialog'));}
     else if(action==='delete'&&profile){
       if(store.pendingDelete===profile.id){deleteDirectoryPerson(profile.id);store.pendingDelete=null;}else{store.pendingDelete=profile.id;renderDirectoryList();}
     }
@@ -414,15 +578,37 @@ export function closeDialog(dialog){
 }
 export function openDirectory(){
   store.pendingDelete=null;
+  clearDirectoryError();
   renderDirectoryList();
   openDialog($('peopleDialog'),$('directorySearch'));
 }
+function legalKindFromHref(href){
+  try{
+    const url=new URL(href,location.href);
+    if(url.origin!==location.origin)return null;
+    const kind=(url.pathname.split('/').pop()||'').replace(/\.html?$/i,'').toLowerCase();
+    return LEGAL_KINDS.includes(kind)?kind:null;
+  }catch{return null;}
+}
+function legalNote(){
+  const note=document.createElement('p');
+  note.className='legal-note';note.textContent=t('legal.englishOnly');
+  return note;
+}
+function setLegalBody(main){
+  const body=$('legalBody');if(!body)return;
+  body.lang='en';
+  const fragment=document.createDocumentFragment();
+  fragment.appendChild(legalNote());
+  if(main)[...main.childNodes].forEach(node=>fragment.appendChild(document.importNode(node,true)));
+  body.replaceChildren(fragment);
+}
 export async function openLegal(kind){
-  if(!['privacy','terms','credits','process'].includes(kind))return;
+  if(!LEGAL_KINDS.includes(kind))return;
   const dialog=$('legalDialog'),title=$('legalTitle'),body=$('legalBody');
   if(!dialog)return;
   if(title)title.textContent=t(`legal.${kind}`);
-  if(body)body.textContent=t('legal.loading');
+  if(body){body.lang='en';body.textContent=t('legal.loading');}
   openDialog(dialog);
   try{
     const response=await fetch(`${kind}.html`);
@@ -431,9 +617,59 @@ export async function openLegal(kind){
     const main=doc.querySelector('main');
     if(!main)throw new Error('missing main');
     main.querySelectorAll('nav').forEach(nav=>nav.remove());
-    if(body)body.innerHTML=main.innerHTML;
+    // Body links to other legal pages must open in this dialog, not navigate away.
+    main.querySelectorAll('a[href]').forEach(link=>{
+      const target=legalKindFromHref(link.getAttribute('href'));
+      if(!target)return;
+      const button=document.createElement('button');
+      button.type='button';button.className='legal-button';button.dataset.legal=target;
+      button.textContent=link.textContent;
+      link.replaceWith(button);
+    });
+    setLegalBody(main);
   }catch(err){
     console.error(err);
-    if(body)body.textContent=t('legal.failed');
+    if(body){setLegalBody(null);const message=document.createElement('p');message.textContent=t('legal.failed');body.appendChild(message);}
   }
 }
+document.addEventListener('click',event=>{
+  const button=event.target?.closest?.('#legalBody .legal-button[data-legal]');
+  if(!button)return;
+  event.preventDefault();event.stopPropagation();
+  openLegal(button.dataset.legal);
+});
+function syncMobileNavLabel(){
+  const nav=$('mobileNav');if(!nav)return;
+  const pane=document.body?.dataset?.mobilePane;
+  const key=MOBILE_PANE_KEYS[pane]?pane:'results';
+  const labelKey=MOBILE_PANE_KEYS[key];
+  if(nav.dataset.i18nAriaLabel!==labelKey){
+    nav.dataset.i18nAriaLabel=labelKey;
+    nav.setAttribute('aria-label',t(labelKey));
+  }
+}
+function installUiListeners(){
+  // Resolve typed text before the app's own search handler runs; unresolved
+  // text is blocked here as well as by hasPendingOrigins() in the engine.
+  ['go','emptyRun'].forEach(id=>{
+    $(id)?.addEventListener('click',event=>{
+      if(!resolveAllPendingOrigins()){
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    },true);
+  });
+  document.addEventListener('pointerdown',event=>{
+    document.querySelectorAll('.suggestions').forEach(sug=>{
+      if(sug.hidden||sug.contains(event.target))return;
+      const input=sug.parentElement?.querySelector('.start-input');
+      originState(input)?.cancel?.();
+    });
+  },true);
+  if(typeof MutationObserver!=='undefined'&&document.body){
+    new MutationObserver(syncMobileNavLabel).observe(document.body,{attributes:true,attributeFilter:['data-mobile-pane']});
+  }
+  syncMobileNavLabel();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installUiListeners,{once:true});
+else installUiListeners();
