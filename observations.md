@@ -1,3 +1,11 @@
+## 2026-11-24T11:51:00Z
+
+- Pushed polish commit `d47846e`; CI run `45387232894` passed the test job and the Cloudflare deploy job. Live is now SW `zg852-v50`.
+- Live mobile at 393×664 shows `就腳 zau6 goek3` plus “Find a fair place to meet”, a visible **Trip settings** shortcut, and a 189 px collapsed route card with a 44 px **Routes** button. Expanding it caps at 332 px and leaves the map zoom/recenter/attribution above the card.
+- The Map key is a 40 px tap target above attribution, and Fair areas reads `7 areas` without the stray full stop.
+- CI history reviewed: the red runs were real failures at specific commits, including the beta/Parameters overflow at `852ae1c`; that is fixed by the desktop max-height. The suite passed 122/122 twice locally with `CI=true` and two workers, and the latest run is green.
+- No further source changes are pending after the deploy.
+
 ## 2026-11-24T11:46:00Z
 
 - Polished the deployed mobile flow. The phone header now shows `就腳 zau6 goek3` plus “Find a fair place to meet” (`app.tagline`, all 15 locales); the full subtitle and tagline swap correctly on desktop, and the jyutping/tagline shrink at 320–360 px.
