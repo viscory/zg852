@@ -123,17 +123,27 @@ export function drawOrigins(active=store.activePeople){
       .bindTooltip(esc(displayName(p,store.people.indexOf(p))),{direction:'top'}).addTo(originLayer);
   });
 }
+// Leaflet adds paddingTopLeft and paddingBottomRight together, so each edge
+// must carry its own value: reserving the mobile sheet at both ends leaves no
+// room for the fit and pushes the selected marker under the sheet.
+const MAP_INSET=24;
+const MOBILE_TOP_INSET=80;
+const MIN_FIT_HEIGHT=80;
 function mapPadding(){
-  if(!isMobileLayout())return [60,60];
-  const sheet=document.body.dataset.mobileSnap==='peek'?100:Math.round(window.innerHeight*.62);
-  return [80,sheet];
+  if(!isMobileLayout())return {paddingTopLeft:[MAP_INSET,MAP_INSET],paddingBottomRight:[MAP_INSET,MAP_INSET]};
+  const snap=document.body.dataset.mobileSnap;
+  const sheet=snap==='peek'?112:snap==='full'?Math.max(0,window.innerHeight-118):Math.round(window.innerHeight*.62);
+  // Keep a positive fit area even when the sheet is snapped fully open.
+  const bottom=Math.min(sheet,Math.max(0,map.getSize().y-MOBILE_TOP_INSET-MIN_FIT_HEIGHT));
+  return {paddingTopLeft:[MAP_INSET,MOBILE_TOP_INSET],paddingBottomRight:[MAP_INSET,bottom]};
 }
 export function fitMapTo(points){
-  if(points.length){map.fitBounds(points,{paddingTopLeft:mapPadding(),paddingBottomRight:mapPadding(),maxZoom:14});return;}
-  map.setView([22.31,114.17],12);
+  if(points.length){map.fitBounds(points,{...mapPadding(),maxZoom:14,animate:false});return;}
+  map.setView([22.31,114.17],12,{animate:false});
 }
 export function recenterMap(){
   const points=store.results.flatMap(result=>result.paths.flat()).concat(store.activePeople.filter(person=>person.origin).map(person=>[person.origin.lat,person.origin.lon]));
+  if(store.selection?.kind==='point'&&isNum(store.selection.lat)&&isNum(store.selection.lon))points.push([store.selection.lat,store.selection.lon]);
   fitMapTo(points);
 }
 function magneticCell(latlng){
@@ -162,6 +172,22 @@ export function drawCloud(budget){
     rect.on('mouseout',hideTooltip);
     rect.on('click',e=>{if(e.originalEvent)L.DomEvent.stopPropagation(e.originalEvent);selectCell(c);});
     rect.addTo(cloudLayer);
+    const cellNode=rect.getElement();
+    if(cellNode){
+      cellNode.setAttribute('tabindex','0');
+      cellNode.setAttribute('focusable','true');
+      cellNode.setAttribute('role','button');
+      cellNode.setAttribute('aria-label',`${t('map.areaTitle')}: ${minuteText(c.slowest)}`);
+      cellNode.setAttribute('data-heat-cell','');
+      cellNode.addEventListener('focus',()=>cellNode.setAttribute('data-focused',''));
+      cellNode.addEventListener('blur',()=>cellNode.removeAttribute('data-focused'));
+      cellNode.addEventListener('keydown',event=>{
+        if(event.key!=='Enter'&&event.key!==' ')return;
+        event.preventDefault();
+        event.stopPropagation();
+        selectCell(c);
+      });
+    }
   });
 }
 export function positionTooltip(event){
@@ -215,7 +241,7 @@ export function selectCell(cell){
   store.sharedSelection=null;
   setSidebarFace('detail');
   showMobileRoute();
-  renderSelection(result,active);
+  renderSelection(result,active,true);
 }
 export function applySelection(active=store.activePeople){
   if(store.sharedSelection){
@@ -262,7 +288,7 @@ function legChip(leg){
   const waitNote=wait?`<span class="interchange-wait">${esc(wait)}</span>`:'';
   return `<span class="ride-leg route-${leg.mode}"><span class="leg-mode"><span class="icon icon-${rail?'rail':'bus'}" aria-hidden="true"></span>${modeLabel}</span>${stops}<span class="leg-meta"><span class="leg-time">${esc(minuteText(leg.minutes))}</span>${fare}${waitNote}</span></span>`;
 }
-export function renderSelection(r,active=store.activePeople){
+export function renderSelection(r,active=store.activePeople,fit=false){
   if(!r)return;
   const index=store.results.findIndex(result=>resultMatches(result,r));
   store.selected=index;
@@ -296,21 +322,28 @@ export function renderSelection(r,active=store.activePeople){
   $('steps').innerHTML=legCount?r.routes.map((route,j)=>`<div class="step">
     <span class="dot ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>
     <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(legChip).join('')}</span><span class="route-meta"><span class="muted">${esc(minuteText(r.times[j]))}</span>${fareMarkup(route)}</span></span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t(already?'route.already':'results.noRoutes'))}</span></span></div>`;
-  const pts=r.paths.flat().concat(active.map(p=>[p.origin.lat,p.origin.lon]));
-  fitMapTo(pts);
+  // An automatic bounded selection (search/rerender) only centres the chosen
+  // place so heat cells stay tappable; unbounded mode keeps the current view
+  // free for the next pin tap. An explicit selection fits the full route
+  // inside the map area left visible by the mobile sheet.
+  const pts=fit?r.paths.flat().concat(active.map(p=>[p.origin.lat,p.origin.lon])):store.unbounded?null:[[r.lat,r.lon]];
+  if(pts)fitMapTo(pts);
 }
 export function selectResult(i,active=store.activePeople,reveal=false){
   const r=store.results[i];if(!r)return;
   store.selection={kind:'result',index:i};store.sharedSelection=null;
   if(reveal){setSidebarFace('detail');showMobileRoute();}
-  renderSelection(r,active);
+  renderSelection(r,active,reveal);
 }
 // Free-point picking is only offered above 300% tolerance. The pin stays at
 // the exact click; routes end at the nearest reachable transit stop and gain
 // a short walking leg to the pin.
 export function selectPoint(lat,lon){
-  if(!store.unbounded||!store.NET||!store.effectiveGrids||!store.activePeople.length)return;
-  if(!isNum(lat)||!isNum(lon))return;
+  if(!store.unbounded||!isNum(lat)||!isNum(lon))return;
+  if(!store.NET||!store.effectiveGrids||!store.activePeople.length){
+    showError(t('error.loading'));
+    return;
+  }
   hideTooltip();
   const grids=store.effectiveGrids,round=value=>Math.round(value*10)/10;
   let nearest=-1,bestScore=Infinity;
@@ -340,7 +373,7 @@ export function selectPoint(lat,lon){
   setSidebarFace('detail');
   showMobileRoute();
   applyUnboundedUi();
-  renderSelection(result,store.activePeople);
+  renderSelection(result,store.activePeople,true);
 }
 export function clearPoint(){
   store.pointSelection=null;
