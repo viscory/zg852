@@ -10,6 +10,7 @@ import { cellTopNames,cellRatings,cellVector,cellCount,cellPreference,overallRat
 import { prepareRoutes,legLabel,fareMarkup,money,cellToResult,interchangeWaitText } from './routing.js';
 import { hkbusUrl,mtrLineCode,districtFor } from './data.js';
 import { displayName } from './state.js';
+import { isMobileLayout,showMobileRoute } from './mobile.js';
 import { markSelectedResult,setPinOrigin,setLabel,setSidebarFace,showError,applyUnboundedUi } from './ui.js';
 
 export const CLEAN_STYLE={
@@ -79,9 +80,18 @@ export function createMap(){
   cloudLayer=L.layerGroup().addTo(map);routeLayer=L.layerGroup({pane:'routePane'}).addTo(map);
   pointLayer=L.layerGroup({pane:'pointPane'}).addTo(map);originLayer=L.layerGroup({pane:'pointPane'}).addTo(map);
   map.on('click',e=>{
+    hideTooltip();
     if(store.pinTarget){setPinOrigin(store.pinTarget,e.latlng.lat,e.latlng.lng);return;}
-    if(store.unbounded)selectPoint(e.latlng.lat,e.latlng.lng);
+    if(store.unbounded){selectPoint(e.latlng.lat,e.latlng.lng);return;}
+    if(isMobileLayout()){
+      const cell=magneticCell(e.latlng);
+      if(cell){
+        selectCell(cell);
+        if(e.originalEvent)scheduleCellTooltip(cell,e.originalEvent,0);
+      }
+    }
   });
+  window.addEventListener('resize',()=>map.invalidateSize());
   const glLayer=maplibreGL({style:CLEAN_STYLE,interactive:false,attributionControl:false});
   try{
     glLayer.addTo(map);
@@ -113,10 +123,28 @@ export function drawOrigins(active=store.activePeople){
       .bindTooltip(esc(displayName(p,store.people.indexOf(p))),{direction:'top'}).addTo(originLayer);
   });
 }
+function mapPadding(){
+  if(!isMobileLayout())return [60,60];
+  const sheet=document.body.dataset.mobileSnap==='peek'?100:Math.round(window.innerHeight*.62);
+  return [80,sheet];
+}
+export function fitMapTo(points){
+  if(points.length){map.fitBounds(points,{paddingTopLeft:mapPadding(),paddingBottomRight:mapPadding(),maxZoom:14});return;}
+  map.setView([22.31,114.17],12);
+}
 export function recenterMap(){
   const points=store.results.flatMap(result=>result.paths.flat()).concat(store.activePeople.filter(person=>person.origin).map(person=>[person.origin.lat,person.origin.lon]));
-  if(points.length){map.fitBounds(points,{padding:[60,60],maxZoom:14});return;}
-  map.setView([22.31,114.17],12);
+  fitMapTo(points);
+}
+function magneticCell(latlng){
+  const point=map.latLngToLayerPoint(latlng);
+  let best=null,bestDistance=56;
+  store.cloudCells.forEach(cell=>{
+    const centre=map.latLngToLayerPoint([(cell.cy+.5)*CELL_SIZE,(cell.cx+.5)*CELL_SIZE]);
+    const distance=Math.hypot(centre.x-point.x,centre.y-point.y);
+    if(distance<bestDistance){bestDistance=distance;best=cell;}
+  });
+  return best;
 }
 export function heatColor(cell,budget){
   const ratio=clamp(cell.slowest/Math.max(budget,1),0,1.5);
@@ -139,10 +167,10 @@ export function drawCloud(budget){
 export function positionTooltip(event){
   if(!event)return;
   const tooltip=$('mapTooltip');
-  tooltip.style.left=`${event.clientX+12}px`;
-  tooltip.style.top=`${event.clientY+12}px`;
+  tooltip.style.left=`${Math.max(8,Math.min(event.clientX+12,window.innerWidth-248))}px`;
+  tooltip.style.top=`${Math.max(8,Math.min(event.clientY+12,window.innerHeight-140))}px`;
 }
-export function scheduleCellTooltip(cell,event){
+export function scheduleCellTooltip(cell,event,delay=700){
   clearTimeout(store.tooltipTimer);
   store.hoverCell=cell;
   positionTooltip(event);
@@ -152,7 +180,7 @@ export function scheduleCellTooltip(cell,event){
     tooltip.innerHTML=`<b>${esc(t('map.cellTitle'))}</b>${ratings.map(({key,rating})=>`<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}"><span>${esc(t('vector.'+key))}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${rating}"></i></span></span>`).join('')}${places.length?`<span class="tooltip-places">${esc(places.join(' · '))}</span>`:''}`;
     tooltip.querySelectorAll('.tooltip-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
     tooltip.hidden=false;
-  },700);
+  },delay);
 }
 export function hideTooltip(){
   clearTimeout(store.tooltipTimer);
@@ -175,6 +203,7 @@ export function selectCell(cell){
   store.selection={kind:'cell',key:cell.key,node:cell.node,lat:result.lat,lon:result.lon};
   store.sharedSelection=null;
   setSidebarFace('detail');
+  showMobileRoute();
   renderSelection(result,active);
 }
 export function applySelection(active=store.activePeople){
@@ -251,12 +280,12 @@ export function renderSelection(r,active=store.activePeople){
     <span class="dot ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>
     <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(legChip).join('')}</span><span class="route-meta"><span class="muted">${esc(minuteText(r.times[j]))}</span>${fareMarkup(route)}</span></span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t(already?'route.already':'results.noRoutes'))}</span></span></div>`;
   const pts=r.paths.flat().concat(active.map(p=>[p.origin.lat,p.origin.lon]));
-  if(pts.length)map.fitBounds(pts,{padding:[60,60],maxZoom:14});
+  fitMapTo(pts);
 }
 export function selectResult(i,active=store.activePeople,reveal=false){
   const r=store.results[i];if(!r)return;
   store.selection={kind:'result',index:i};store.sharedSelection=null;
-  if(reveal)setSidebarFace('detail');
+  if(reveal){setSidebarFace('detail');showMobileRoute();}
   renderSelection(r,active);
 }
 // Free-point picking is only offered above 300% tolerance. The pin stays at
@@ -292,6 +321,7 @@ export function selectPoint(lat,lon){
   store.pointSelection={lat,lon,node:nearest,label};
   store.sharedSelection=null;
   setSidebarFace('detail');
+  showMobileRoute();
   applyUnboundedUi();
   renderSelection(result,store.activePeople);
 }

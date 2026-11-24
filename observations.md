@@ -1,3 +1,20 @@
+## 2026-11-24T04:28:17Z
+
+- Confirmed the final mobile command-deck work is pushed as `39466d5` (`feat: adaptive mobile command deck for phones`) and the working tree is clean. The implementation adds the iPhone 15 audit, mobile-only bottom sheet/navigation, magnetic heat-cell selection, 44px touch targets, safe-area handling, mobile Playwright coverage, and a desktop guard test; lint, i18n checks, 71/71 tests, build and diff checks all passed.
+
+## 2026-11-24T04:27:53Z
+
+- Committed the mobile command-deck work as `1091919` (`feat: adaptive mobile command deck for phones`) and pushed it to `origin/main`. Working tree is clean.
+
+## 2026-11-24T04:27:27Z
+
+- Installed the Playwright MCP project-locally via `opencode mcp add playwright` (`opencode.json`) and confirmed it connected. Installed the WebKit browser binary too; the live audit used Chromium with the iPhone 15 descriptor because that was the running MCP session and the existing suite uses Chromium.
+- Audited the built `public/` output on a 393×659 CSS / 393×852 screen iPhone 15 viewport. Recorded the findings in `docs/mobile-audit.md`: a 1,342px stacked page in a 547px scroller, sticky footer overlapping parameters and results, a tiny 240px map that scrolls off-screen, route detail overflowing the map because `flip-in` was never removed, 4px heat cells, hover-only tooltips, 35/54 sub-44px controls, 14px inputs that trigger iOS zoom, no safe-area handling and a click-blocking unbounded hint.
+- Implemented an adaptive command deck for coarse-pointer phones: the map is now the full-height base layer and the two existing sidebars become one bottom sheet with People / Areas / Route panes, three snap points, a draggable handle and a mobile nav. Desktop CSS/JS behavior is gated off by `@media (max-width:480px) and (pointer:coarse)`.
+- Added magnetic heat-cell selection: taps within 56px of a heat-cell centre select the cell and show the six-bar tooltip immediately. Selection fitting now reserves padding for the nav and sheet. Fixed the stale `flip-in` class so route detail no longer collapses its grid row, and made beta preference sliders scroll inside the sheet instead of hiding results/legal links.
+- Normalized mobile controls to 44px minimum, text inputs to 16px, added safe-area padding, compacted the options grid, made the unbounded hint pointer-transparent, hid low-value map legend/attribution on phones and bumped service-worker cache `zg852-v41` → `zg852-v42`.
+- Added five iPhone 15 Playwright tests plus a desktop guard test. Verification clean: `npm run lint` (156 keys × 15 catalogues), `npm test` 71/71, `npm run build`, `git diff --check`. Changes are staged/committed next.
+
 ## 2026-11-24T04:00:07Z
 
 - Made the POI index load unconditionally at startup instead of only when beta vectors are enabled, and stopped `applyBetaFeatures()` from clearing it. Interest ratings are therefore available in bounded and unbounded modes; beta still only controls the preference sliders and their ranking effect.

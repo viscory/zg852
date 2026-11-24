@@ -10,6 +10,7 @@ import { createMap,drawOrigins } from './js/map.js';
 import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,commitPeople,setSidebarFace,flashTooltip } from './js/ui.js';
 import { exportDiagnostics } from './js/diagnostics.js';
 import { clearPoint } from './js/map.js';
+import { initMobile,setMobilePane } from './js/mobile.js';
 
 async function init(){
   let mapError=null;
@@ -55,6 +56,14 @@ $('betaBadge').onclick=()=>setBetaEnabled(!betaVectorsEnabled());
 document.querySelectorAll('[data-vector]').forEach(input=>{input.oninput=readSettingsFromDom;});
 $('locale').onchange=e=>changeLocale(e.target.value);
 $('swapFace').onclick=()=>setSidebarFace(store.sidebarFace==='people'?'detail':'people');
+document.querySelectorAll('#mobileNav [data-mobile-pane]').forEach(button=>{
+  button.onclick=()=>{
+    const pane=button.dataset.mobilePane;
+    setMobilePane(pane,pane==='route'?'full':'half');
+    if(pane==='route')setSidebarFace('detail');
+    else if(pane==='people')setSidebarFace('people');
+  };
+});
 $('go').onclick=()=>triggerSearch(true);
 $('emptyRun').onclick=()=>triggerSearch(true);
 $('share').onclick=shareScenario;
@@ -75,4 +84,5 @@ document.addEventListener('keydown',e=>{
   }
 });
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+initMobile();
 init();

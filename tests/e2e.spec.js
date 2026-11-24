@@ -1434,3 +1434,9 @@ test('the first start field sits above the bottom keyboard zone', async ({ page 
   }
 });
 
+test('mobile-only deck controls stay hidden on desktop', async ({ page }) => {
+  await expect(page.locator('#mobileNav')).toBeHidden();
+  await expect(page.locator('#sheetHandle')).toBeHidden();
+  await expect(page.locator('.layout')).toHaveCSS('display', 'grid');
+});
+

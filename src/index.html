@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="styles.css">
 <script src="preview-noindex.js"></script>
 </head>
-<body>
+<body data-mobile-pane="results" data-mobile-snap="half">
 <header>
   <div class="brand">
     <div class="logo" aria-hidden="true">ZG</div>
@@ -68,6 +68,14 @@
   </div>
 </header>
 <div class="layout">
+  <div class="mobile-nav" id="mobileNav" role="group" data-i18n-aria-label="results.title" aria-label="Fair areas">
+    <button type="button" data-mobile-pane="people" aria-pressed="false" data-i18n="people.title">People</button>
+    <button type="button" data-mobile-pane="results" aria-pressed="true" data-i18n="results.title">Fair areas</button>
+    <button type="button" data-mobile-pane="route" aria-pressed="false" data-i18n="sidebar.routeTitle">Route</button>
+  </div>
+  <button class="mobile-sheet-handle" id="sheetHandle" type="button" aria-expanded="true" data-i18n-aria-label="results.title" aria-label="Fair areas">
+    <span class="sheet-grip" aria-hidden="true"></span><span id="sheetHandleLabel" data-i18n="results.title">Fair areas</span>
+  </button>
   <aside class="side side-left" aria-label="People and selected route">
     <div class="sec-title">
       <span id="peopleHeading" data-face="people" data-i18n="people.title">People and start places</span>

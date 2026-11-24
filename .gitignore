@@ -2,6 +2,7 @@ node_modules/
 static/data/raw/
 test-results/
 playwright-report/
+.playwright-mcp/
 public/
 .DS_Store
 npm-debug.log*

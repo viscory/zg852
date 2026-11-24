@@ -1,0 +1,18 @@
+{
+  "mcp": {
+    "servers": {
+      "playwright": {
+        "type": "local",
+        "command": [
+          "npx",
+          "-y",
+          "@playwright/mcp@latest",
+          "--headless",
+          "--browser=chromium",
+          "--device=iPhone 15",
+          "--isolated"
+        ]
+      }
+    }
+  }
+}

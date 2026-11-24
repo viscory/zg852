@@ -9,6 +9,7 @@ import { fareMarkup } from './routing.js';
 import { displayName,save,saveDirectory,profileFromPerson,profileLabel,profileDistrict } from './state.js';
 import { scheduleRecompute } from './engine.js';
 import { hideTooltip,clearMapOutput,selectResult } from './map.js';
+import { setMobilePane } from './mobile.js';
 
 export function showError(message){const el=$('error');el.textContent=message;el.hidden=false;}
 export function clearError(){const el=$('error');el.textContent='';el.hidden=true;}
@@ -30,6 +31,9 @@ export function setSidebarFace(face){
     stage.classList.remove('flip-out');
     apply();
     stage.classList.add('flip-in');
+    const settle=()=>{if(token===flipToken)stage.classList.remove('flip-in');};
+    stage.addEventListener('animationend',event=>{if(event.target===stage)settle();},{once:true});
+    setTimeout(settle,400);
   },{once:true});
 }
 export function flashTooltip(element,message){
@@ -100,6 +104,7 @@ export function renderResults(active=store.activePeople){
   state.hidden=true;
   if(emptyRun)emptyRun.hidden=true;
   count.textContent=t('results.areas',{count:store.results.length});
+  setMobilePane('results');
   list.innerHTML=store.results.map((r,i)=>`<button class="result-row" type="button" data-index="${i}" aria-label="${esc(`${t('results.selectTitle')}: ${r.label}`)}">
     <span class="result-head"><b>${esc(r.label)}</b><span class="tag">${esc(t('cat.'+r.catKey))}</span><span class="district">${esc(r.district)}</span></span>
     <span class="result-times"><span>${esc(t('results.spread',{value:intNum(r.gap)}))}</span><span>${esc(t('results.longest',{value:intNum(r.slowest)}))}</span></span>
