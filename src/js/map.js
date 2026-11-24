@@ -178,36 +178,60 @@ export function drawCloud(budget){
   hideTooltip();
   cloudLayer.clearLayers();
   if(store.unbounded)return;
+  // One roving tab stop instead of hundreds: Tab enters the map once, arrow
+  // keys move between cells, and Enter/Space selects. A row of 600 focusable
+  // rectangles would otherwise sit between the sidebar and the results list.
+  const entries=[];
   store.cloudCells.forEach(c=>{
     const lat0=c.cy*CELL_SIZE,lon0=c.cx*CELL_SIZE,color=heatColor(c,budget);
-    const rect=L.rectangle([[lat0,lon0],[lat0+CELL_SIZE,lon0+CELL_SIZE]],{color,weight:0,fillColor:color,fillOpacity:.34,interactive:true,className:'heat-cell'});
+    const rect=L.rectangle([[lat0,lon0],[lat0+CELL_SIZE,lon0+CELL_SIZE]],{color,weight:0,fillColor:color,fillOpacity:.26,interactive:true,className:'heat-cell'});
     rect.on('mouseover',e=>scheduleCellTooltip(c,e.originalEvent));
     rect.on('mousemove',e=>positionTooltip(e.originalEvent));
     rect.on('mouseout',hideTooltip);
     rect.on('click',e=>{if(e.originalEvent)L.DomEvent.stopPropagation(e.originalEvent);selectCell(c);});
     rect.addTo(cloudLayer);
     const cellNode=rect.getElement();
-    if(cellNode){
-      cellNode.setAttribute('tabindex','0');
-      cellNode.setAttribute('focusable','true');
-      cellNode.setAttribute('role','button');
-      cellNode.setAttribute('aria-label',`${t('map.areaTitle')}: ${minuteText(c.slowest)}`);
-      cellNode.setAttribute('data-heat-cell','');
-      cellNode.addEventListener('focus',()=>{
-        cellNode.setAttribute('data-focused','');
-        // Keyboard users get the same rating detail as hover users, anchored
-        // to the focused rectangle instead of a mouse pointer.
-        const box=cellNode.getBoundingClientRect();
-        scheduleCellTooltip(c,{clientX:box.left+box.width/2,clientY:box.top+box.height/2},250);
-      });
-      cellNode.addEventListener('blur',()=>{cellNode.removeAttribute('data-focused');hideTooltip();});
-      cellNode.addEventListener('keydown',event=>{
-        if(event.key!=='Enter'&&event.key!==' ')return;
-        event.preventDefault();
-        event.stopPropagation();
-        selectCell(c);
-      });
+    if(!cellNode)return;
+    cellNode.setAttribute('tabindex','-1');
+    cellNode.setAttribute('role','button');
+    cellNode.setAttribute('aria-label',`${t('map.areaTitle')}: ${minuteText(c.slowest)}`);
+    cellNode.setAttribute('data-heat-cell','');
+    entries.push({c,node:cellNode});
+  });
+  if(!entries.length)return;
+  const rove=active=>{
+    entries.forEach(entry=>entry.node.setAttribute('tabindex',entry===active?'0':'-1'));
+  };
+  const move=(entry,dx,dy)=>{
+    const {cx,cy}=entry.c;
+    let best=null,bestScore=Infinity;
+    for(const candidate of entries){
+      if(candidate===entry)continue;
+      const ox=candidate.c.cx-cx,oy=candidate.c.cy-cy;
+      if(ox*dx+oy*dy<=0)continue; // only move in the requested direction
+      const score=(ox-dx)**2+(oy-dy)**2;
+      if(score<bestScore){bestScore=score;best=candidate;}
     }
+    if(best){rove(best);best.node.focus();}
+  };
+  entries[0].node.setAttribute('tabindex','0');
+  entries.forEach(entry=>{
+    const {c,node}=entry;
+    node.addEventListener('focus',()=>{
+      rove(entry);
+      node.setAttribute('data-focused','');
+      const box=node.getBoundingClientRect();
+      scheduleCellTooltip(c,{clientX:box.left+box.width/2,clientY:box.top+box.height/2},250);
+    });
+    node.addEventListener('blur',()=>{node.removeAttribute('data-focused');hideTooltip();});
+    node.addEventListener('keydown',event=>{
+      const delta={ArrowRight:[1,0],ArrowLeft:[-1,0],ArrowUp:[0,1],ArrowDown:[0,-1]}[event.key];
+      if(delta){event.preventDefault();event.stopPropagation();move(entry,...delta);return;}
+      if(event.key!=='Enter'&&event.key!==' ')return;
+      event.preventDefault();
+      event.stopPropagation();
+      selectCell(c);
+    });
   });
 }
 export function positionTooltip(event){
@@ -333,7 +357,10 @@ export function renderSelection(r,active=store.activePeople,fit=false){
       if(leg.coords.length<2)return;
       legCount++;
       const dash=leg.mode==='walk'?'1 6':leg.mode==='bus'?'8 5':null;
-      L.polyline(leg.coords,{pane:'routePane',color:PERSON_COLORS[j%PERSON_COLORS.length],weight:leg.mode==='walk'?2:4,opacity:leg.mode==='walk'?.7:1,dashArray:dash,className:`route-line route-${leg.mode} route-person-${j}`})
+      // Match the map key: walk is muted dotted, MTR solid red, bus dashed red.
+      // Person identity stays on the start/end markers and route cards.
+      const color=leg.mode==='walk'?'#705b57':leg.mode==='bus'?'#a50d26':ACCENT;
+      L.polyline(leg.coords,{pane:'routePane',color,weight:leg.mode==='walk'?2:4,opacity:leg.mode==='walk'?.7:1,dashArray:dash,className:`route-line route-${leg.mode} route-person-${j}`})
         .bindTooltip(esc(`${displayName(active[j],j)}: ${legLabel(leg)}`)).addTo(routeLayer);
     });
   });
@@ -353,7 +380,7 @@ export function renderSelection(r,active=store.activePeople,fit=false){
   const already=r.times.every(value=>value<=0.5);
   $('steps').innerHTML=legCount?r.routes.map((route,j)=>`<div class="step">
     <span class="dot ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>
-    <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(legChip).join('')}</span><span class="route-meta"><span class="muted">${esc(minuteText(r.times[j]))}</span>${fareMarkup(route)}</span></span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t(already?'route.already':'results.noRoutes'))}</span></span></div>`;
+    <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(legChip).join('')}</span><span class="route-meta"><span class="muted">${esc(t('results.totalTime',{value:minuteText(r.times[j])}))}</span>${fareMarkup(route)}</span></span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t(already?'route.already':'results.noRoutes'))}</span></span></div>`;
   // An automatic bounded selection (search/rerender) only centres the chosen
   // place so heat cells stay tappable; unbounded mode keeps the current view
   // free for the next pin tap. An explicit selection fits the full route

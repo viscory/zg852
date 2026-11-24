@@ -38,6 +38,15 @@ export function compute(reveal=false){
   }
   if(store.sols.some(s=>!s.dist.size)){renderEmpty();showError(t('error.noReach'));return;}
   const grids=store.sols.map(bestTimes),walkGrids=store.sols.map(walkTimes);
+  // If no node is reachable by everyone, the starts are on disconnected
+  // networks (for example an outlying island with no modelled ferry). Say so
+  // instead of blaming the tolerance and telling the user to enable a mode
+  // that is already on.
+  if(!grids[0].some((_,index)=>grids.every(grid=>isFinite(grid[index])))){
+    renderEmpty();
+    showError(t('error.noReach'));
+    return;
+  }
   // Walk budgets only re-weight the cached solutions; Dijkstra and solveKey stay untouched.
   const effectiveGrids=grids.map((grid,i)=>{
     const limit=walkBudget(store.activePeople[i]),out=new Float64Array(grid.length);

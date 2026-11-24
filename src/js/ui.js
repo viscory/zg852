@@ -59,8 +59,14 @@ function personForInput(input){
   const id=input?.closest('.card')?.dataset?.id;
   return id?store.people.find(p=>p.id===id)||null:null;
 }
-export function showError(message){const el=$('error');el.textContent=message;el.hidden=false;}
-export function clearError(){const el=$('error');el.textContent='';el.hidden=true;}
+export function showError(message){
+  const el=$('error');el.textContent=message;el.hidden=false;
+  const mobile=$('mobileError');if(mobile){mobile.textContent=message;mobile.hidden=false;}
+}
+export function clearError(){
+  const el=$('error');el.textContent='';el.hidden=true;
+  const mobile=$('mobileError');if(mobile){mobile.textContent='';mobile.hidden=true;}
+}
 export function setLabel(el,value){if(!el)return;el.setAttribute('aria-label',value);el.title=value;el.dataset.tooltip=value;}
 // Typed start text is only a query until it is resolved to a real place. Keep
 // the query beside the input so Enter, blur and Search can all commit it.
@@ -160,6 +166,9 @@ export function applyBetaFeatures(){
   const section=$('vectorSection');if(section)section.hidden=!enabled;
   const legendKey=$('legendVectorKey');if(legendKey)legendKey.hidden=!enabled;
   const diagnostics=$('exportDiagnostics');if(diagnostics)diagnostics.hidden=!enabled;
+  // Enabling Beta adds controls inside the advanced block; open it so the
+  // new interests are not hidden behind the collapsed heading on phones.
+  if(enabled&&isMobileLayout())$('optionsToggle')?.setAttribute('aria-expanded','true');
 }
 export function applySettingsToDom(){
   document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',String(store.settings.modes.includes(c.dataset.mode))));
@@ -400,6 +409,7 @@ export function renderCards(){
 }
 export function refreshMeta(){
   $('count').textContent=store.people.length;
+  const countLabel=$('countLabel');if(countLabel)countLabel.textContent=tp('people.count',store.people.length);
   const add=$('add');
   if(add){
     const atMax=store.people.length>=8,key=atMax?'people.max':'people.add';

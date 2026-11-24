@@ -125,25 +125,25 @@ test.describe('coarse-pointer adaptive deck', () => {
     await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
     const halfHeight = await page.locator('.results-section').evaluate(el => el.getBoundingClientRect().height);
     await expect.poll(() => halfHeight).toBeGreaterThan(140);
-    const half = await page.evaluate(() => {
+    const visibleResults = () => page.evaluate(() => {
       const results = document.querySelector('.results-section').getBoundingClientRect();
+      const sheet = document.querySelector('.side-right').getBoundingClientRect();
       const first = document.querySelector('.result-row').getBoundingClientRect();
       return {
-        visibleFirstResult: Math.min(first.bottom, results.bottom) - Math.max(first.top, results.top),
+        height: Math.max(0, Math.min(results.bottom, sheet.bottom) - Math.max(results.top, sheet.top)),
+        visibleFirstResult: Math.max(0, Math.min(first.bottom, sheet.bottom) - Math.max(first.top, sheet.top)),
         navBottom: document.querySelector('#mobileNav').getBoundingClientRect().bottom,
+        sheetTop: sheet.top,
       };
     });
+    const half = await visibleResults();
     expect(half.visibleFirstResult).toBeGreaterThan(100);
 
     await page.locator('#sheetHandle').click();
     await expect(page.locator('body')).toHaveAttribute('data-mobile-snap', 'full');
-    await expect.poll(() => page.locator('.results-section').evaluate(el => el.getBoundingClientRect().height)).toBeGreaterThan(260);
-    const full = await page.evaluate(() => ({
-      resultsHeight: document.querySelector('.results-section').getBoundingClientRect().height,
-      navBottom: document.querySelector('#mobileNav').getBoundingClientRect().bottom,
-      sheetTop: document.querySelector('.side-right').getBoundingClientRect().top,
-    }));
-    expect(full.resultsHeight).toBeGreaterThan(halfHeight + 80);
+    await expect.poll(async () => (await visibleResults()).height).toBeGreaterThan(260);
+    const full = await visibleResults();
+    expect(full.height).toBeGreaterThan(half.height + 80);
     expect(full.navBottom).toBeLessThanOrEqual(full.sheetTop + 1);
   });
 });

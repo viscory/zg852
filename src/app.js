@@ -42,7 +42,11 @@ async function init(){
   }
   store.locale=LOCALES.includes(storedLocale)?storedLocale:'en';
   setDocumentLocale();
-  if(!applySharedState())restoreState();else applySettingsToDom();
+  // A share link carries both the setup and the chosen result. Re-run the
+  // search once the timetable is available so the recipient sees the meeting
+  // point immediately instead of an empty results panel.
+  const sharedScenario=applySharedState();
+  if(!sharedScenario)restoreState();else applySettingsToDom();
   const pendingSelection=readSavedSelection();
   await loadPoi();
   restoreDirectory();
@@ -56,7 +60,9 @@ async function init(){
   if(errors.length)showError(errors.join(' '));
   try{drawOrigins();}catch(err){console.error(err);}
   if(document.documentElement.dataset.net!=='error'&&store.NODES?.names?.length){
-    loadNetwork().catch(err=>{
+    loadNetwork().then(()=>{
+      if(sharedScenario&&store.people.length>=2)triggerSearch(true);
+    }).catch(err=>{
       console.error(err);
       document.documentElement.dataset.net='error';
       showError([...errors,loadFailure('Timetable',err)].join(' '));
@@ -72,6 +78,16 @@ $('peopleDialog').addEventListener('close',()=>{store.pendingDelete=null;store.l
 $('legalDialog')?.addEventListener('close',()=>{store.lastDialogFocus?.focus?.();});
 $('legalClose')?.addEventListener('click',()=>closeDialog($('legalDialog')));
 $('legalDone')?.addEventListener('click',()=>closeDialog($('legalDialog')));
+document.querySelectorAll('dialog').forEach(dialog=>{
+  dialog.addEventListener('keydown',event=>{
+    if(event.key!=='Tab')return;
+    const focusable=[...dialog.querySelectorAll('button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')].filter(el=>el.offsetParent);
+    if(!focusable.length)return;
+    const first=focusable[0],last=focusable[focusable.length-1];
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+  });
+});
 document.querySelectorAll('.legal-button[data-legal]').forEach(button=>{button.onclick=()=>openLegal(button.dataset.legal);});
 document.querySelectorAll('.chip').forEach(chip=>chip.onclick=()=>{chip.setAttribute('aria-pressed',String(chip.getAttribute('aria-pressed')!=='true'));clearError();readSettingsFromDom();});
 $('tolerance').oninput=readSettingsFromDom;
@@ -85,6 +101,10 @@ async function setBetaEnabled(enabled){
 $('betaBadge').onclick=()=>setBetaEnabled(!betaVectorsEnabled());
 document.querySelectorAll('[data-vector]').forEach(input=>{input.oninput=readSettingsFromDom;});
 $('locale').onchange=e=>changeLocale(e.target.value);
+$('optionsToggle')?.addEventListener('click',()=>{
+  const button=$('optionsToggle');
+  button.setAttribute('aria-expanded',String(button.getAttribute('aria-expanded')!=='true'));
+});
 $('swapFace').onclick=()=>setSidebarFace(store.sidebarFace==='people'?'detail':'people');
 document.querySelectorAll('#mobileNav [data-mobile-pane]').forEach(button=>{
   button.onclick=()=>{

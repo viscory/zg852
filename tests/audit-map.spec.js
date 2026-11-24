@@ -80,17 +80,12 @@ test('selecting a result fits the marker and routes above the mobile sheet, and 
   expect(await startValues.evaluateAll(els => els.map(el => el.value))).toEqual(starts);
 });
 
-test('heat cells are labelled, focusable and keyboard-activatable', async ({ page }) => {
+test('heat cells are labelled, roving-focusable and keyboard-activatable', async ({ page }) => {
   await search(page);
-  const index = await page.locator('path.heat-cell').evaluateAll(elements => elements.findIndex(el => {
-    const box = el.getBoundingClientRect();
-    const handle = document.querySelector('#sheetHandle').getBoundingClientRect();
-    const x = box.x + box.width / 2, y = box.y + box.height / 2;
-    return box.width > 4 && x > 20 && x < window.innerWidth - 20 && y > 100 && y < handle.top - 24;
-  }));
-  expect(index).toBeGreaterThanOrEqual(0);
-  const cell = page.locator('path.heat-cell').nth(index);
-  await expect(cell).toHaveAttribute('tabindex', '0');
+  // A grid of hundreds of cells must expose one tab stop, not hundreds.
+  await expect(page.locator('path.heat-cell[tabindex="0"]')).toHaveCount(1);
+  await expect(page.locator('path.heat-cell[tabindex="-1"]').first()).toBeAttached();
+  const cell = page.locator('path.heat-cell[tabindex="0"]').first();
   await expect(cell).toHaveAttribute('role', 'button');
   await expect(cell).toHaveAttribute('aria-label', /^Meeting area: \d+ min$/);
 

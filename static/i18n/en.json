@@ -158,5 +158,10 @@
   "people.max": "You can add up to 8 people.",
   "search.selectSuggestion": "Choose a suggestion or use a map pin for this start place.",
   "share.invalid": "This share link is invalid.",
-  "legal.englishOnly": "This document is available in English only."
+  "legal.englishOnly": "This document is available in English only.",
+  "people.tab": "People",
+  "people.count_one": "person",
+  "people.count_other": "people",
+  "results.totalTime": "Total {value}",
+  "results.walkOnly": "Walk only"
 }

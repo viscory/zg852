@@ -52,20 +52,23 @@ test('opens with a full-height map, reachable search and 44px controls', async (
   expect(metrics.small).toEqual([]);
 });
 
-test('beta parameters scroll inside the sheet without hiding results', async ({ page }) => {
+test('beta parameters scroll inside the sheet without covering the CTA or hiding results', async ({ page }) => {
   await page.locator('#betaBadge').click();
   await expect(page.locator('#vectorSection')).toBeVisible();
   const metrics = await page.evaluate(() => {
-    const options = document.querySelector('#optionsPanel');
+    const go = document.querySelector('#go').getBoundingClientRect();
+    const headway = document.querySelector('#includeHeadway').getBoundingClientRect();
     const footer = document.querySelector('.rightbar-footer').getBoundingClientRect();
     return {
-      scrollable: options.scrollHeight > options.clientHeight,
+      optionsScrollable: document.querySelector('#optionsPanel').scrollHeight > document.querySelector('#optionsPanel').clientHeight,
+      ctaOverLapsHeadway: !(go.right < headway.left || go.left > headway.right || go.bottom < headway.top || go.top > headway.bottom),
       footerBottom: footer.bottom,
       innerHeight: window.innerHeight,
       resultsVisible: document.querySelector('.results-section').getBoundingClientRect().height > 40,
     };
   });
-  expect(metrics.scrollable).toBe(true);
+  expect(metrics.optionsScrollable).toBe(true);
+  expect(metrics.ctaOverLapsHeadway).toBe(false);
   expect(metrics.footerBottom).toBeLessThanOrEqual(metrics.innerHeight);
   expect(metrics.resultsVisible).toBe(true);
   await page.locator('#optionsPanel').evaluate(el => { el.scrollTop = el.scrollHeight; });

@@ -42,6 +42,12 @@ export function showMobileRoute(snap='half'){setMobilePane('route',snap);}
 export function initMobile(){
   const handle=$('sheetHandle');
   if(!handle)return;
+  // The full key would cover most of a phone map. Collapse it to a small
+  // "Map key" pill there; desktop keeps it open.
+  const syncLegend=()=>{const legend=$('mapLegend');if(legend)legend.open=!isMobileLayout();};
+  const syncOptions=()=>{const toggle=$('optionsToggle');if(toggle)toggle.setAttribute('aria-expanded',String(!isMobileLayout()));};
+  syncLegend();syncOptions();
+  window.matchMedia?.('(max-width:1024px)').addEventListener?.('change',()=>{syncLegend();syncOptions();});
   let startY=0,dragging=false,moved=false;
   handle.addEventListener('pointerdown',event=>{
     if(!isMobileLayout())return;

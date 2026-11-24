@@ -69,6 +69,7 @@ export function prepareRoutes(result,active=store.activePeople){
 export function money(value){return `HK$${num(value)}`;}
 export function fareMarkup(route){
   const fares=route?.fares||{total:0};
+  if(!fares.total)return `<span class="person-fares"><span class="fare total walk-only">${esc(t('results.walkOnly'))}</span></span>`;
   return `<span class="person-fares"><span class="fare total">${esc(t('results.fareTotal',{value:money(fares.total)}))}</span></span>`;
 }
 
