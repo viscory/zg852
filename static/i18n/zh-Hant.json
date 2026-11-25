@@ -185,5 +185,7 @@
   "results.noFitFare": "沒有地區符合這個車費容差。請調高。",
   "map.fairFare": "公平區域，顏色越深代表車費越便宜",
   "beta.diagnosticsHelp": "測試版還會在頁尾顯示「診斷」按鈕。它會下載並複製你的姓名、起點和路線。",
-  "options.toleranceHelp": "目標設有下限：車站為 8 分鐘，其他站點為 5 分鐘，車費為 HK$1。"
+  "options.toleranceHelp": "目標設有下限：車站為 8 分鐘，其他站點為 5 分鐘，車費為 HK$1。",
+  "error.noCommonArea": "各出發地都能連上交通網絡，但沒有所有人都能在90分鐘內抵達的地區。",
+  "results.noFitTolerance": "沒有符合此容差的區域。請提高容差。"
 }

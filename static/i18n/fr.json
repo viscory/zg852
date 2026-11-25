@@ -185,5 +185,7 @@
   "results.noFitFare": "Aucune zone ne respecte cette tolérance tarifaire. Augmentez-la.",
   "map.fairFare": "Zone équitable, plus sombre signifie tarifs moins chers",
   "beta.diagnosticsHelp": "Le bêta affiche aussi un bouton Diagnostics en pied de page. Il télécharge et copie vos noms, lieux de départ et itinéraires.",
-  "options.toleranceHelp": "Une cible a un plancher : 8 min en gare, 5 min aux autres arrêts, 1 HK$ pour les tarifs."
+  "options.toleranceHelp": "Une cible a un plancher : 8 min en gare, 5 min aux autres arrêts, 1 HK$ pour les tarifs.",
+  "error.noCommonArea": "Tous les points de départ rejoignent le réseau, mais aucun lieu n'est accessible à tout le monde en 90 minutes.",
+  "results.noFitTolerance": "Aucune zone ne correspond à cette tolérance. Augmentez-la."
 }

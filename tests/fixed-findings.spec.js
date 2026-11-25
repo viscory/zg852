@@ -64,7 +64,9 @@ test('fare heat scale covers every published fare, including Airport Express', a
       { id: 'p1', name: 'A', origin: airport, walkMinutes: 20 },
       { id: 'p2', name: 'B', origin: hongKong, walkMinutes: 20 },
     ],
-    settings: { modes: ['rail', 'bus'], fairness: 'fare', tolerance: 0.1, fareTolerance: 3, includeHeadway: true },
+    // Time tolerance is unlimited so every time-feasible AEL cell stays in the
+    // fare-ranked pool; fare tolerance stays bounded so the heat map is shown.
+    settings: { modes: ['rail', 'bus'], fairness: 'fare', tolerance: 3.05, fareTolerance: 3, includeHeadway: true },
     locale: 'en',
     selected: { kind: 'result', index: 0 },
   };

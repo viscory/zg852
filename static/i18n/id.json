@@ -185,5 +185,7 @@
   "results.noFitFare": "Tidak ada area yang sesuai batas tarif ini. Naikkan.",
   "map.fairFare": "Area adil, makin gelap makin murah tarifnya",
   "beta.diagnosticsHelp": "Beta juga menampilkan tombol Diagnostics di bawah. Tombol ini mengunduh dan menyalin nama, titik awal, dan rute Anda.",
-  "options.toleranceHelp": "Target memiliki batas bawah: 8 menit di stasiun, 5 menit di halte lain, HK$1 untuk tarif."
+  "options.toleranceHelp": "Target memiliki batas bawah: 8 menit di stasiun, 5 menit di halte lain, HK$1 untuk tarif.",
+  "error.noCommonArea": "Semua titik awal terhubung ke jaringan, tetapi tidak ada area yang dapat dicapai semua orang dalam 90 menit.",
+  "results.noFitTolerance": "Tidak ada area yang sesuai dengan toleransi ini. Naikkan toleransi."
 }

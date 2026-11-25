@@ -1,10 +1,11 @@
-import { RAIL_FARE_BANDS,BUS_FARE_BANDS,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE,WALK_TOLERANCE_DEFAULT,WALK_TOLERANCE_MAX,WALK_SPEED_KMH,WALK_DETOUR } from './config.js';
+import { RAIL_FARE_BANDS,BUS_FARE_BANDS,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE,WALK_SPEED_KMH,WALK_DETOUR } from './config.js';
 import { railFare,aelFareForNodes,lightRailFare } from './fares.js';
 import { store } from './store.js';
-import { isNum,haversine,walkMinutes,clamp,round1,esc } from './util.js';
+import { isNum,haversine,walkMinutes,round1,esc } from './util.js';
 import { t,tp,num,minuteText } from './i18n.js';
 import { nodePriority,catKey,districtFor } from './data.js';
-import { cellVector,cellCount,cellPreference,cellRatings,overallRating } from './vectors.js';
+import { cellVector,cellCount,cellPreference,cellFitScore,cellRatings,overallRating } from './vectors.js';
+import { compareAreaRank,overFairnessBand,snapWalkMinutes,sourceRankMinutes,WALK_STEP_DEFAULT } from './model.js';
 
 // The routing engine: multi-source Dijkstra over the walk+ride graph, fare
 // estimation, leg narration, and fair-cell construction. Pure with respect to
@@ -88,7 +89,7 @@ export function routeFares(route){
   flushRail();flushLightRail();
   return{rail:round1(rail),lightRail:round1(lightRail),bus:round1(bus),total:round1(rail+lightRail+bus),estimated};
 }
-export const walkBudget=person=>clamp(person?.walkMinutes,0,WALK_TOLERANCE_MAX,WALK_TOLERANCE_DEFAULT);
+export const walkBudget=person=>snapWalkMinutes(person?.walkMinutes);
 export function prepareRoutes(result,active=store.activePeople){
   result.routes=store.sols.map((solution,j)=>describe(solution,active[j].origin,result.node,walkBudget(active[j]),result.point||null));
   result.paths=result.routes.map(route=>route.path);
@@ -185,22 +186,17 @@ function sourceGroup(node){
   }
   return `stop:${name}:${store.NODES.lat[node]}:${store.NODES.lon[node]}`;
 }
-// Starting from a platform avoids paying the in-station walk again. An exit is
-// only preferred when it is meaningfully closer; a station node wins outright.
-// The penalty is in minutes, matching the walk budget it competes against.
-function sourcePenalty(node){
-  const kind=store.NODES.kind[node];
-  return kind===1?0:kind===2?0.2:kind===3?0.8:0;
-}
-export function nearestSources(lat,lon,budget,indices,allowFallback=true){
+// Starts are matched inside one fixed radius. Grouping by station only avoids
+// listing every exit separately; the representative is the closest stop, with
+// no kind-based bonus changing the walk time the user was told about.
+export function nearestSources(lat,lon,budget,indices){
   const near=[];
   for(const idx of indices)near.push([haversine(lat,lon,store.NODES.lat[idx],store.NODES.lon[idx]),idx]);
   near.sort((a,b)=>a[0]-b[0]);
-  const within=near.filter(([d])=>d<=ACCESS_RADIUS_M);
-  const pool=within.length?within:(allowFallback?near.slice(0,MAX_ACCESS_NODES*2):[]);
+  const pool=near.filter(([d])=>d<=ACCESS_RADIUS_M);
   const groups=new Map();
   for(const [d,idx] of pool){
-    const minutes=walkMinutes(d),rank=minutes+sourcePenalty(idx),key=sourceGroup(idx),current=groups.get(key);
+    const minutes=walkMinutes(d),rank=sourceRankMinutes(minutes),key=sourceGroup(idx),current=groups.get(key);
     if(!current||rank<current.rank)groups.set(key,{minutes,idx,rank});
   }
   const use=[...groups.values()].sort((a,b)=>a.rank-b.rank).slice(0,MAX_ACCESS_NODES);
@@ -215,15 +211,15 @@ export function sourcesFor(origin,budget){
   if(origin.kind==='node'&&Number.isInteger(origin.node)&&origin.node>=0&&origin.node<store.NODES.names.length){
     if(nodeCompatible(store.NODES.kind[origin.node]))return ready([{node:origin.node,minutes:0}]);
     if((store.settings.modes||[]).length!==1)return ready([{node:origin.node,minutes:0}]);
-    const nearest=nearestSources(store.NODES.lat[origin.node],store.NODES.lon[origin.node],budget,indices,false);
+    const nearest=nearestSources(store.NODES.lat[origin.node],store.NODES.lon[origin.node],budget,indices);
     return nearest.length?ready(nearest):empty(SOURCE_WRONG_MODE);
   }
   if(!isNum(origin.lat)||!isNum(origin.lon))return empty(SOURCE_NO_STOP);
-  const nearest=nearestSources(origin.lat,origin.lon,budget,indices,true);
+  const nearest=nearestSources(origin.lat,origin.lon,budget,indices);
   if(nearest.length)return ready(nearest);
   // A stop exists nearby but the chosen single mode excludes it: say so,
   // instead of reporting that the place has no transit at all.
-  if((store.settings.modes||[]).length===1&&nearestSources(origin.lat,origin.lon,budget,store.surface,false).length)return empty(SOURCE_WRONG_MODE);
+  if((store.settings.modes||[]).length===1&&nearestSources(origin.lat,origin.lon,budget,store.surface).length)return empty(SOURCE_WRONG_MODE);
   return empty(SOURCE_OUTSIDE_WALK);
 }
 export function dedupePath(path){
@@ -264,8 +260,8 @@ function mergeWalks(legs){
   }
   return legs;
 }
-export function describe(sol,origin,target,walkMinutes=WALK_TOLERANCE_DEFAULT,targetPoint=null){
-  const walkLimit=clamp(walkMinutes,0,WALK_TOLERANCE_MAX,WALK_TOLERANCE_DEFAULT),includeHeadway=store.settings.includeHeadway!==false,candidates=[];
+export function describe(sol,origin,target,walkMinutes=WALK_STEP_DEFAULT,targetPoint=null){
+  const walkLimit=snapWalkMinutes(walkMinutes),includeHeadway=store.settings.includeHeadway!==false,candidates=[];
   for(let l=-2;l<store.NET.lines.length;l++){
     const k=sol.key(target,l),d=sol.dist.get(k);
     if(d===undefined)continue;
@@ -345,50 +341,40 @@ export function describe(sol,origin,target,walkMinutes=WALK_TOLERANCE_DEFAULT,ta
   const path=dedupePath(legs.flatMap(leg=>leg.coords));
   return{text,legs,path,fares:best.fares};
 }
-const MEETING_TIE_MINUTES=1;
-// A rail station or MTR exit is a more practical rendezvous than a roadside
-// bus stop. This never replaces the travel-time ranking: it only breaks ties
-// between candidates within roughly a minute of each other.
-export function meetingSuitability(cell){
-  // Accepts either a cell or an engine sort item that wraps one.
-  const target=cell?.cell??cell;
-  return nodePriority(store.NODES?.kind?.[target?.node]);
-}
-export function meetingTieBreak(a,b,score=item=>item.score){
-  const diff=(score(a)??0)-(score(b)??0);
-  if(Math.abs(diff)>MEETING_TIE_MINUTES)return diff;
-  return meetingSuitability(a)-meetingSuitability(b)||diff||
-    String(a?.cell?.key??a?.key??'').localeCompare(String(b?.cell?.key??b?.key??''));
-}
 export function buildCells(grids,tolerance,budget){
   const cells=new Map();
   for(const idx of store.surface){
     const times=grids.map(g=>g[idx]);
     if(times.some(v=>!isFinite(v)))continue;
     if(Math.max(...times)>budget)continue;
-    const fastest=Math.min(...times),slowest=Math.max(...times),gap=slowest-fastest,station=store.NODES.kind[idx]===1;
-    const overBand=station?gap>Math.max(fastest*tolerance,8):slowest>Math.max(fastest,5)*(1+tolerance);
-    if(overBand)continue;
+    const fastest=Math.min(...times),slowest=Math.max(...times),gap=slowest-fastest;
+    const kind=store.NODES.kind[idx];
+    if(overFairnessBand({fastest,slowest,gap,kind},tolerance))continue;
     const cy=Math.floor(store.NODES.lat[idx]/CELL_SIZE),cx=Math.floor(store.NODES.lon[idx]/CELL_SIZE),cellKey=`${cy},${cx}`;
-    const score=slowest+gap,priority=nodePriority(store.NODES.kind[idx]);
+    const score=slowest+gap,priority=nodePriority(kind);
     let cell=cells.get(cellKey);
-    if(!cell){cells.set(cellKey,{key:cellKey,cy,cx,node:idx,label:store.NODES.names[idx],priority,keyCat:catKey(priority),times,fastest,slowest,gap,score});continue;}
+    if(!cell){cells.set(cellKey,{key:cellKey,cy,cx,node:idx,label:store.NODES.names[idx],priority,keyCat:catKey(priority),kind,times,fastest,slowest,gap,score});continue;}
     if(score<cell.score||score===cell.score&&gap<cell.gap){
-      cell.node=idx;cell.label=store.NODES.names[idx];cell.priority=priority;cell.keyCat=catKey(priority);
+      cell.node=idx;cell.label=store.NODES.names[idx];cell.priority=priority;cell.keyCat=catKey(priority);cell.kind=kind;
       cell.times=times;cell.fastest=fastest;cell.slowest=slowest;cell.gap=gap;cell.score=score;
     }
   }
-  return[...cells.values()].sort((a,b)=>meetingTieBreak(a,b));
+  return [...cells.values()].map(cell=>{
+    const vectorAdjustment=cellPreference(cell);
+    return {...cell,vectorAdjustment,fitScore:cellFitScore(cell)};
+  }).sort((a,b)=>compareAreaRank(a,b,'time'));
 }
 export function cellToResult(cell){
   const lat=store.NODES.lat[cell.node],lon=store.NODES.lon[cell.node],round=v=>Math.round(v*10)/10;
+  const preference=cellPreference(cell);
   return{
-    key:cell.key,node:cell.node,label:cell.label,catKey:cell.keyCat,district:districtFor(lat,lon),lat,lon,
+    key:cell.key,node:cell.node,kind:cell.kind,label:cell.label,catKey:cell.keyCat,district:districtFor(lat,lon),lat,lon,
     cellLat:cell.cy*CELL_SIZE+CELL_SIZE/2,cellLon:cell.cx*CELL_SIZE+CELL_SIZE/2,
     times:cell.times.map(round),
     fastest:round(cell.fastest),slowest:round(cell.slowest),gap:round(cell.gap),score:round(cell.score),
+    fitScore:cell.fitScore??round(cell.score-preference),vectorAdjustment:preference,
     fares:cell.fares,maxFare:cell.maxFare,totalFare:cell.totalFare,fareGap:cell.fareGap,
     fareSpread:cell.fareSpread,fareScore:cell.fareScore,fareEstimated:cell.fareEstimated,
-    fit:cellPreference(cell),vector:cellVector(cell),count:cellCount(cell),ratings:cellRatings(cell),rating:overallRating(cell),
+    fit:preference,vector:cellVector(cell),count:cellCount(cell),ratings:cellRatings(cell),rating:overallRating(cell),
   };
 }

@@ -1,6 +1,7 @@
 import { LETTERS,VECTOR_KEYS,FAIRNESS_METRICS,activeFairnessMetric,travelTolerance,fareTolerance,isUnboundedTolerance,toleranceFromSlider,sliderPositionForTolerance } from './config.js';
 import { store } from './store.js';
-import { $,esc,clamp,icon,initialsFor,avatarClass,clone } from './util.js';
+import { snapWalkMinutes } from './model.js';
+import { $,esc,icon,initialsFor,avatarClass,clone } from './util.js';
 import { t,tp,intNum,minuteText } from './i18n.js';
 import { normalizeVectors,vectorLabel,betaVectorsEnabled } from './vectors.js';
 import { syncScrollShadows } from './scroll.js';
@@ -472,7 +473,7 @@ export function makeCard(person){
   card.querySelector('.pin').onclick=()=>startPinMode(id,input,sug);
   const walk=card.querySelector('[data-walk]'),walkValue=card.querySelector('.walk-row .value');
   walk.oninput=()=>{
-    person.walkMinutes=clamp(Number(walk.value),0,60,20);
+    person.walkMinutes=snapWalkMinutes(walk.value);
     walkValue.textContent=minuteText(person.walkMinutes);
     save();scheduleRecompute();
   };
@@ -591,7 +592,7 @@ export function savePersonToDirectory(person){
   if(!person.origin){showError(t('people.hintEmpty'));return;}
   const name=displayName(person,store.people.indexOf(person));
   const existing=store.directory.find(d=>d.id===person.directoryId)||store.directory.find(d=>d.name===name&&d.origin?.label===person.origin.label);
-  if(existing){existing.name=name;existing.origin=clone(person.origin);existing.walkMinutes=clamp(Number(person.walkMinutes),0,60,20);existing.updated=Date.now();person.directoryId=existing.id;}
+  if(existing){existing.name=name;existing.origin=clone(person.origin);existing.walkMinutes=snapWalkMinutes(person.walkMinutes);existing.updated=Date.now();person.directoryId=existing.id;}
   else{const profile=profileFromPerson({...person,name});store.directory.push(profile);person.directoryId=profile.id;}
   saveDirectory();save();renderDirectoryList();flashSaved(person.id);
 }
@@ -610,7 +611,7 @@ export function addDirectoryPerson(profile){
     const message=t('people.max');showDirectoryError(message);showError(message);return false;
   }
   clearDirectoryError();
-  store.people.push({id:`p${store.seq++}`,name:profile.name,origin:clone(profile.origin),directoryId:profile.id,walkMinutes:clamp(Number(profile.walkMinutes),0,60,20)});
+  store.people.push({id:`p${store.seq++}`,name:profile.name,origin:clone(profile.origin),directoryId:profile.id,walkMinutes:snapWalkMinutes(profile.walkMinutes)});
   commitPeople();
   return true;
 }
@@ -626,7 +627,7 @@ export function editDirectoryPerson(profile){
     person=store.people[store.people.length-1];
   }
   clearDirectoryError();
-  person.name=profile.name;person.origin=clone(profile.origin);person.walkMinutes=clamp(Number(profile.walkMinutes),0,60,20);
+  person.name=profile.name;person.origin=clone(profile.origin);person.walkMinutes=snapWalkMinutes(profile.walkMinutes);
   commitPeople();
   return true;
 }

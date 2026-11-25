@@ -74,7 +74,7 @@ test('the Fairness toggle switches labels and legend without losing each toleran
   await expect(page.locator('#tolval')).toHaveText('40%');
 });
 
-test('fare mode ranks results by fare spread and keeps the heat map', async ({ page }) => {
+test('fare mode ranks results by the largest fare shown on the card', async ({ page }) => {
   await page.locator('#fairnessToggle [data-fairness="fare"]').click();
   await expect(page.locator('#tolval')).toHaveText('25%');
   await page.locator('#go').click();
@@ -82,14 +82,12 @@ test('fare mode ranks results by fare spread and keeps the heat map', async ({ p
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   await expect(page.locator('#legendFairText')).toHaveText('Fair area, darker means cheaper fares');
 
-  const scores = await page.locator('.result-row').evaluateAll(rows => rows.map(row => {
+  const worstFares = await page.locator('.result-row').evaluateAll(rows => rows.map(row => {
     const fares = [...row.querySelectorAll('.person-fares .fare')].map(node => Number((node.textContent.match(/[\d.]+/) || [0])[0]));
-    const min = Math.min(...fares);
-    const max = Math.max(...fares);
-    return Math.round((max + (max - min)) * 10) / 10;
+    return Math.max(...fares);
   }));
-  expect(scores.length).toBeGreaterThan(1);
-  expect(scores).toEqual([...scores].sort((a, b) => a - b));
+  expect(worstFares.length).toBeGreaterThan(1);
+  expect(worstFares).toEqual([...worstFares].sort((a, b) => a - b));
 });
 
 test('fare Unlimited hides the heat map and allows a map point', async ({ page }) => {

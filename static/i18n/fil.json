@@ -185,5 +185,7 @@
   "results.noFitFare": "Walang lugar na umaayon sa pamasaheng ito. Taasan ito.",
   "map.fairFare": "Patas na lugar, mas madilim ang mas murang pamasahe",
   "beta.diagnosticsHelp": "Nagpapakita rin ang Beta ng button na Diagnostics sa footer. Ini-download at kinocopy nito ang inyong mga pangalan, pinagmulan at ruta.",
-  "options.toleranceHelp": "May pinakamababa ang target: 8 min sa mga estasyon, 5 min sa ibang hintuan, HK$1 sa pamasahe."
+  "options.toleranceHelp": "May pinakamababa ang target: 8 min sa mga estasyon, 5 min sa ibang hintuan, HK$1 sa pamasahe.",
+  "error.noCommonArea": "Lahat ng panimulang lugar ay nakakonekta sa network, ngunit walang lugar na maaabot ng lahat sa loob ng 90 minuto.",
+  "results.noFitTolerance": "Walang lugar na sakto sa tolerance na ito. Taasan ito."
 }

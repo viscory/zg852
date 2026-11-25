@@ -1,10 +1,11 @@
 import { MAX_CLOUD_CELLS,MAX_COST_CELLS,RECOMPUTE_DELAY,TRAVEL_BUDGET_MINUTES,FARE_GAP_FLOOR,activeFairnessMetric,travelTolerance,fareTolerance,isUnboundedTolerance } from './config.js';
 import { store } from './store.js';
+import { compareAreaRank,fairnessTolerance,noFitErrorKey,noReachErrorKey } from './model.js';
 
 import { t,applyStaticText } from './i18n.js';
 import { districtFor,loadNetwork } from './data.js';
-import { cellFitScore } from './vectors.js';
-import { sourcesFor,solve,bestTimes,walkTimes,walkBudget,buildCells,prepareRoutes,cellToResult,meetingTieBreak,meetingSuitability,legLabel,SOURCE_NO_STOP,SOURCE_WRONG_MODE,SOURCE_OUTSIDE_WALK } from './routing.js';
+import { cellFitScore,cellPreference } from './vectors.js';
+import { sourcesFor,solve,bestTimes,walkTimes,walkBudget,buildCells,prepareRoutes,cellToResult,legLabel,SOURCE_NO_STOP,SOURCE_WRONG_MODE,SOURCE_OUTSIDE_WALK } from './routing.js';
 import { save } from './state.js';
 import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,refreshTranslatedNames,setWorking,setSidebarFace,applyUnboundedUi,hasPendingOrigins } from './ui.js';
 import { drawOrigins,drawCloud,applySelection,applyMapLabels } from './map.js';
@@ -14,6 +15,10 @@ const SOURCE_ERROR_KEYS={
   [SOURCE_WRONG_MODE]:'error.noNearbyMode',
   [SOURCE_OUTSIDE_WALK]:'error.noNearby',
 };
+const rankCells = cells => cells.map(cell=>{
+  const vectorAdjustment=cellPreference(cell);
+  return {cell,vectorAdjustment,fitScore:cellFitScore(cell)};
+}).sort((a,b)=>compareAreaRank(a,b,'time'));
 
 export function compute(reveal=false){
   clearError();
@@ -57,7 +62,7 @@ export function compute(reveal=false){
   // that is already on.
   if(!grids[0].some((_,index)=>grids.every(grid=>isFinite(grid[index])))){
     renderEmpty();
-    showError(t('error.noReach'));
+    showError(t(noReachErrorKey('no-common-area')));
     return;
   }
   // A direct walk is only credited when it fits the person's walk tolerance;
@@ -71,22 +76,22 @@ export function compute(reveal=false){
   store.effectiveGrids=effectiveGrids;
   if(metric==='time'){
     // Unbounded mode keeps every reachable node available for free-point picks.
-    const cells=buildCells(effectiveGrids,store.unbounded?Infinity:tolerance,TRAVEL_BUDGET_MINUTES);
-    const ordered=cells.map(cell=>({cell,fitScore:cellFitScore(cell)})).sort((a,b)=>meetingTieBreak(a,b,item=>item.fitScore));
+    const cells=buildCells(effectiveGrids,store.unbounded?Infinity:fairnessTolerance('time',store.settings),TRAVEL_BUDGET_MINUTES);
+    const ordered=rankCells(cells);
     store.cloudCells=ordered.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
     store.results=ordered.slice(0,7).map(({cell:c})=>cellToResult(c));
     store.results.forEach(r=>prepareRoutes(r,store.activePeople));
   }else{
-    // Fare fairness is a real objective: keep the 90-minute budget, drop the
-    // time-disparity filter, rank the time-feasible pool by fare disparity.
-    const timeCells=buildCells(effectiveGrids,Infinity,TRAVEL_BUDGET_MINUTES);
-    const ordered=timeCells.map(cell=>({cell,fitScore:cellFitScore(cell)}))
-      .sort((a,b)=>meetingTieBreak(a,b,item=>item.fitScore)).slice(0,MAX_COST_CELLS);
+    // Fare mode keeps the same time-feasibility filter and 90-minute cap, then
+    // orders the surviving cells by the worst fare anyone pays.
+    const timeTolerance=fairnessTolerance('time',store.settings);
+    const timeCells=buildCells(effectiveGrids,timeTolerance,TRAVEL_BUDGET_MINUTES);
+    const ordered=rankCells(timeCells).slice(0,MAX_COST_CELLS);
     const cacheKey=`${solveKey}|${store.activePeople.map(p=>walkBudget(p)).join(',')}`;
     if(store.costCacheKey!==cacheKey){store.costCacheKey=cacheKey;store.costCache=new Map();}
     const fareUnbounded=isUnboundedTolerance(fareLimit);
     const passing=[];
-    for(const {cell,fitScore} of ordered){
+    for(const {cell,fitScore,vectorAdjustment} of ordered){
       let cached=store.costCache.get(cell.key);
       if(!cached){
         const probe=cellToResult(cell);
@@ -106,17 +111,15 @@ export function compute(reveal=false){
         store.costCache.set(cell.key,cached);
       }
       if(!fareUnbounded&&cached.fareGap>Math.max(cached.meanFare*fareLimit,FARE_GAP_FLOOR))continue;
+      cell.fitScore=fitScore;cell.vectorAdjustment=vectorAdjustment;
       cell.fares=cached.fares;cell.maxFare=cached.maxFare;cell.totalFare=cached.totalFare;
       cell.fareGap=cached.fareGap;cell.fareSpread=cached.fareSpread;cell.fareScore=cached.fareScore;
       cell.fareEstimated=cached.estimated;
       passing.push({cell,fitScore});
     }
-    // Official fares rank before flagged estimates; then cheaper total paid,
-    // then the smaller relative spread. A lower total must never rank below a
-    // dearer one just because someone walked for free.
-    passing.sort((a,b)=>(Number(a.cell.fareEstimated)-Number(b.cell.fareEstimated))||
-      (a.cell.totalFare-b.cell.totalFare)||(a.cell.fareSpread-b.cell.fareSpread)||
-      (meetingSuitability(a)-meetingSuitability(b))||String(a.cell.key).localeCompare(String(b.cell.key)));
+    // One shared fare ordering: the largest fare on the card first, then the
+    // displayed time numbers, then the disclosed interest preference and key.
+    passing.sort((a,b)=>compareAreaRank(a.cell,b.cell,'fare'));
     store.cloudCells=passing.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
     store.results=passing.slice(0,7).map(({cell})=>{
       const result=cellToResult(cell);
@@ -126,11 +129,7 @@ export function compute(reveal=false){
   }
   if(!store.results.length){
     renderEmpty();
-    if(metric==='fare')showError(t('results.noFitFare'));
-    else{
-      const mode=store.settings.modes.length===1?store.settings.modes[0]:null;
-      showError(t(mode==='rail'?'results.noFitMtr':mode==='bus'?'results.noFitBus':'results.noFit'));
-    }
+    showError(t(metric==='fare'?'results.noFitFare':noFitErrorKey(store.settings.modes)));
     return;
   }
   renderResults(store.activePeople);

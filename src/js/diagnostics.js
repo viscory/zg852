@@ -1,5 +1,6 @@
 import { LETTERS,TRAVEL_TOLERANCE_MAX,TRAVEL_BUDGET_MINUTES } from './config.js';
 import { store } from './store.js';
+import { heatValue,rankInputs } from './model.js';
 import { displayName,copyText } from './state.js';
 
 // A self-contained snapshot of everything that went into the visible routes.
@@ -34,6 +35,7 @@ function legFacts(leg,person){
 }
 
 function areaFacts(result){
+  const metric=store.settings.fairness==='fare'?'fare':'time';
   return{
     key:result.key,
     node:result.node,
@@ -50,6 +52,8 @@ function areaFacts(result){
     fareSpread:result.fareSpread??null,
     totalFare:result.totalFare??null,
     fareEstimated:result.fareEstimated??false,
+    rankInputs:rankInputs(result,metric),
+    heatValue:heatValue(result,metric),
     interestFit:result.fit,
     interestRating:result.rating??null,
     interestRatings:result.ratings??null,

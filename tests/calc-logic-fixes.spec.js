@@ -48,7 +48,8 @@ test('origins pool distinct nearby stations instead of one exit', () => {
   expect(routing).not.toMatch(/nearestSources\([^)]*\)\.slice\(0,1\)/);
   expect(routing).toMatch(/function sourceGroup\(/);
   expect(routing).toMatch(/const groups=new Map\(\)/);
-  expect(routing).toMatch(/sourcePenalty\(idx\)/);
+  expect(routing).toMatch(/sourceRankMinutes\(minutes\)/);
+  expect(routing).not.toMatch(/sourcePenalty/);
 });
 
 test('a coordinate origin can still search after source pooling', async ({ page }) => {
@@ -95,15 +96,18 @@ test('bundled route fares replace the capped bus bands', () => {
   expect(config).toMatch(/BUS_FARE_BANDS=\[\[4,5\.5\]/);
 });
 
-// Finding 7: fare ranking must use the total paid first, with relative spread as
-// the tie-break, and the filter must use a typical fare rather than the minimum.
-test('fare ranking sorts by total then relative spread', () => {
+// Finding 7: fare ranking uses the same worst-fare value as the heat legend,
+// with displayed time values and the disclosed interest preference as tie-breaks.
+test('fare ranking sorts by the worst fare shown on the card', () => {
   const engine = source('engine.js');
+  const model = source('model.js');
   expect(engine).toMatch(/totalFare=Math\.round\(fares\.reduce\(/);
   expect(engine).toMatch(/fareSpread=Math\.round\(\(fareGap\/Math\.max\(meanFare,1\)\)/);
   expect(engine).toMatch(/cached\.meanFare\*fareLimit,FARE_GAP_FLOOR/);
-  expect(engine).toMatch(/\(a\.cell\.totalFare-b\.cell\.totalFare\)\|\|\(a\.cell\.fareSpread-b\.cell\.fareSpread\)/);
-  expect(engine).not.toMatch(/fareScore=Math\.round\(\(maxFare\+fareGap\)/);
+  expect(engine).toMatch(/compareAreaRank\(a\.cell,b\.cell,'fare'\)/);
+  expect(model).toMatch(/Number\(area\?\.maxFare\)\s*\|\|\s*0/);
+  expect(engine).not.toMatch(/fareEstimated\)-/);
+  expect(engine).not.toMatch(/meetingSuitability/);
 });
 
 // Finding 10: stale AEL fallbacks are gone, AEL uses the bundled matrix, light

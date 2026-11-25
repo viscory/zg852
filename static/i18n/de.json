@@ -185,5 +185,7 @@
   "results.noFitFare": "Keine Gebiete passen zu dieser Fahrpreistoleranz. Erhöhen Sie sie.",
   "map.fairFare": "Faires Gebiet, dunkler bedeutet günstigere Fahrpreise",
   "beta.diagnosticsHelp": "Beta zeigt unten außerdem eine Diagnose-Schaltfläche. Sie lädt Ihre Namen, Startorte und Routen herunter und kopiert sie.",
-  "options.toleranceHelp": "Für ein Ziel gilt ein Mindestwert: 8 Min. an Bahnhöfen, 5 Min. an anderen Haltestellen, HK$1 bei Fahrpreisen."
+  "options.toleranceHelp": "Für ein Ziel gilt ein Mindestwert: 8 Min. an Bahnhöfen, 5 Min. an anderen Haltestellen, HK$1 bei Fahrpreisen.",
+  "error.noCommonArea": "Alle Startpunkte erreichen das Netz, aber es gibt kein Gebiet, das alle innerhalb von 90 Minuten erreichen können.",
+  "results.noFitTolerance": "Kein Gebiet passt zu dieser Toleranz. Erhöhe sie."
 }

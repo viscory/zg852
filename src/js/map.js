@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,TRAVEL_BUDGET_MINUTES,WALK_SPEED_KMH,WALK_DETOUR } from './config.js';
 import { store } from './store.js';
+import { heatValue } from './model.js';
 import { $,esc,clamp,isNum,icon,initialsFor,avatarClass,haversine } from './util.js';
 import { t,intNum,minuteText } from './i18n.js';
 import { cellTopNames,cellRatings,cellVector,cellCount,cellPreference,overallRating } from './vectors.js';
@@ -160,7 +161,9 @@ export function fitMapTo(points){
   map.setView([22.31,114.17],12,{animate:false});
 }
 export function recenterMap(){
-  const points=store.results.flatMap(result=>result.paths.flat()).concat(store.activePeople.filter(person=>person.origin).map(person=>[person.origin.lat,person.origin.lon]));
+  // Only fair areas and the selected point are fitted. Start markers stay put,
+  // as the map key says, even when an origin sits far outside the result area.
+  const points=store.results.flatMap(result=>result.paths.flat());
   if(store.selection?.kind==='point'&&isNum(store.selection.lat)&&isNum(store.selection.lon))points.push([store.selection.lat,store.selection.lon]);
   // A heat cell picked directly is drawn by renderSelection() even when it is
   // outside the top results, so it has to join the fit too.
@@ -189,9 +192,10 @@ function magneticCell(latlng){
   return best;
 }
 export function heatColor(cell,budget,metric='time'){
+  const value=heatValue(cell,metric);
   const ratio=metric==='fare'
-    ? clamp((Number(cell.maxFare)||0)/fareHeatMax(),0,1)
-    : clamp(cell.slowest/Math.max(budget,1),0,1);
+    ? clamp(value/fareHeatMax(),0,1)
+    : clamp(value/Math.max(budget,1),0,1);
   return HEAT_COLORS[Math.max(0,Math.min(HEAT_COLORS.length-1,Math.round(ratio*(HEAT_COLORS.length-1))))];
 }
 export function drawCloud(budget){

@@ -185,5 +185,7 @@
   "results.noFitFare": "이 요금 허용 범위에 맞는 지역이 없습니다. 범위를 늘리세요.",
   "map.fairFare": "공평한 지역, 색이 진할수록 요금이 저렴",
   "beta.diagnosticsHelp": "베타는 하단에 진단 버튼도 표시합니다. 이름, 출발 장소, 경로를 다운로드하고 복사합니다.",
-  "options.toleranceHelp": "목표에는 하한이 있습니다. 역에서는 8분, 다른 정류장에서는 5분, 요금은 HK$1입니다."
+  "options.toleranceHelp": "목표에는 하한이 있습니다. 역에서는 8분, 다른 정류장에서는 5분, 요금은 HK$1입니다.",
+  "error.noCommonArea": "모든 출발지가 교통망에 연결되지만, 모든 사람이 90분 안에 도달할 수 있는 장소가 없습니다.",
+  "results.noFitTolerance": "이 허용 범위에 맞는 지역이 없습니다. 허용 범위를 넓히세요."
 }

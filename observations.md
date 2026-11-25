@@ -1,3 +1,9 @@
+## 2026-11-25T16:09:28Z
+
+- Closed the 10 evidenced contradictions through a shared `src/js/model.js` semantics layer: fairness/fare ranking, heat value, walk-step snapping, gap floors, closest-stop source matching and error-key selection. Rewired engine, routing, map, UI, state and diagnostics to that single definition.
+- Added only the two permitted copy keys to the fallback and all 15 catalogues (189 keys each), bumped the service worker to `zg852-v69`, and added 11 regression tests; stale expectations in four existing suites were updated to the disclosed behaviour.
+- `npm run lint` is clean and `npm test` passes 160/160 against built `public/`. Committed and pushed the tracked fixes; left `audit/`, screenshots and other artefacts untracked.
+
 ## 2026-11-25T15:44:26Z
 
 - Committed and pushed `3c6db2a` ("fix: correct meeting-point fairness, fares and source selection") to `main` at `github.com:viscory/zg852.git`. The commit includes both this round's calc-logic fixes and the earlier uncommitted honest-copy fixes; 37 files, 767 insertions, 105 deletions.

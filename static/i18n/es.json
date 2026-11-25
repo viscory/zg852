@@ -185,5 +185,7 @@
   "results.noFitFare": "Ninguna zona cumple esta tolerancia de tarifa. Auméntala.",
   "map.fairFare": "Zona equitativa, más oscuro significa tarifas más baratas",
   "beta.diagnosticsHelp": "Beta también muestra un botón de Diagnóstico en el pie de página. Descarga y copia sus nombres, puntos de partida y rutas.",
-  "options.toleranceHelp": "Un objetivo tiene un mínimo: 8 min en estaciones, 5 min en otras paradas, HK$1 en tarifas."
+  "options.toleranceHelp": "Un objetivo tiene un mínimo: 8 min en estaciones, 5 min en otras paradas, HK$1 en tarifas.",
+  "error.noCommonArea": "Todos los puntos de partida llegan a la red, pero no hay ninguna zona a la que todos puedan llegar en 90 minutos.",
+  "results.noFitTolerance": "Ninguna área se ajusta a esta tolerancia. Auméntala."
 }

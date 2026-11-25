@@ -1,6 +1,7 @@
 import { LOCALES,KEY,LETTERS,HK_BBOX,FAIRNESS_METRICS,FAIRNESS_DEFAULT,travelTolerance,fareTolerance } from './config.js';
 import { store } from './store.js';
-import { isNum,clamp,clone,decodeBase64Url,encodeBase64Url,$ } from './util.js';
+import { snapWalkMinutes } from './model.js';
+import { isNum,clone,decodeBase64Url,encodeBase64Url,$ } from './util.js';
 import { t } from './i18n.js';
 import { migrateVectors } from './vectors.js';
 import { loadGeoCache } from './search.js';
@@ -69,7 +70,7 @@ export function normalizePerson(raw,i){
   const validNode=origin&&origin.kind==='node'&&Number.isInteger(origin.node)&&origin.node>=0&&store.NODES&&origin.node<store.NODES.names.length;
   const validCoords=origin&&origin.kind==='coords'&&isNum(origin.lat)&&isNum(origin.lon)&&origin.lat>=HK_BBOX[1]&&origin.lat<=HK_BBOX[3]&&origin.lon>=HK_BBOX[0]&&origin.lon<=HK_BBOX[2];
   if(!validNode&&!validCoords)return null;
-  return{id:`p${i+1}`,name:cleanName(raw.name,i),origin,directoryId:raw.directoryId||null,walkMinutes:clamp(Number(raw.walkMinutes),0,60,20)};
+  return{id:`p${i+1}`,name:cleanName(raw.name,i),origin,directoryId:raw.directoryId||null,walkMinutes:snapWalkMinutes(raw.walkMinutes)};
 }
 export function defaultPeople(){
   return ['Tsuen Wan','North Point'].map((name,i)=>{
@@ -78,7 +79,7 @@ export function defaultPeople(){
   }).filter(p=>p.origin);
 }
 export function save(){
-  writeStorage(KEY.people,JSON.stringify(store.people.map((p,i)=>({id:p.id,name:cleanName(p.name,i),origin:p.origin,directoryId:p.directoryId||null,walkMinutes:clamp(Number(p.walkMinutes),0,60,20)}))));
+  writeStorage(KEY.people,JSON.stringify(store.people.map((p,i)=>({id:p.id,name:cleanName(p.name,i),origin:p.origin,directoryId:p.directoryId||null,walkMinutes:snapWalkMinutes(p.walkMinutes)}))));
   store.settings.includeHeadway=normIncludeHeadway(store.settings.includeHeadway);
   writeStorage(KEY.settings,JSON.stringify(store.settings));
   writeStorage(KEY.locale,store.locale);
@@ -90,7 +91,7 @@ export function saveDirectory(){
 export function profileFromPerson(person){
   const index=Math.max(0,store.people.indexOf(person));
   const name=String(person?.name??'').trim()||displayName(person,index);
-  const profile={id:person.directoryId||`d${store.directorySeq++}`,name,origin:clone(person.origin),walkMinutes:clamp(Number(person.walkMinutes),0,60,20),updated:Date.now()};
+  const profile={id:person.directoryId||`d${store.directorySeq++}`,name,origin:clone(person.origin),walkMinutes:snapWalkMinutes(person.walkMinutes),updated:Date.now()};
   person.directoryId=profile.id;
   return profile;
 }
@@ -124,7 +125,7 @@ export function restoreDirectory(){
   }catch(err){console.error(err);}
   store.directory=entries?entries.filter(p=>p&&p.origin).map((p,i)=>({
     id:p.id||`d${Date.now()}`,name:cleanName(p.name,i)||displayName({name:''},i),origin:p.origin,
-    walkMinutes:clamp(Number(p.walkMinutes),0,60,20),updated:p.updated||Date.now(),
+    walkMinutes:snapWalkMinutes(p.walkMinutes),updated:p.updated||Date.now(),
   })):store.people.map(profileFromPerson);
   store.directorySeq=nextSeq(store.directory);
   store.people.forEach((person,i)=>{
@@ -179,7 +180,7 @@ export async function shareScenario(){
       :{kind:'result',index:store.selected>=0?store.selected:0};
   const settings=clone(store.settings);
   settings.includeHeadway=normIncludeHeadway(settings.includeHeadway);
-  const state={v:1,people:store.people.map(p=>({id:p.id,name:p.name,origin:p.origin,walkMinutes:clamp(Number(p.walkMinutes),0,60,20)})),settings,locale:store.locale,selected:selectedState};
+  const state={v:1,people:store.people.map(p=>({id:p.id,name:p.name,origin:p.origin,walkMinutes:snapWalkMinutes(p.walkMinutes)})),settings,locale:store.locale,selected:selectedState};
   const url=`${location.origin}${location.pathname}${location.search}#s=${encodeBase64Url(state)}`;
   const button=$('share'),status=$('shareStatus');
   const report=message=>{

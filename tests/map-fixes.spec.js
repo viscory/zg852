@@ -126,10 +126,10 @@ test('route leg text is re-translated when the locale changes', async ({ page })
   expect(after).not.toEqual(before);
 });
 
-test('near-tied travel times prefer an MTR exit over a bus interchange', async ({ page }) => {
+test('travel time wins even when a bus stop beats an MTR exit', async ({ page }) => {
   // A tiny synthetic network makes the timing difference deterministic: both
   // candidates are 10-ish minutes from both origins and the bus is 0.5 min
-  // faster. Travel time stays primary for wider gaps. One wildcard route keeps
+  // faster. Node kind no longer breaks ties; the visible times do. One wildcard route keeps
   // the node list and timetable in sync; separate routes can race and let the
   // real timetable load against only four synthetic nodes.
   const line = (l, n, c, s, e) => ({ l, n, c, w: 0, h: 0, s, e, g: [] });
@@ -162,7 +162,7 @@ test('near-tied travel times prefer an MTR exit over a bus interchange', async (
   await search(page);
 
   const labels = await page.locator('.result-row .result-head b').allInnerTexts();
-  expect(labels.slice(0, 2)).toEqual(['MTR Exit', 'Bus Interchange']);
+  expect(labels.slice(0, 2)).toEqual(['Bus Interchange', 'MTR Exit']);
 });
 
 test.describe('narrow fine-pointer desktops use the adaptive deck', () => {
