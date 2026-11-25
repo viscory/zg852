@@ -2,7 +2,7 @@ import { LOCALES,KEY } from './js/config.js';
 import { store } from './js/store.js';
 import { $ } from './js/util.js';
 import { t,ensureCatalog,detectLocale,setDocumentLocale,changeLocale,applyStaticText } from './js/i18n.js';
-import { loadNodes,loadDistricts,loadNetwork,loadPoi } from './js/data.js';
+import { loadNodes,loadDistricts,loadFares,loadNetwork,loadPoi } from './js/data.js';
 import { betaVectorsEnabled } from './js/vectors.js';
 import { applySharedState,restoreState,restoreDirectory,restoreSelection,readSavedSelection,shareScenario,readHashState,save } from './js/state.js';
 import { triggerSearch } from './js/engine.js';
@@ -25,15 +25,15 @@ async function init(){
   const errors=[];
   let mapError=null;
   try{createMap();}catch(err){console.error(err);mapError=err;}
-  const sources=await Promise.allSettled([loadNodes(),loadDistricts(),ensureCatalog('en')]);
-  ['Nodes','Districts','English catalogue'].forEach((label,i)=>{
+  const sources=await Promise.allSettled([loadNodes(),loadDistricts(),loadFares(),ensureCatalog('en')]);
+  ['Nodes','Districts','MTR fares','English catalogue'].forEach((label,i)=>{
     const result=sources[i];
     if(result.status==='rejected'){
       console.error(result.reason);
       errors.push(loadFailure(label,result.reason));
     }
   });
-  if(sources[2].status==='fulfilled')store.EN=store.I18N.en;
+  if(sources[3].status==='fulfilled')store.EN=store.I18N.en;
   if(sources[0].status==='rejected')document.documentElement.dataset.net='error';
   const hashLocale=readHashState()?.locale;
   const storedLocale=LOCALES.includes(hashLocale)?hashLocale:(storedValue(KEY.locale)||detectLocale());

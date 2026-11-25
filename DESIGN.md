@@ -8,6 +8,8 @@ The Parameters panel now starts with a two-state **Time / Fare** toggle. Time is
 
 The tolerance slider starts at 5%, runs linear in 1% steps to 100%, logarithmic to 300%, then Unlimited. The DOM value is a slider position, while settings and share links continue to store the fraction. Fare disparity uses the same percentage shape with a HK$1.00 floor so a walk-only fare does not make the ratio meaningless.
 
+MTR fares are looked up, not calculated from distance. `scripts/generate-mtr-fares.mjs` snapshots the Adult Octopus station-pair matrix and Airport Express table from MTR open data into `static/data/mtr-fares.json`; `railFare()` resolves each continuous paid-area rail run from its boarding and alighting stations. Bus fares remain band estimates.
+
 Unlimited still respects the fixed 90-minute travel budget and each person's walk tolerance. A map pick only resolves to a stop everyone can reach within the budget after the final walk; if no such stop is close enough, the app shows a map notice that the point cannot be reached within 90 minutes instead of inventing a long walk from a distant stop. Pinned-point totals include the final walk, so the displayed total matches the route legs. Diagnostics export the active fairness metric, both tolerances and the travel budget.
 
 Fare ranking is bounded to the 300 most time-sensible cells so the browser does not reconstruct a route for every surface node. The heatmap palette is a dark-maroon → red → orange → yellow sequence so adjacent fairness steps are distinguishable.

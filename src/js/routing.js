@@ -1,4 +1,5 @@
 import { RAIL_FARE_BANDS,BUS_FARE_BANDS,AEL_FARES,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE,WALK_TOLERANCE_DEFAULT,WALK_TOLERANCE_MAX,WALK_SPEED_KMH,WALK_DETOUR } from './config.js';
+import { railFare,aelFareForNodes } from './fares.js';
 import { store } from './store.js';
 import { isNum,haversine,walkMinutes,clamp,round1,esc } from './util.js';
 import { t,tp,num,minuteText } from './i18n.js';
@@ -27,13 +28,15 @@ export function aelFare(from,to){
   return 64.5;
 }
 export function routeFares(route){
-  let rail=0,bus=0,railKm=0,railLeg=null;
+  let rail=0,bus=0,railKm=0,railStart=null,railEnd=null,railLeg=null;
   const flushRail=()=>{
     if(railKm>0){
-      const fare=round1(bandFare(railKm,RAIL_FARE_BANDS));
+      const looked=railFare(railStart,railEnd);
+      if(looked===null)console.warn('MTR fare not in lookup table',railStart,railEnd);
+      const fare=round1(looked??bandFare(railKm,RAIL_FARE_BANDS));
       rail+=fare;
       if(railLeg)railLeg.fare=fare;
-      railKm=0;railLeg=null;
+      railKm=0;railStart=null;railEnd=null;railLeg=null;
     }
   };
   for(const leg of route.legs){
@@ -44,13 +47,14 @@ export function routeFares(route){
     }
     if(leg.mode==='rail'&&String(leg.line).startsWith('MTR AEL')){
       flushRail();
-      const fare=round1(aelFare(leg.from,leg.to));
+      const fare=round1(aelFareForNodes(leg.fromNode,leg.toNode)??aelFare(leg.from,leg.to));
       rail+=fare;leg.fare=fare;
       continue;
     }
     const km=legDistanceKm(leg);
     if(leg.mode==='rail'||leg.mode==='lightRail'){
-      railKm+=km;leg.fare=0;railLeg=leg;
+      if(railKm===0)railStart=leg.fromNode;
+      railKm+=km;railEnd=leg.toNode;railLeg=leg;leg.fare=0;
     }else{
       flushRail();
       const fare=round1(bandFare(km,BUS_FARE_BANDS));

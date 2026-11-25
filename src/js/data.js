@@ -50,6 +50,12 @@ export async function loadDistricts(){
   store.DISTRICTS=await fetchJson('data/districts.json','Districts');
   if(!Array.isArray(store.DISTRICTS))throw new Error('Districts data is invalid');
 }
+export async function loadFares(){
+  if(store.MTR_FARES)return store.MTR_FARES;
+  store.MTR_FARES=await fetchJson('data/mtr-fares.json','MTR fares');
+  if(!store.MTR_FARES?.fares||!store.MTR_FARES?.nodeStation)throw new Error('MTR fare data is invalid');
+  return store.MTR_FARES;
+}
 export async function loadPoi(){
   if(store.poiLoaded)return store.POI;
   if(store.poiLoading)return store.poiLoading;

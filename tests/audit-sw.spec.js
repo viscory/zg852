@@ -90,12 +90,12 @@ test('service worker does not cache non-OK responses', async ({ page, context })
 });
 
 test('service worker precache list still covers required offline assets', () => {
-  expect(SW_CACHE_NAME).toBe('zg852-v64');
+  expect(SW_CACHE_NAME).toBe('zg852-v65');
   const sw = readFileSync(join(publicDir, 'sw.js'), 'utf8');
   const list = sw.match(/const ASSETS=\[([^\]]*)\]/);
   expect(list).not.toBeNull();
   const assets = [...list[1].matchAll(/['"](\.\/[^'"]+)['"]/g)].map(match => match[1].replace(/^\.\//, '/'));
-  for (const required of ['/index.html', '/app.js', '/app.css', '/data/network.json', '/data/nodes.json', '/i18n/en.json', '/maplibre-gl-worker.mjs']) {
+  for (const required of ['/index.html', '/app.js', '/app.css', '/data/network.json', '/data/nodes.json', '/data/mtr-fares.json', '/i18n/en.json', '/maplibre-gl-worker.mjs']) {
     expect(assets, `${required} should be precached`).toContain(required);
   }
   expect(assets).not.toContain('/sw.js');

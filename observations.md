@@ -1,3 +1,11 @@
+## 2026-11-25T13:46:27Z
+
+- Replaced the distance-band MTR fare calculation with official station-pair lookups. `scripts/generate-mtr-fares.mjs` snapshots MTR open data (Adult Octopus matrix plus Airport Express fares) into `static/data/mtr-fares.json`: 8,836 metro pairs, 14 AEL pairs and 928 node→station mappings.
+- The app loads the snapshot at startup; `fares.js` resolves platform/exit/station nodes back to a station and looks up one fare for each continuous paid-area rail run. Unmapped pairs fall back to the old band fare with a console warning; bus fares remain band estimates.
+- The user's example now shows the official fares: Kowloon Bay → Lok Ma Chau HK$46.6 and Chai Wan → Lok Ma Chau HK$54.4, instead of both capping at HK$20.5.
+- Added the dataset to the deployment allowlist and service-worker precache, updated Credits/Process/README/DESIGN, and bumped SW to `zg852-v65`.
+- Added `tests/fares.spec.js` for dataset integrity and the route-level fares. `npm run lint` is clean; `CI=true npm test` passes 134/134. Commit, push, CI deploy and live verification are next.
+
 ## 2026-11-25T13:01:40Z
 
 - Pushed `26d91f2`; CI run `45618814769` passed the 132-test job and the Cloudflare deploy. Live is SW `zg852-v64`.
