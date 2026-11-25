@@ -1,6 +1,6 @@
 # 就腳
 
-Client-side Hong Kong fair meeting-point finder. Pick two or more start places and see fair areas on the map with segmented walking, MTR, and bus routes, all within a fixed 60-minute travel cap. No account, no backend, no API keys.
+Client-side Hong Kong fair meeting-point finder. Pick two or more start places and see fair areas on the map with segmented walking, MTR, and bus routes, all within a fixed 90-minute travel cap. No account, no backend, no API keys.
 
 Site: https://zg852.pages.dev/
 
@@ -8,7 +8,7 @@ Site: https://zg852.pages.dev/
 
 Each person card has a walk tolerance slider: 0–60 minutes in 5-minute steps, 20 minutes by default. It stays per person and is saved with the person, in saved profiles, and in share links.
 
-The right sidebar's **Parameters** panel holds the transport modes, a **Time / Fare** fairness toggle, the percentage tolerance for the active metric, and an `Include average headway` checkbox. Time mode filters and ranks by travel-time disparity. Fare mode keeps the 60-minute trip budget, drops the time-disparity filter, and ranks the time-feasible pool by fare spread; fares stay estimates, but now affect the active objective. The slider is logarithmic from 0% to 300%, followed by Unlimited, and each metric keeps its own tolerance. The headway checkbox is on by default and travels with settings and share links; with it on, half the average wait is charged only when you change between transit legs and appears as an `Interchange wait N min` note in the steps and tooltip. The first departure assumes you time yourself. Turn the checkbox off and no headway wait is charged or displayed.
+The right sidebar's **Parameters** panel holds the transport modes, a **Time / Fare** fairness toggle, the percentage tolerance for the active metric, and an `Include average headway` checkbox. Time mode filters and ranks by travel-time disparity. Fare mode keeps the 90-minute trip budget, drops the time-disparity filter, and ranks the time-feasible pool by fare spread; fares stay estimates, but now affect the active objective. The slider is logarithmic from 0% to 300%, followed by Unlimited, and each metric keeps its own tolerance. The headway checkbox is on by default and travels with settings and share links; with it on, half the average wait is charged only when you change between transit legs and appears as an `Interchange wait N min` note in the steps and tooltip. The first departure assumes you time yourself. Turn the checkbox off and no headway wait is charged or displayed.
 
 Minute values are whole numbers, and MTR legs use full line names such as `Tuen Ma Line` or `Tsuen Wan Line`, never three-letter codes. Each ride chip shows its boarding and alighting stops as `Start → End` with a Unicode arrow. Pressing Find fair areas — from the parameters panel or the empty state — shows the selected route's steps in the left detail face straight away; you can still swap between the people list and route detail with the swap button. There is no saved-people count line. The right sidebar keeps its parameters panel sticky while fair-area results scroll directly beneath it.
 

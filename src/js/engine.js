@@ -64,7 +64,7 @@ export function compute(reveal=false){
     store.results=ordered.slice(0,7).map(({cell:c})=>cellToResult(c));
     store.results.forEach(r=>prepareRoutes(r,store.activePeople));
   }else{
-    // Fare fairness is a real objective: keep the 60-minute budget, drop the
+    // Fare fairness is a real objective: keep the 90-minute budget, drop the
     // time-disparity filter, rank the time-feasible pool by fare disparity.
     const timeCells=buildCells(effectiveGrids,Infinity,TRAVEL_BUDGET_MINUTES);
     const ordered=timeCells.map(cell=>({cell,fitScore:cellFitScore(cell)}))

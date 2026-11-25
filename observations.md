@@ -1,3 +1,12 @@
+## 2026-11-25T08:36:12Z
+
+- Reverted the blue heat palette to the documented warm dark-maroon → red → orange → yellow sequence (config, legend swatches and the heat-colour test). The blue scale was my call and it made the map read as water/cold rather than a heatmap.
+- Raised the fixed travel budget from 60 to 90 minutes. This makes Yuen Long reachable from North Point + Chai Wan with average headway on, and the pinned point now shows the Tuen Ma Line to Yuen Long instead of refusing the point.
+- Point-pick failures no longer use the sidebar error. A map notice now appears in the same top-centre slot as the pinned-point banner, with an alert icon, the 90-minute explanation and a close button. Successful point/area selections clear it.
+- Fixed the shared mobile banner animation: `mobile-detail-in` ended on `transform:none`, which stripped `translateX(-50%)` and pushed the pinned-point and notice banners half off-screen. A dedicated `map-banner-in` keyframe preserves centring.
+- Updated all catalogue copy from 60 to 90 minutes, README/DESIGN, the diagnostics budget assertion, the Yuen Long regression and the out-of-reach notice regression. SW cache is now `zg852-v58`.
+- `npm run lint` is clean; `CI=true npm test` passes 130/130. Commit, push, CI deploy and live verification are next.
+
 ## 2026-11-25T07:54:41Z
 
 - Pushed `1d76b45`; CI run `45571308419` passed the 129-test job and the Cloudflare deploy. Live is SW `zg852-v57`.

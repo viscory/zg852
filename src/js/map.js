@@ -11,7 +11,7 @@ import { prepareRoutes,legLabel,fareMarkup,money,cellToResult,interchangeWaitTex
 import { hkbusUrl,mtrLineCode,districtFor } from './data.js';
 import { displayName,saveSelection } from './state.js';
 import { isMobileLayout,showMobileRoute } from './mobile.js';
-import { markSelectedResult,setPinOrigin,setLabel,setSidebarFace,showError,applyUnboundedUi } from './ui.js';
+import { markSelectedResult,setPinOrigin,setLabel,setSidebarFace,showError,showPointNotice,clearPointNotice,applyUnboundedUi } from './ui.js';
 
 export const CLEAN_STYLE={
   version:8,
@@ -317,6 +317,7 @@ function persistSelection(){
 }
 export function selectCell(cell){
   hideTooltip();
+  clearPointNotice();
   clearStalePointSelection();
   const active=store.activePeople,match=store.results.findIndex(result=>resultMatches(result,{key:cell.key,node:cell.node}));
   if(match>=0){store.selection={kind:'result',index:match};store.sharedSelection=null;selectResult(match,active,true);return;}
@@ -419,6 +420,7 @@ export function renderSelection(r,active=store.activePeople,fit=false){
 export function selectResult(i,active=store.activePeople,reveal=false){
   const r=store.results[i];if(!r)return;
   hideTooltip();
+  clearPointNotice();
   clearStalePointSelection();
   store.selection={kind:'result',index:i};store.sharedSelection=null;
   persistSelection();
@@ -436,6 +438,7 @@ export function selectPoint(lat,lon){
     return;
   }
   hideTooltip();
+  clearPointNotice();
   const grids=store.effectiveGrids,round=value=>Math.round(value*10)/10;
   const walkLimits=store.activePeople.map(person=>walkBudget(person));
   const approachMinutes=distance=>distance/1000/WALK_SPEED_KMH*60*WALK_DETOUR;
@@ -449,7 +452,7 @@ export function selectPoint(lat,lon){
     const score=distance+Math.max(...times)*10;
     if(score<bestScore){bestScore=score;nearest=index;}
   }
-  if(nearest<0){showError(t('error.pointOutOfReach'));return;}
+  if(nearest<0){showPointNotice(t('error.pointOutOfReach'));return;}
   const walk=approachMinutes(haversine(lat,lon,store.NODES.lat[nearest],store.NODES.lon[nearest]));
   const times=grids.map(grid=>round(grid[nearest]+walk));
   const slowest=Math.max(...times),fastest=Math.min(...times);
@@ -473,6 +476,7 @@ export function selectPoint(lat,lon){
   renderSelection(result,store.activePeople,true);
 }
 export function clearPoint(){
+  clearPointNotice();
   store.pointSelection=null;
   store.selection={kind:'result',index:0};
   applyUnboundedUi();

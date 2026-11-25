@@ -67,6 +67,19 @@ export function clearError(){
   const el=$('error');el.textContent='';el.hidden=true;
   const mobile=$('mobileError');if(mobile){mobile.textContent='';mobile.hidden=true;}
 }
+let pointNoticeTimer=null;
+export function showPointNotice(message){
+  const notice=$('pointNotice'),text=$('pointNoticeText');
+  if(!notice||!text)return;
+  text.textContent=message;
+  notice.hidden=false;
+  clearTimeout(pointNoticeTimer);
+  pointNoticeTimer=setTimeout(()=>{notice.hidden=true;pointNoticeTimer=null;},7000);
+}
+export function clearPointNotice(){
+  clearTimeout(pointNoticeTimer);pointNoticeTimer=null;
+  const notice=$('pointNotice');if(notice)notice.hidden=true;
+}
 export function setLabel(el,value){if(!el)return;el.setAttribute('aria-label',value);el.title=value;el.dataset.tooltip=value;}
 // Typed start text is only a query until it is resolved to a real place. Keep
 // the query beside the input so Enter, blur and Search can all commit it.
@@ -173,6 +186,7 @@ export function isUnboundedReady(){
 export function applyUnboundedUi(){
   const ready=isUnboundedReady();
   if(!ready&&store.pointSelection)store.pointSelection=null;
+  if(!store.unbounded)clearPointNotice();
   const pin=$('pinBanner');
   const pinning=Boolean(store.pinTarget)||Boolean(pin&&!pin.hidden);
   // The pin banner and the unlimited hint occupy the same spot; the pin wins

@@ -599,7 +599,7 @@ test('search results draw a discrete red heatmap instead of a gradient', async (
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   const fills = await page.locator('path.heat-cell').evaluateAll(els => [...new Set(els.map(el => el.getAttribute('fill')))]);
-  const allowed = ['#082F49', '#0C4A6E', '#075985', '#0284C7', '#38BDF8', '#BAE6FD'];
+  const allowed = ['#4C0519', '#9F1239', '#E11D48', '#F97316', '#FACC15', '#FDE68A'];
   expect(fills.length).toBeGreaterThan(0);
   expect(fills.every(fill => allowed.includes(fill))).toBe(true);
   await expect(page.locator('.legend .swatch.h1')).toBeVisible();
@@ -706,7 +706,7 @@ test('diagnostics dump downloads a timestamped JSON file and copies it', async (
   expect(file.settings.modes).toEqual(['rail', 'bus']);
   expect(file.settings.tolerance).toBeGreaterThan(0);
   expect(file.settings.fareTolerance).toBeGreaterThan(0);
-  expect(file.settings.travelBudgetMinutes).toBe(60);
+  expect(file.settings.travelBudgetMinutes).toBe(90);
   expect(file.settings.includeHeadway).toBe(true);
   expect(file.settings.toleranceLimited).toBe(true);
   expect(file.settings.unbounded).toBe(false);

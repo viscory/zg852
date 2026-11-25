@@ -1,6 +1,6 @@
 export const ACCENT='#C8102E';
 export const PERSON_COLORS=['#F97316','#0E7490','#7C3AED','#B45309','#0F766E','#BE185D','#0891B2','#4D7C0F'];
-export const HEAT_COLORS=['#082F49','#0C4A6E','#075985','#0284C7','#38BDF8','#BAE6FD'];
+export const HEAT_COLORS=['#4C0519','#9F1239','#E11D48','#F97316','#FACC15','#FDE68A'];
 export const LETTERS='ABCDEFGH';
 export const LOCALES=['en','zh-Hant','zh-Hans','ja','ko','hi','ur','fil','id','fr','th','vi','ne','es','de'];
 export const RTL_LOCALES=new Set(['ur']);
@@ -14,7 +14,7 @@ export const CELL_SIZE=0.005;
 export const WALK_SPEED_KMH=4.5;
 export const WALK_DETOUR=1.3;
 export const MAX_CLOUD_CELLS=600;
-export const TRAVEL_BUDGET_MINUTES=60;
+export const TRAVEL_BUDGET_MINUTES=90;
 export const DEFAULT_INCLUDE_HEADWAY=true;
 // Fairness is a percentage of disparity. The slider is logarithmic: 0%, then
 // 1%..300%, then one unbounded stop. Settings and share links keep the

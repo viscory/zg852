@@ -215,7 +215,7 @@ test('a shared pinned point survives reload', async ({ page }) => {
   await expect(page.locator('.point-pin')).toHaveCount(1);
 });
 
-test('a pinned point outside the 60-minute limit explains why', async ({ page }) => {
+test('a pinned point shows the MTR route to Yuen Long', async ({ page }) => {
   await page.goto('/');
   const point = await page.evaluate(async () => {
     const nodes = await (await fetch('data/nodes.json')).json();
@@ -235,9 +235,34 @@ test('a pinned point outside the 60-minute limit explains why', async ({ page })
 
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
-  await expect(page.locator('#error')).toContainText('cannot be reached by everyone within 60 minutes');
+  await expect(page.locator('#error')).toBeHidden();
+  await expect(page.locator('#pointBanner')).toBeVisible();
+  await expect(page.locator('#detailTitle')).toHaveText('Pinned point');
+  await expect(page.locator('#steps')).toContainText('Tuen Ma Line');
+  await expect(page.locator('#steps')).toContainText('Yuen Long');
+});
+
+test('an out-of-reach pinned point shows a map notice', async ({ page }) => {
+  await page.goto('/');
+  const state = await sharedScenario(page, {
+    locale: 'en',
+    tolerance: 3.05,
+    origins: ['North Point', 'Chai Wan'],
+    includeHeadway: true,
+    selected: { kind: 'point', lat: 22.20, lon: 114.40 },
+  });
+  const url = await makeShareUrl(page, state);
+  await page.goto(url);
+  await page.reload();
+
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('#pointNotice')).toBeVisible();
+  await expect(page.locator('#pointNoticeText')).toHaveText('That point cannot be reached by everyone within 90 minutes.');
   await expect(page.locator('#pointBanner')).toBeHidden();
-  await expect(page.locator('#detailTitle')).not.toHaveText('Pinned point');
+  await expect(page.locator('#error')).toBeHidden();
+  await page.locator('#dismissPointNotice').click();
+  await expect(page.locator('#pointNotice')).toBeHidden();
 });
 
 test('default names are placeholders that follow the locale', async ({ page }) => {
