@@ -1,3 +1,9 @@
+## 2026-11-25T14:12:20Z
+
+- Pushed `63de099`; CI run `45630686352` passed the 137-test job and the Cloudflare deploy. Live is SW `zg852-v66`.
+- Live checks: subtitle, tolerance label/help, Beta diagnostics note and "Top N areas" copy all render; the selected-area title matches a stop used by its routes. Smoke plus truth specs passed 9/9 against the deployed site.
+- No further source changes are pending.
+
 ## 2026-11-25T14:06:11Z
 
 - Implemented audit fixes 1–6 with the recommended defaults. Copy changes across all 15 catalogues: `app.subtitle` → "Find a fair meeting point in Hong Kong", `results.areas` → "Top {count} areas", tolerance labels → "Target … difference" plus a new `options.toleranceHelp` note disclosing the 8-minute/5-minute/HK$1 floors, a new `beta.diagnosticsHelp` note and a shorter Beta tooltip. Deleted the dormant preference keys and the unused `preferenceText()`; catalogue key count is now 184.
