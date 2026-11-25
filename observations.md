@@ -1,3 +1,9 @@
+## 2026-11-25T00:36:00Z
+
+- Pushed commit `10ef7c5`; CI run `45518722916` passed the 126-test job and the Cloudflare deploy job. Live is now SW `zg852-v54`.
+- Live fare mode at 393×664 opens with the Fare toggle active, a 25% tolerance, “fairer fares” legend text, 7 ranked results and 114 heat cells. The first result is East Tsim Sha Tsui (HK$10.6 / HK$10.4); ranking is by fare score.
+- No further source changes are pending after the deploy.
+
 ## 2026-11-25T00:31:00Z
 
 - Added a **Time / Fare** fairness toggle with clock/coins icons. Time keeps the existing filter and ranking; Fare keeps the 60-minute budget, drops the time-disparity filter, and ranks the top 300 time-feasible cells by `maxFare + fareGap`, with a HK$1 floor on the percentage. Each metric stores its own tolerance and share-link value.
