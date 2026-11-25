@@ -1,3 +1,9 @@
+## 2026-11-25T13:51:21Z
+
+- Pushed `0efcb0d`; CI run `45627098663` passed the 134-test job and the Cloudflare deploy. Live is SW `zg852-v65`.
+- Live verification of the reported scenario: Kowloon Bay → Lok Ma Chau shows HK$46.6 and Chai Wan → Lok Ma Chau shows HK$54.4, with no HK$20.5 band cap. The fare dataset is precached and served from `data/mtr-fares.json`.
+- No further source changes are pending.
+
 ## 2026-11-25T13:46:27Z
 
 - Replaced the distance-band MTR fare calculation with official station-pair lookups. `scripts/generate-mtr-fares.mjs` snapshots MTR open data (Adult Octopus matrix plus Airport Express fares) into `static/data/mtr-fares.json`: 8,836 metro pairs, 14 AEL pairs and 928 node→station mappings.
