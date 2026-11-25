@@ -1,3 +1,10 @@
+## 2026-11-25T08:59:46Z
+
+- Removed the two footer paragraphs from the right sidebar: the browser-routing/Photon/OpenFreeMap note and the FairPin inspiration line. The footer now contains only Privacy / Terms / Credits / Process (and diagnostics in beta).
+- The information is already folded into the legal pages: the routing/device note is on Process, the OpenFreeMap/Photon sources and FairPin inspiration are on Credits, and Terms repeats the inspiration and third-party-service notes.
+- Updated the footer regression to assert the old copy is gone and kept the legal-dialog test asserting the inspiration text on Credits and the routing note on Process. SW cache bumped to `zg852-v60`.
+- `npm run lint` is clean; `CI=true npm test` passes 130/130. Commit, push, CI deploy and live verification are next.
+
 ## 2026-11-25T08:46:52Z
 
 - Pushed `eb29b63`; CI run `45578686810` passed the 130-test job and the Cloudflare deploy. Live is SW `zg852-v59`.

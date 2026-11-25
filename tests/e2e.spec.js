@@ -346,11 +346,11 @@ test('travel budget slider is gone', async ({ page }) => {
   await expect(page.locator('label[for="budget"]')).toHaveCount(0);
 });
 
-test('right sidebar footer carries attribution, inspiration and project links', async ({ page }) => {
+test('right sidebar footer carries project links only', async ({ page }) => {
   const footer = page.locator('.side-right footer');
   await expect(footer).toBeVisible();
-  await expect(footer).toContainText('Routing runs in this browser');
-  await expect(footer).toContainText('Inspired by');
+  await expect(footer).not.toContainText('Routing runs in this browser');
+  await expect(footer).not.toContainText('Inspired by');
   for (const [key, label] of Object.entries({
     privacy: 'Privacy',
     terms: 'Terms',
@@ -1220,7 +1220,7 @@ test('legal buttons open the dialog with loaded documents and direct pages still
   const documents = [
     { key: 'privacy', title: 'Privacy', body: 'What stays on your device' },
     { key: 'terms', title: 'Terms', body: 'Informational service' },
-    { key: 'credits', title: 'Credits', body: 'Transit data' },
+    { key: 'credits', title: 'Credits', body: 'Inspired by' },
     { key: 'process', title: 'Process', body: 'Routing runs in this browser' },
   ];
   for (const document of documents) {
