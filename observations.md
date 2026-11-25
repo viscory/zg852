@@ -1,3 +1,12 @@
+## 2026-11-25T07:50:20Z
+
+- Reproduced the pasted scenario exactly: Metropole Building (walk to North Point) + Chai Wan, rail-only, Time Unlimited. Tai Koo at 12.2/12.6 min is the correct fair area, not a routing bug. Yuen Long is outside the 60-minute cap for Chai Wan when average headway is included.
+- Found the real defect behind “why is this not telling me to take the MTR to Yuen Long”: a map pick near Yuen Long snapped to Kam Sheung Road because it was the last stop inside the 60-minute grid, then appended a 58-minute walk to the pin while the panel still reported the station total as 50/60 min. The point pick neither capped the final walk nor counted it in the total.
+- `selectPoint` now only accepts a stop when everyone can reach it, the final walk fits each person’s walk tolerance, and station time plus final walk fits the 60-minute budget. If nothing qualifies it shows the new localized `error.pointOutOfReach` message instead of inventing a long walk. Pinned-point totals now include the final walk, so the displayed total matches the legs.
+- The Unlimited hint now says the 60-minute travel limit still applies. Diagnostics export the active fairness metric, both tolerances and `travelBudgetMinutes`.
+- Added a share-link regression for North Point + Chai Wan → Yuen Long, updated the catalogue key count to 185, and bumped the service worker to `zg852-v57`.
+- `npm run lint` is clean; `CI=true npm test` passes 129/129. Commit, push, CI deploy and live verification are next.
+
 ## 2026-11-25T07:31:00Z
 
 - Pushed commit `fed4638`; CI run `45568294664` passed the 128-test job and the Cloudflare deploy. Live is SW `zg852-v56`.

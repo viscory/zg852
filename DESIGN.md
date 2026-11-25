@@ -8,6 +8,8 @@ The Parameters panel now starts with a two-state **Time / Fare** toggle. Time is
 
 The tolerance slider is logarithmic: 0%, 1–300%, then Unlimited. The DOM value is a slider position, while settings and share links continue to store the fraction. Fare disparity uses the same percentage shape with a HK$1.00 floor so a walk-only fare does not make the ratio meaningless.
 
+Unlimited still respects the fixed 60-minute travel budget and each person's walk tolerance. A map pick only resolves to a stop everyone can reach within the budget after the final walk; if no such stop is close enough, the app says the point cannot be reached within 60 minutes instead of inventing a long walk from a distant stop. Pinned-point totals include the final walk, so the displayed total matches the route legs. Diagnostics export the active fairness metric, both tolerances and the travel budget.
+
 Fare ranking is bounded to the 300 most time-sensible cells so the browser does not reconstruct a route for every surface node. The heatmap palette is a dark-maroon → red → orange → yellow sequence so adjacent fairness steps are distinguishable.
 
 The map key and Interest ratings are proper disclosure panels with a +/− mark and a grid-row height/opacity transition. The desktop map key starts open; the mobile key starts closed; both can be collapsed. Fare heat shows how expensive the meeting is (highest fare), not how fair the fare spread is, while result ordering still uses the fare-disparity score.

@@ -40,7 +40,7 @@ async function makeShareUrl(page, state) {
   }, state);
 }
 
-async function sharedScenario(page, { locale, selected, tolerance }) {
+async function sharedScenario(page, { locale, selected, tolerance, origins = ['Tsuen Wan', 'North Point'], includeHeadway = false }) {
   return page.evaluate(async options => {
     const nodes = await (await fetch('data/nodes.json')).json();
     const index = name => nodes.names.findIndex((value, i) => value === name && nodes.kind[i] === 1);
@@ -48,17 +48,20 @@ async function sharedScenario(page, { locale, selected, tolerance }) {
       const node = index(name);
       return { kind: 'node', node, label: nodes.names[node], lat: nodes.lat[node], lon: nodes.lon[node] };
     };
+    const names = ['Alex', 'Sam', 'Riley', 'Mia', 'Noah', 'Zoe', 'Eli', 'Ava'];
     return {
       v: 1,
-      people: [
-        { id: 'p1', name: 'Alex', origin: origin('Tsuen Wan'), walkMinutes: 20 },
-        { id: 'p2', name: 'Sam', origin: origin('North Point'), walkMinutes: 20 },
-      ],
-      settings: { modes: ['rail'], tolerance: options.tolerance, includeHeadway: false },
+      people: options.origins.map((name, i) => ({
+        id: `p${i + 1}`,
+        name: names[i] || `Person ${i + 1}`,
+        origin: origin(name),
+        walkMinutes: 20,
+      })),
+      settings: { modes: ['rail'], tolerance: options.tolerance, includeHeadway: options.includeHeadway },
       locale: options.locale,
       selected: options.selected,
     };
-  }, { locale, selected, tolerance });
+  }, { locale, selected, tolerance, origins, includeHeadway });
 }
 
 test.beforeEach(async ({ page }) => {
@@ -210,6 +213,31 @@ test('a shared pinned point survives reload', async ({ page }) => {
   await expect(page.locator('#pointBanner')).toBeVisible();
   await expect(page.locator('#detailTitle')).toHaveText('Pinned point');
   await expect(page.locator('.point-pin')).toHaveCount(1);
+});
+
+test('a pinned point outside the 60-minute limit explains why', async ({ page }) => {
+  await page.goto('/');
+  const point = await page.evaluate(async () => {
+    const nodes = await (await fetch('data/nodes.json')).json();
+    const index = nodes.names.findIndex((name, i) => name === 'Yuen Long' && nodes.kind[i] === 1);
+    return { lat: nodes.lat[index], lon: nodes.lon[index], node: index };
+  });
+  const state = await sharedScenario(page, {
+    locale: 'en',
+    tolerance: 3.05,
+    origins: ['North Point', 'Chai Wan'],
+    includeHeadway: true,
+    selected: { kind: 'point', ...point },
+  });
+  const url = await makeShareUrl(page, state);
+  await page.goto(url);
+  await page.reload();
+
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('#error')).toContainText('cannot be reached by everyone within 60 minutes');
+  await expect(page.locator('#pointBanner')).toBeHidden();
+  await expect(page.locator('#detailTitle')).not.toHaveText('Pinned point');
 });
 
 test('default names are placeholders that follow the locale', async ({ page }) => {

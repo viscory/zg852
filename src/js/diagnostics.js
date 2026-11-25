@@ -1,4 +1,4 @@
-import { LETTERS,TRAVEL_TOLERANCE_MAX } from './config.js';
+import { LETTERS,TRAVEL_TOLERANCE_MAX,TRAVEL_BUDGET_MINUTES } from './config.js';
 import { store } from './store.js';
 import { displayName,copyText } from './state.js';
 
@@ -61,15 +61,21 @@ export function diagnosticData(){
   const selectedIndex=store.selection?.kind==='result'?Number(store.selection.index):store.selected;
   const selected=store.results?.[selectedIndex]||null;
   const tolerance=Number(store.settings.tolerance)||0;
+  const fareTolerance=Number(store.settings.fareTolerance)||0;
   return{
     schema:1,
     generatedAt:new Date().toISOString(),
     app:{name:'就腳 zau6 goek3',url:location.href,locale:store.locale},
     settings:{
+      fairness:store.settings.fairness==='fare'?'fare':'time',
       modes:store.settings.modes||[],
       tolerance,
       tolerancePercent:Math.round(tolerance*100),
       toleranceLimited:tolerance<TRAVEL_TOLERANCE_MAX,
+      fareTolerance,
+      fareTolerancePercent:Math.round(fareTolerance*100),
+      fareToleranceLimited:fareTolerance<TRAVEL_TOLERANCE_MAX,
+      travelBudgetMinutes:TRAVEL_BUDGET_MINUTES,
       unbounded:!!store.unbounded,
       includeHeadway:store.settings.includeHeadway!==false,
       beta:store.settings.beta||null,

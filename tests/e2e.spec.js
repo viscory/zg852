@@ -702,6 +702,11 @@ test('diagnostics dump downloads a timestamped JSON file and copies it', async (
 
   const file = JSON.parse(readFileSync(await download.path(), 'utf8'));
   expect(file.schema).toBe(1);
+  expect(file.settings.fairness).toBe('time');
+  expect(file.settings.modes).toEqual(['rail', 'bus']);
+  expect(file.settings.tolerance).toBeGreaterThan(0);
+  expect(file.settings.fareTolerance).toBeGreaterThan(0);
+  expect(file.settings.travelBudgetMinutes).toBe(60);
   expect(file.settings.includeHeadway).toBe(true);
   expect(file.settings.toleranceLimited).toBe(true);
   expect(file.settings.unbounded).toBe(false);
@@ -786,7 +791,7 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
-  expect(expected).toHaveLength(184);
+  expect(expected).toHaveLength(185);
   for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'vector.ratings', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }

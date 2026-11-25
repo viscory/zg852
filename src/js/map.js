@@ -2,12 +2,12 @@ import * as L from 'leaflet';
 import { maplibreGL } from '@maplibre/maplibre-gl-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,TRAVEL_BUDGET_MINUTES,FARE_HEAT_MAX } from './config.js';
+import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,TRAVEL_BUDGET_MINUTES,FARE_HEAT_MAX,WALK_SPEED_KMH,WALK_DETOUR } from './config.js';
 import { store } from './store.js';
 import { $,esc,clamp,isNum,icon,initialsFor,avatarClass,haversine } from './util.js';
 import { t,intNum,minuteText } from './i18n.js';
 import { cellTopNames,cellRatings,cellVector,cellCount,cellPreference,overallRating } from './vectors.js';
-import { prepareRoutes,legLabel,fareMarkup,money,cellToResult,interchangeWaitText } from './routing.js';
+import { prepareRoutes,legLabel,fareMarkup,money,cellToResult,interchangeWaitText,walkBudget } from './routing.js';
 import { hkbusUrl,mtrLineCode,districtFor } from './data.js';
 import { displayName,saveSelection } from './state.js';
 import { isMobileLayout,showMobileRoute } from './mobile.js';
@@ -426,8 +426,9 @@ export function selectResult(i,active=store.activePeople,reveal=false){
   renderSelection(r,active,reveal);
 }
 // Free-point picking is only offered above 300% tolerance. The pin stays at
-// the exact click; routes end at the nearest reachable transit stop and gain
-// a short walking leg to the pin.
+// the exact click; routes end at the nearest transit stop that everyone can
+// reach within the travel budget and the walk tolerance. Both limits include
+// the final walk, so a distant stop cannot masquerade as a short trip.
 export function selectPoint(lat,lon){
   if(!store.unbounded||!isNum(lat)||!isNum(lon))return;
   if(!store.NET||!store.effectiveGrids||!store.activePeople.length){
@@ -436,16 +437,21 @@ export function selectPoint(lat,lon){
   }
   hideTooltip();
   const grids=store.effectiveGrids,round=value=>Math.round(value*10)/10;
+  const walkLimits=store.activePeople.map(person=>walkBudget(person));
+  const approachMinutes=distance=>distance/1000/WALK_SPEED_KMH*60*WALK_DETOUR;
   let nearest=-1,bestScore=Infinity;
   for(const index of store.surface){
     const times=grids.map(grid=>grid[index]);
     if(times.some(value=>!isFinite(value)||value>TRAVEL_BUDGET_MINUTES))continue;
     const distance=haversine(lat,lon,store.NODES.lat[index],store.NODES.lon[index]);
+    const walk=approachMinutes(distance);
+    if(times.some((value,person)=>Math.round(walk)>walkLimits[person]||Math.round(value+walk)>TRAVEL_BUDGET_MINUTES))continue;
     const score=distance+Math.max(...times)*10;
     if(score<bestScore){bestScore=score;nearest=index;}
   }
-  if(nearest<0){showError(t('error.noNearby'));return;}
-  const times=grids.map(grid=>round(grid[nearest]));
+  if(nearest<0){showError(t('error.pointOutOfReach'));return;}
+  const walk=approachMinutes(haversine(lat,lon,store.NODES.lat[nearest],store.NODES.lon[nearest]));
+  const times=grids.map(grid=>round(grid[nearest]+walk));
   const slowest=Math.max(...times),fastest=Math.min(...times);
   const label=t('map.pinnedPoint');
   const cy=Math.floor(store.NODES.lat[nearest]/CELL_SIZE),cx=Math.floor(store.NODES.lon[nearest]/CELL_SIZE),poiCell={key:`${cy},${cx}`};
