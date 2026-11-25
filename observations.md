@@ -1,3 +1,9 @@
+## 2026-11-25T13:01:40Z
+
+- Pushed `26d91f2`; CI run `45618814769` passed the 132-test job and the Cloudflare deploy. Live is SW `zg852-v64`.
+- Live checks: results count has 8 px inline-end padding, the results section has both the static bottom drop shadow and the dynamic inset shadow, and clicking bus while it is the only active mode leaves it on. The unbounded map-view regression passes in the browser.
+- No further source changes are pending.
+
 ## 2026-11-25T12:57:29Z
 
 - Added 8 px inline-end padding to the results count so “7 areas” no longer sits against the edge.
