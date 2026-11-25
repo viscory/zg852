@@ -259,22 +259,21 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .leaflet-control .map-recenter:last-child{border-bottom:0}
 .leaflet-control .map-recenter:hover{background:var(--danger-bg);color:var(--accent)}
 .leaflet-control .map-recenter .icon{--icon:14px}
-.legend{position:absolute;left:24px;bottom:24px;z-index:900;pointer-events:none;display:grid;gap:0;max-width:560px;background:var(--elevated);border:1px solid var(--border);border-radius:var(--r-md);padding:8px 12px;font-size:12px;color:var(--muted);box-shadow:0 6px 20px rgba(80,20,20,.08)}
+.legend{position:absolute;left:24px;bottom:24px;z-index:900;pointer-events:none;display:grid;gap:0;width:364px;max-width:calc(100vw - 32px);background:var(--elevated);border:1px solid var(--border);border-radius:var(--r-md);padding:8px 12px;font-size:12px;color:var(--muted);box-shadow:0 6px 20px rgba(80,20,20,.08);transition:width .22s ease}
 .legend-head{display:flex;align-items:center;gap:6px;color:var(--text);font-weight:600;pointer-events:auto}
 .legend-head .icon{color:var(--accent)}
-.legend-body{pointer-events:none;display:grid;gap:6px;padding-top:0}
+.legend-body{pointer-events:none;display:grid;gap:6px;width:340px;padding-top:0}
 .legend.open .legend-body{padding-top:6px}
-.legend:not(.open){width:max-content;max-width:calc(100vw - 32px)}
+.legend:not(.open){width:112px}
 .legend:not(.open) .legend-head{width:auto}
-.legend:not(.open) .disclosure-body{width:0}
 .cloud-key{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .swatch{width:12px;height:12px;border:1px solid var(--border);border-radius:var(--r-sm);display:inline-block}
-.swatch.h1{background:#4C0519}
-.swatch.h2{background:#9F1239}
-.swatch.h3{background:#E11D48}
-.swatch.h4{background:#F97316}
-.swatch.h5{background:#FACC15}
-.swatch.h6{background:#FDE68A}
+.swatch.h1{background:#082F49}
+.swatch.h2{background:#0C4A6E}
+.swatch.h3{background:#075985}
+.swatch.h4{background:#0284C7}
+.swatch.h5{background:#38BDF8}
+.swatch.h6{background:#BAE6FD}
 .route-key{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .vector-key,.pin-key,.recenter-key{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .vector-key .icon,.pin-key .icon,.recenter-key .icon{--icon:12px;color:var(--accent)}
@@ -488,11 +487,12 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   .mobile-tabbar button[aria-current="page"]::before{content:"";position:absolute;top:0;left:18%;right:18%;height:2px;border-radius:0 0 2px 2px;background:var(--accent)}
 
   /* Map chrome. */
-  .legend{left:8px;right:auto;bottom:40px;max-width:calc(100% - 88px);padding:0 10px;gap:0;font-size:10px;line-height:1.25;pointer-events:auto}
+  .legend{left:8px;right:auto;bottom:40px;width:min(305px,calc(100vw - 88px));max-width:calc(100% - 88px);padding:0 10px;gap:0;font-size:10px;line-height:1.25;pointer-events:none;transition:width .22s ease}
   .legend-head{display:flex;align-items:center;min-height:40px;gap:6px;padding:0}
   .legend-head{font-size:11px;gap:6px;padding:0}
 
   .legend.open .legend-body{padding-bottom:8px}
+  .legend-body{width:min(285px,calc(100vw - 108px))}
   body.mobile-route-open .legend{display:none}
   .pin-banner,.point-banner,.unbounded-hint{top:8px;max-width:calc(100% - 24px)}
   .pin-banner{flex-wrap:wrap}

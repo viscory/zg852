@@ -1,6 +1,6 @@
 export const ACCENT='#C8102E';
 export const PERSON_COLORS=['#F97316','#0E7490','#7C3AED','#B45309','#0F766E','#BE185D','#0891B2','#4D7C0F'];
-export const HEAT_COLORS=['#4C0519','#9F1239','#E11D48','#F97316','#FACC15','#FDE68A'];
+export const HEAT_COLORS=['#082F49','#0C4A6E','#075985','#0284C7','#38BDF8','#BAE6FD'];
 export const LETTERS='ABCDEFGH';
 export const LOCALES=['en','zh-Hant','zh-Hans','ja','ko','hi','ur','fil','id','fr','th','vi','ne','es','de'];
 export const RTL_LOCALES=new Set(['ur']);
@@ -56,6 +56,8 @@ export function sliderPositionForTolerance(value){
 }
 // Cost ranking keeps the top time-feasible cells and ranks those by fare.
 export const MAX_COST_CELLS=300;
+// Fare heat is absolute, like the time budget: HK$25 is the top of the scale.
+export const FARE_HEAT_MAX=25;
 // Standard MTR line colours, keyed by the line code used in network.json.
 export const MTR_LINE_COLORS={
   AEL:'#00857D',DRL:'#F283B6',EAL:'#5EB7E6',ISL:'#2475A0',KTL:'#3FA34D',

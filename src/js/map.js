@@ -2,7 +2,7 @@ import * as L from 'leaflet';
 import { maplibreGL } from '@maplibre/maplibre-gl-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,TRAVEL_BUDGET_MINUTES } from './config.js';
+import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,TRAVEL_BUDGET_MINUTES,FARE_HEAT_MAX } from './config.js';
 import { store } from './store.js';
 import { $,esc,clamp,isNum,icon,initialsFor,avatarClass,haversine } from './util.js';
 import { t,intNum,minuteText } from './i18n.js';
@@ -187,9 +187,9 @@ function magneticCell(latlng){
   });
   return best;
 }
-export function heatColor(cell,budget,metric='time',range=null){
+export function heatColor(cell,budget,metric='time'){
   const ratio=metric==='fare'
-    ? (range&&range.max>range.min?clamp(((Number(cell.maxFare)||0)-range.min)/(range.max-range.min),0,1):.5)
+    ? clamp((Number(cell.maxFare)||0)/FARE_HEAT_MAX,0,1)
     : clamp(cell.slowest/Math.max(budget,1),0,1);
   return HEAT_COLORS[Math.max(0,Math.min(HEAT_COLORS.length-1,Math.round(ratio*(HEAT_COLORS.length-1))))];
 }
@@ -198,14 +198,13 @@ export function drawCloud(budget){
   cloudLayer.clearLayers();
   if(store.unbounded)return;
   const metric=store.settings.fairness==='fare'?'fare':'time';
-  const fareAmounts=metric==='fare'?store.cloudCells.map(cell=>Number(cell.maxFare)).filter(Number.isFinite):[];
-  const range=fareAmounts.length?{min:Math.min(...fareAmounts),max:Math.max(...fareAmounts)}:null;
+
   // One roving tab stop instead of hundreds: Tab enters the map once, arrow
   // keys move between cells, and Enter/Space selects. A row of 600 focusable
   // rectangles would otherwise sit between the sidebar and the results list.
   const entries=[];
   store.cloudCells.forEach(c=>{
-    const lat0=c.cy*CELL_SIZE,lon0=c.cx*CELL_SIZE,color=heatColor(c,budget,metric,range);
+    const lat0=c.cy*CELL_SIZE,lon0=c.cx*CELL_SIZE,color=heatColor(c,budget,metric);
     const rect=L.rectangle([[lat0,lon0],[lat0+CELL_SIZE,lon0+CELL_SIZE]],{color,weight:0,fillColor:color,fillOpacity:.34,interactive:true,className:'heat-cell'});
     rect.on('mouseover',e=>scheduleCellTooltip(c,e.originalEvent));
     rect.on('mousemove',e=>positionTooltip(e.originalEvent));
@@ -394,8 +393,7 @@ export function renderSelection(r,active=store.activePeople,fit=false){
         .bindTooltip(esc(`${displayName(active[j],j)}: ${legLabel(leg)}`)).addTo(routeLayer);
     });
   });
-  const pointMarker=L.circleMarker([r.lat,r.lon],{pane:'pointPane',radius:12,color:ACCENT,weight:2,fillColor:ACCENT,fillOpacity:.16,className:'point-pin'})
-    .bindPopup(`<b>${esc(r.label)}</b>`).addTo(pointLayer);
+  const pointMarker=L.circleMarker([r.lat,r.lon],{pane:'pointPane',radius:12,color:ACCENT,weight:2,fillColor:ACCENT,fillOpacity:.16,bubblingMouseEvents:true,className:'point-pin'}).addTo(pointLayer);
   if(r.ratings){
     pointMarker.on('mouseover',event=>scheduleResultTooltip(r,event.originalEvent));
     pointMarker.on('mousemove',event=>positionTooltip(event.originalEvent));

@@ -196,7 +196,7 @@ export function applySettingsToDom(){
   if(headway)headway.onchange=()=>{clearError();readSettingsFromDom();};
   const metric=activeMetric();
   $('tolerance').value=sliderPositionForTolerance(activeTolerance(metric));
-  store.unbounded=metric==='time'&&isUnboundedTolerance(store.settings.tolerance);
+  store.unbounded=isUnboundedTolerance(activeTolerance(metric));
   if(!store.unbounded)store.pointSelection=null;
   applyUnboundedUi();
   store.settings.vectors=normalizeVectors(store.settings.vectors);
@@ -211,7 +211,7 @@ export function readSettingsFromDom(){
   const tolerance=toleranceFromSlider($('tolerance').value);
   if(metric==='fare')store.settings.fareTolerance=fareTolerance(tolerance);
   else store.settings.tolerance=travelTolerance(tolerance);
-  store.unbounded=metric==='time'&&isUnboundedTolerance(store.settings.tolerance);
+  store.unbounded=isUnboundedTolerance(activeTolerance(metric));
   if(!store.unbounded)store.pointSelection=null;
   applyUnboundedUi();
   const vectors=normalizeVectors(store.settings.vectors);

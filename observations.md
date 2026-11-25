@@ -1,3 +1,11 @@
+## 2026-11-25T07:27:00Z
+
+- Moved the Find fair areas button inside the Parameters panel so it sits with the controls on desktop and mobile.
+- Fixed the map-key close animation: the legend now has explicit open/closed widths and a fixed-width body, so width and height shrink together instead of narrowing the content and producing a tall reflow. Desktop key is 364→112 px; mobile 305→112 px, with a 0.22 s width and grid-row transition.
+- Replaced the warm heat palette with a blue sequential scale (`#082F49` → `#BAE6FD`) and an absolute fare scale capped at HK$25. Fare heat now shows actual expense (highest fare), not relative fairness; time heat stays absolute against the 60-minute budget. Both use dark = cheaper/faster.
+- Unlimited now follows the active metric. Fare mode with Unlimited hides heat cells, shows the tap-anywhere hint, and allows map point selection. The selected-point marker bubbles clicks instead of opening a popup, so it no longer blocks the map.
+- `npm run lint` is clean; `CI=true npm test` passes 128/128 twice. SW cache is `zg852-v56`. Commit, push, CI and live verification are next.
+
 ## 2026-11-25T06:59:00Z
 
 - Pushed commit `57b956e`; CI run `45564173986` passed the 127-test job and the Cloudflare deploy. Live is SW `zg852-v55`. Desktop map key toggles cleanly (`open` true → false, body height 0), and the fare legend says “cheaper fares”.

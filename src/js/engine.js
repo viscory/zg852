@@ -24,7 +24,7 @@ export function compute(reveal=false){
   const tolerance=travelTolerance(store.settings.tolerance);
   const fareLimit=fareTolerance(store.settings.fareTolerance);
   store.settings.fairness=metric;store.settings.tolerance=tolerance;store.settings.fareTolerance=fareLimit;
-  store.unbounded=metric==='time'&&isUnboundedTolerance(tolerance);
+  store.unbounded=isUnboundedTolerance(metric==='fare'?fareLimit:tolerance);
   if(!store.unbounded)store.pointSelection=null;
   applyUnboundedUi();
   save();

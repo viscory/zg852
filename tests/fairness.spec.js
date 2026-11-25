@@ -82,6 +82,20 @@ test('fare mode ranks results by fare spread and keeps the heat map', async ({ p
   expect(scores).toEqual([...scores].sort((a, b) => a - b));
 });
 
+test('fare Unlimited hides the heat map and allows a map point', async ({ page }) => {
+  await page.locator('#fairnessToggle [data-fairness="fare"]').click();
+  await setTolerance(page, 3.05);
+  await expect(page.locator('#tolval')).toHaveText('Unlimited');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
+  await expect(page.locator('path.heat-cell')).toHaveCount(0);
+  await expect(page.locator('#unboundedHint')).toBeVisible();
+  const map = await page.locator('#map').boundingBox();
+  await page.touchscreen.tap(map.x + map.width / 2, map.y + map.height / 2);
+  await expect(page.locator('#pointBanner')).toBeVisible();
+});
+
 test('fare fairness and its tolerance persist across reloads', async ({ page }) => {
   await page.locator('#fairnessToggle [data-fairness="fare"]').click();
   await setTolerance(page, 0.5);
