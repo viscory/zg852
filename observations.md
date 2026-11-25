@@ -1,3 +1,9 @@
+## 2026-11-25T09:50:16Z
+
+- Pushed `38d4390`; CI run `45588629039` passed the 131-test job and the Cloudflare deploy. Live is SW `zg852-v61`.
+- Live checks: the top **Find fair areas** button is visible on desktop and runs the search; the results section gets `scroll-bottom` and clears at the end. The slider reports 0% at 0, 10% at 6, 100% at 96, 101% at 97, 300% at 200 and Unlimited at 201, with end labels Near equal / Unlimited. The mobile Results pane also gets the bottom shadow class.
+- No further source changes are pending.
+
 ## 2026-11-25T09:46:31Z
 
 - Added a dynamic bottom scroll shadow. It appears on the desktop results list, the mobile Results pane and the mobile Plan pane only while more content exists below, and clears at the end. Mobile gets a fixed fade above the tabbar / fixed search button so the shadow is not hidden under them.
