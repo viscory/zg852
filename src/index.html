@@ -104,10 +104,14 @@
             <span data-i18n="results.routes">Routes</span>
             <span class="mobile-route-chevron" aria-hidden="true"></span>
           </button>
-          <details class="interest-ratings" id="interestRatings">
-            <summary data-i18n="vector.ratings">Interest ratings</summary>
-            <div class="interest-body"><div class="fit-grid" id="fitGrid"></div></div>
-          </details>
+          <div class="interest-ratings disclosure" id="interestRatings">
+            <button class="interest-head disclosure-head" id="interestToggle" type="button" aria-expanded="false" aria-controls="interestBody">
+              <span data-i18n="vector.ratings">Interest ratings</span><span class="disclosure-mark" aria-hidden="true"></span>
+            </button>
+            <div class="disclosure-body" id="interestBody">
+              <div class="interest-body"><div class="fit-grid" id="fitGrid"></div></div>
+            </div>
+          </div>
           <div class="steps" id="steps" aria-label="Routes" data-i18n-aria-label="results.routes"></div>
           <p class="note fare-note" data-i18n="results.fareNote">Total adult Octopus fare estimate. Check the operator for exact fares.</p>
         </section>
@@ -134,9 +138,12 @@
     </div>
     <div class="unbounded-hint" id="unboundedHint" hidden data-i18n="map.pickAnywhere">Unlimited mode is on: tap anywhere on the map to choose a meeting point.</div>
     <div class="map-tooltip" id="mapTooltip" role="tooltip" hidden></div>
-    <details class="legend" id="mapLegend" open>
-      <summary class="legend-head"><span class="icon icon-scan" aria-hidden="true"></span><span data-i18n="map.legend">Map key</span></summary>
-      <div class="legend-body">
+    <div class="legend disclosure open" id="mapLegend">
+      <button class="legend-head disclosure-head" id="legendToggle" type="button" aria-expanded="true" aria-controls="legendBody">
+        <span class="icon icon-scan" aria-hidden="true"></span><span data-i18n="map.legend">Map key</span><span class="disclosure-mark" aria-hidden="true"></span>
+      </button>
+      <div class="disclosure-body" id="legendBody">
+        <div class="legend-body">
         <div class="cloud-key"><span class="swatch h6"></span><span class="swatch h5"></span><span class="swatch h4"></span><span class="swatch h3"></span><span class="swatch h2"></span><span class="swatch h1"></span> <span id="legendFairText" data-i18n="map.fairArea">Fair area, darker means shorter travel time</span></div>
         <div class="route-key">
           <span data-i18n="map.routeKey">Route key</span>
@@ -147,8 +154,9 @@
         <div class="vector-key" id="legendVectorKey" hidden><span class="icon icon-landmark" aria-hidden="true"></span><span data-i18n="map.vectorKey">Interests: prefer includes, avoid discounts</span></div>
         <div class="pin-key"><span class="icon icon-map-pin" aria-hidden="true"></span><span data-i18n="map.pinKey">Pin: tap pin, then tap map</span></div>
         <div class="recenter-key"><span class="icon icon-scan" aria-hidden="true"></span><span data-i18n="map.recenterKey">Recenter fits fair areas; starts stay put</span></div>
+        </div>
       </div>
-    </details>
+    </div>
   </main>
   <aside class="side side-right" aria-label="Parameters and results">
     <div class="options-panel" id="optionsPanel">

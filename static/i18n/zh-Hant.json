@@ -182,5 +182,5 @@
   "options.fare": "車費",
   "options.fareTolerance": "最貴車費可比最便宜車費高多少？",
   "results.noFitFare": "沒有地區符合這個車費容差。請調高。",
-  "map.fairFare": "公平區域，顏色越深代表車費越公平"
+  "map.fairFare": "公平區域，顏色越深代表車費越便宜"
 }

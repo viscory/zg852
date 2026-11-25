@@ -189,7 +189,7 @@ function magneticCell(latlng){
 }
 export function heatColor(cell,budget,metric='time',range=null){
   const ratio=metric==='fare'
-    ? (range&&range.max>range.min?clamp(((Number(cell.fareScore)||0)-range.min)/(range.max-range.min),0,1):.5)
+    ? (range&&range.max>range.min?clamp(((Number(cell.maxFare)||0)-range.min)/(range.max-range.min),0,1):.5)
     : clamp(cell.slowest/Math.max(budget,1),0,1);
   return HEAT_COLORS[Math.max(0,Math.min(HEAT_COLORS.length-1,Math.round(ratio*(HEAT_COLORS.length-1))))];
 }
@@ -198,8 +198,8 @@ export function drawCloud(budget){
   cloudLayer.clearLayers();
   if(store.unbounded)return;
   const metric=store.settings.fairness==='fare'?'fare':'time';
-  const fareScores=metric==='fare'?store.cloudCells.map(cell=>Number(cell.fareScore)).filter(Number.isFinite):[];
-  const range=fareScores.length?{min:Math.min(...fareScores),max:Math.max(...fareScores)}:null;
+  const fareAmounts=metric==='fare'?store.cloudCells.map(cell=>Number(cell.maxFare)).filter(Number.isFinite):[];
+  const range=fareAmounts.length?{min:Math.min(...fareAmounts),max:Math.max(...fareAmounts)}:null;
   // One roving tab stop instead of hundreds: Tab enters the map once, arrow
   // keys move between cells, and Enter/Space selects. A row of 600 focusable
   // rectangles would otherwise sit between the sidebar and the results list.

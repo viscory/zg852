@@ -54,7 +54,7 @@ test('the Fairness toggle switches labels and legend without losing each toleran
   await expect(page.locator('#fairnessToggle [data-fairness="fare"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#toleranceLabel')).toContainText('priciest fare');
   await expect(page.locator('#tolval')).toHaveText('25%');
-  await expect(page.locator('#legendFairText')).toHaveText('Fair area, darker means fairer fares');
+  await expect(page.locator('#legendFairText')).toHaveText('Fair area, darker means cheaper fares');
 
   await setTolerance(page, 0.4);
   await expect(page.locator('#tolval')).toHaveText('40%');
@@ -70,7 +70,7 @@ test('fare mode ranks results by fare spread and keeps the heat map', async ({ p
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
-  await expect(page.locator('#legendFairText')).toHaveText('Fair area, darker means fairer fares');
+  await expect(page.locator('#legendFairText')).toHaveText('Fair area, darker means cheaper fares');
 
   const scores = await page.locator('.result-row').evaluateAll(rows => rows.map(row => {
     const fares = [...row.querySelectorAll('.person-fares .fare')].map(node => Number((node.textContent.match(/[\d.]+/) || [0])[0]));

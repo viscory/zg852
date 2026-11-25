@@ -4,11 +4,13 @@ This file records visual critiques of 就腳. The newest critique is first. Chan
 
 ## 2026-11-25 Fairness metric toggle and logarithmic tolerance
 
-The Parameters panel now starts with a two-state **Time / Fare** toggle. Time is the default; Fare keeps the 60-minute travel budget, drops the time-disparity filter, and ranks the time-feasible pool by fare spread. The active metric owns the tolerance slider and the map heat colour; the legend text changes from "darker means shorter travel time" to "darker means fairer fares". Each metric keeps its own percentage tolerance in settings and share links.
+The Parameters panel now starts with a two-state **Time / Fare** toggle. Time is the default; Fare keeps the 60-minute travel budget, drops the time-disparity filter, and ranks the time-feasible pool by fare spread. The active metric owns the tolerance slider and the map heat colour; the legend text changes from "darker means shorter travel time" to "darker means cheaper fares". Time heat uses the slowest trip; fare heat uses the highest fare, while the result order still uses the fare-disparity score. Each metric keeps its own percentage tolerance in settings and share links.
 
 The tolerance slider is logarithmic: 0%, 1–300%, then Unlimited. The DOM value is a slider position, while settings and share links continue to store the fraction. Fare disparity uses the same percentage shape with a HK$1.00 floor so a walk-only fare does not make the ratio meaningless.
 
 Fare ranking is bounded to the 300 most time-sensible cells so the browser does not reconstruct a route for every surface node. The heatmap palette is a dark-maroon → red → orange → yellow sequence so adjacent fairness steps are distinguishable.
+
+The map key and Interest ratings are proper disclosure panels with a +/− mark and a grid-row height/opacity transition. The desktop map key starts open; the mobile key starts closed; both can be collapsed. Fare heat shows how expensive the meeting is (highest fare), not how fair the fare spread is, while result ordering still uses the fare-disparity score.
 
 The desktop three-column shell, header, parameters sticky behaviour, results/footer, and people/detail flip are unchanged.
 

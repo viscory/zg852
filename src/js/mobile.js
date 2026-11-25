@@ -86,7 +86,10 @@ function setRouteExpanded(expanded){
 
 function syncLegend(){
   const legend=$('mapLegend');
-  if(legend)legend.open=!isMobileLayout();
+  if(!legend)return;
+  const open=!isMobileLayout();
+  legend.classList.toggle('open',open);
+  legend.querySelector('.disclosure-head')?.setAttribute('aria-expanded',String(open));
 }
 
 export function setMobileView(view,{focus=false}={}){

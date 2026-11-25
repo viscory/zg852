@@ -83,7 +83,8 @@ test('the three tabs are real destinations and show exactly one job', async ({ p
   await expect(page.locator('.main')).toBeVisible();
   await expect(page.locator('.side-right')).toBeHidden();
   await expect(page.locator('.side-left')).toBeHidden();
-  await expect(page.locator('#mapLegend')).not.toHaveAttribute('open', '');
+  await expect(page.locator('#mapLegend')).not.toHaveClass(/open/);
+  await expect(page.locator('#legendToggle')).toHaveAttribute('aria-expanded', 'false');
 
   await page.locator('#mobileTabbar [data-mobile-view="plan"]').click();
   await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'plan');
@@ -224,7 +225,7 @@ test('bounded heat tap opens the route card with bar-only ratings', async ({ pag
   await expect(page.locator('body')).toHaveClass(/mobile-route-open/);
   await page.locator('#toggleRoute').click();
   await expect(page.locator('#interestRatings')).toBeVisible();
-  await page.locator('#interestRatings summary').click();
+  await page.locator('#interestToggle').click();
   await expect(page.locator('#fitGrid .fit-row')).toHaveCount(6);
   await expect(page.locator('#interestRatings')).not.toContainText('/100');
 });

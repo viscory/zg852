@@ -182,5 +182,5 @@
   "options.fare": "Fahrpreis",
   "options.fareTolerance": "Wie viel teurer darf der höchste Fahrpreis als der niedrigste sein?",
   "results.noFitFare": "Keine Gebiete passen zu dieser Fahrpreistoleranz. Erhöhen Sie sie.",
-  "map.fairFare": "Faires Gebiet, dunkler bedeutet fairere Fahrpreise"
+  "map.fairFare": "Faires Gebiet, dunkler bedeutet günstigere Fahrpreise"
 }

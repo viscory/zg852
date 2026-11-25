@@ -984,8 +984,9 @@ test('beta interest vectors default off and recompute the map with labelled pref
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   await expect(page.locator('#interestRatings')).toBeVisible();
-  await expect(page.locator('#interestRatings summary')).toHaveText('Interest ratings');
-  await page.locator('#interestRatings summary').click();
+  await expect(page.locator('#interestToggle')).toHaveText('Interest ratings');
+  await page.locator('#interestToggle').click();
+  await expect(page.locator('#interestToggle')).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('.fit-row')).toHaveCount(6);
   await expect(page.locator('#fitOverall')).toHaveCount(0);
   await expect(page.locator('.fit-value')).toHaveCount(0);
@@ -1258,13 +1259,30 @@ test('mobile tabs show one job at a time and keep the map key usable', async ({ 
   await expect(page.locator('.legend')).toBeVisible();
   await expect(page.locator('.legend-head')).toBeVisible();
   // The key starts collapsed on phones so it does not cover the map.
-  await expect(page.locator('#mapLegend')).not.toHaveAttribute('open', '');
-  await page.locator('#mapLegend summary').click({ force: true });
-  await expect(page.locator('#mapLegend')).toHaveAttribute('open', '');
+  await expect(page.locator('#mapLegend')).not.toHaveClass(/open/);
+  await expect(page.locator('#legendToggle')).toHaveAttribute('aria-expanded', 'false');
+  await page.locator('#legendToggle').click();
+  await expect(page.locator('#mapLegend')).toHaveClass(/open/);
+  await expect(page.locator('#legendToggle')).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('.legend .cloud-key')).toBeVisible();
   await expect(page.locator('.legend .route-key')).toBeVisible();
   await expect(page.locator('.legend .pin-key')).toBeVisible();
   await expect(page.locator('.legend .recenter-key')).toBeVisible();
+});
+
+
+test('the desktop map key collapses and expands', async ({ page }) => {
+  await expect(page.locator('#mapLegend')).toHaveClass(/open/);
+  await expect(page.locator('#legendToggle')).toHaveAttribute('aria-expanded', 'true');
+  const openHeight = await page.locator('#mapLegend').evaluate(el => Math.round(el.getBoundingClientRect().height));
+  expect(openHeight).toBeGreaterThan(60);
+  await page.locator('#legendToggle').click();
+  await expect(page.locator('#mapLegend')).not.toHaveClass(/open/);
+  await expect(page.locator('#legendToggle')).toHaveAttribute('aria-expanded', 'false');
+  await expect.poll(() => page.locator('#legendBody').evaluate(el => Math.round(el.getBoundingClientRect().height))).toBe(0);
+  await page.locator('#legendToggle').click();
+  await expect(page.locator('#mapLegend')).toHaveClass(/open/);
+  await expect.poll(() => page.locator('#mapLegend').evaluate(el => Math.round(el.getBoundingClientRect().height))).toBeGreaterThan(60);
 });
 
 test('changing a start place recomputes without pressing search', async ({ page }) => {

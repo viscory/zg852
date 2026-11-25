@@ -135,6 +135,18 @@ document.addEventListener('keydown',e=>{
   }
 });
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+ function setDisclosure(root,open){
+  if(!root)return;
+  root.classList.toggle('open',!!open);
+  root.querySelector('.disclosure-head')?.setAttribute('aria-expanded',String(!!open));
+}
+document.querySelectorAll('.disclosure').forEach(root=>{
+  const head=root.querySelector('.disclosure-head');
+  if(!head)return;
+  setDisclosure(root,root.classList.contains('open'));
+  head.addEventListener('click',()=>setDisclosure(root,!root.classList.contains('open')));
+});
 initMobile();
 init().catch(err=>{
   console.error(err);

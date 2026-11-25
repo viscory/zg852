@@ -1,3 +1,9 @@
+## 2026-11-25T06:55:00Z
+
+- Replaced the native `<details>` map key and interest ratings with shared disclosure panels: a proper button, `aria-expanded`, +/− mark, and an animated `grid-template-rows`/opacity transition. The desktop map key now starts open and is collapsible; the mobile key starts closed. The key body is pointer-transparent so it no longer blocks map hovers, while the header stays clickable.
+- Fare-mode heat now colours by the **highest fare** (how expensive the meeting is), not by the fare-disparity score. The result order still uses `maxFare + fareGap`; the legend says “darker means cheaper fares”.
+- Updated the disclosure tests, desktop collapse test, fare legend copy and docs. `npm run lint` is clean; `CI=true npm test` passes 127/127 twice. SW cache is `zg852-v55`. Commit, push, CI deploy and live verification are next.
+
 ## 2026-11-25T00:36:00Z
 
 - Pushed commit `10ef7c5`; CI run `45518722916` passed the 126-test job and the Cloudflare deploy job. Live is now SW `zg852-v54`.

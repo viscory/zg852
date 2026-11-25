@@ -182,5 +182,5 @@
   "options.fare": "運賃",
   "options.fareTolerance": "最も高い運賃は最安よりどれだけ高くてよいですか？",
   "results.noFitFare": "この運賃許容範囲に合うエリアはありません。広げてください。",
-  "map.fairFare": "公平なエリア、色が濃いほど運賃が公平"
+  "map.fairFare": "公平なエリア、色が濃いほど運賃が安い"
 }

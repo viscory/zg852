@@ -182,5 +182,5 @@
   "options.fare": "Fare",
   "options.fareTolerance": "How much more can the priciest fare be than the cheapest?",
   "results.noFitFare": "No areas fit this fare tolerance. Increase it.",
-  "map.fairFare": "Fair area, darker means fairer fares"
+  "map.fairFare": "Fair area, darker means cheaper fares"
 }

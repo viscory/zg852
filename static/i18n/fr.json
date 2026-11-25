@@ -182,5 +182,5 @@
   "options.fare": "Tarif",
   "options.fareTolerance": "Combien le tarif le plus cher peut-il dépasser le moins cher ?",
   "results.noFitFare": "Aucune zone ne respecte cette tolérance tarifaire. Augmentez-la.",
-  "map.fairFare": "Zone équitable, plus sombre signifie tarifs plus équitables"
+  "map.fairFare": "Zone équitable, plus sombre signifie tarifs moins chers"
 }

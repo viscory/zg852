@@ -86,7 +86,7 @@ export function compute(reveal=false){
         store.costCache.set(cell.key,cached);
       }
       if(!fareUnbounded&&cached.fareGap>Math.max(cached.minFare*fareLimit,FARE_GAP_FLOOR))continue;
-      cell.fares=cached.fares;cell.fareGap=cached.fareGap;cell.fareScore=cached.fareScore;
+      cell.fares=cached.fares;cell.maxFare=cached.maxFare;cell.fareGap=cached.fareGap;cell.fareScore=cached.fareScore;
       passing.push({cell,fitScore});
     }
     passing.sort((a,b)=>(a.cell.fareScore-b.cell.fareScore)||(meetingSuitability(a)-meetingSuitability(b))||String(a.cell.key).localeCompare(String(b.cell.key)));

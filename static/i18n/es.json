@@ -182,5 +182,5 @@
   "options.fare": "Tarifa",
   "options.fareTolerance": "¿Cuánto más puede costar la tarifa más cara que la más barata?",
   "results.noFitFare": "Ninguna zona cumple esta tolerancia de tarifa. Auméntala.",
-  "map.fairFare": "Zona equitativa, más oscuro significa tarifas más justas"
+  "map.fairFare": "Zona equitativa, más oscuro significa tarifas más baratas"
 }
