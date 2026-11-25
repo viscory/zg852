@@ -346,6 +346,29 @@ test('travel budget slider is gone', async ({ page }) => {
   await expect(page.locator('label[for="budget"]')).toHaveCount(0);
 });
 
+test('the top find button searches and the results list shows a bottom scroll shadow', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 });
+  await expect(page.locator('#goTop')).toBeVisible();
+  await page.locator('#goTop').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+
+  const section = page.locator('.results-section');
+  await expect.poll(() => section.evaluate(el => el.scrollHeight > el.clientHeight + 2)).toBe(true);
+  await expect(section).toHaveClass(/scroll-bottom/);
+
+  await section.evaluate(el => {
+    el.scrollTop = el.scrollHeight;
+    el.dispatchEvent(new Event('scroll'));
+  });
+  await expect(section).not.toHaveClass(/scroll-bottom/);
+
+  await section.evaluate(el => {
+    el.scrollTop = 0;
+    el.dispatchEvent(new Event('scroll'));
+  });
+  await expect(section).toHaveClass(/scroll-bottom/);
+});
+
 test('right sidebar footer carries project links only', async ({ page }) => {
   const footer = page.locator('.side-right footer');
   await expect(footer).toBeVisible();
@@ -633,7 +656,7 @@ test('named people, Photon addresses and tolerance cloud work', async ({ page })
 
 test('tolerance runs from 0% to 300%, then opens free point picking', async ({ page }) => {
   await expect(page.locator('#tolerance')).toHaveAttribute('min', '0');
-  await expect(page.locator('#tolerance')).toHaveAttribute('max', '101');
+  await expect(page.locator('#tolerance')).toHaveAttribute('max', '201');
   await expect(page.locator('#tolerance')).toHaveAttribute('step', '1');
   await setRange(page, '#tolerance', '3');
   await expect(page.locator('#tolval')).toHaveText('300%');

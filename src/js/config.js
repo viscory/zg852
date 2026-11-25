@@ -16,9 +16,9 @@ export const WALK_DETOUR=1.3;
 export const MAX_CLOUD_CELLS=600;
 export const TRAVEL_BUDGET_MINUTES=90;
 export const DEFAULT_INCLUDE_HEADWAY=true;
-// Fairness is a percentage of disparity. The slider is logarithmic: 0%, then
-// 1%..300%, then one unbounded stop. Settings and share links keep the
-// fraction, not the slider position.
+// Fairness is a percentage of disparity. The slider is 0%, then linear 1%
+// steps from 5% to 100%, then logarithmic to 300%, then one unbounded stop.
+// Settings and share links keep the fraction, not the slider position.
 export const FAIRNESS_METRICS=['time','fare'];
 export const FAIRNESS_DEFAULT='time';
 export const TRAVEL_TOLERANCE_MIN=0;
@@ -27,32 +27,40 @@ export const TRAVEL_TOLERANCE_UNBOUNDED=3.05;
 export const TRAVEL_TOLERANCE_DEFAULT=0.1;
 export const FARE_TOLERANCE_DEFAULT=0.25;
 export const FARE_GAP_FLOOR=1.0;
-export const TOLERANCE_SLIDER_MAX=101;
+export const TOLERANCE_SLIDER_MAX=201;
+export const TOLERANCE_LINEAR_END=96;
 export function travelTolerance(value){
   const n=Number(value);
   if(!Number.isFinite(n))return TRAVEL_TOLERANCE_DEFAULT;
   if(n>=TRAVEL_TOLERANCE_UNBOUNDED)return TRAVEL_TOLERANCE_UNBOUNDED;
-  return Math.min(TRAVEL_TOLERANCE_MAX,Math.max(TRAVEL_TOLERANCE_MIN,Math.round(n*100)/100));
+  const clamped=Math.min(TRAVEL_TOLERANCE_MAX,Math.max(TRAVEL_TOLERANCE_MIN,Math.round(n*100)/100));
+  if(clamped>0&&clamped<0.05)return 0.05;
+  return clamped;
 }
 export function fareTolerance(value){
   const n=Number(value);
   if(!Number.isFinite(n))return FARE_TOLERANCE_DEFAULT;
   if(n>=TRAVEL_TOLERANCE_UNBOUNDED)return TRAVEL_TOLERANCE_UNBOUNDED;
-  return Math.min(TRAVEL_TOLERANCE_MAX,Math.max(0,Math.round(n*100)/100));
+  const clamped=Math.min(TRAVEL_TOLERANCE_MAX,Math.max(0,Math.round(n*100)/100));
+  if(clamped>0&&clamped<0.05)return 0.05;
+  return clamped;
 }
 export function isUnboundedTolerance(value){return travelTolerance(value)>=TRAVEL_TOLERANCE_UNBOUNDED;}
 export function toleranceFromSlider(position){
   const p=Math.max(0,Math.min(TOLERANCE_SLIDER_MAX,Math.round(Number(position)||0)));
   if(p>=TOLERANCE_SLIDER_MAX)return TRAVEL_TOLERANCE_UNBOUNDED;
   if(p<=0)return 0;
-  return travelTolerance(Math.pow(TRAVEL_TOLERANCE_MAX*100,(p-1)/99)/100);
+  if(p<=TOLERANCE_LINEAR_END)return travelTolerance((4+p)/100);
+  return travelTolerance(Math.pow(TRAVEL_TOLERANCE_MAX,(p-TOLERANCE_LINEAR_END)/(TOLERANCE_SLIDER_MAX-1-TOLERANCE_LINEAR_END)));
 }
 export function sliderPositionForTolerance(value){
   const tolerance=travelTolerance(value);
   if(tolerance>=TRAVEL_TOLERANCE_UNBOUNDED)return TOLERANCE_SLIDER_MAX;
   if(tolerance<=0)return 0;
-  const position=1+Math.round(Math.log(tolerance*100)/Math.log(TRAVEL_TOLERANCE_MAX*100)*99);
-  return Math.max(1,Math.min(100,position));
+  const pct=tolerance*100;
+  if(pct<=100)return Math.max(1,Math.min(TOLERANCE_LINEAR_END,Math.round(pct-4)));
+  const position=TOLERANCE_LINEAR_END+Math.round(Math.log(pct/100)/Math.log(3)*(TOLERANCE_SLIDER_MAX-1-TOLERANCE_LINEAR_END));
+  return Math.max(TOLERANCE_LINEAR_END+1,Math.min(TOLERANCE_SLIDER_MAX-1,position));
 }
 // Cost ranking keeps the top time-feasible cells and ranks those by fare.
 export const MAX_COST_CELLS=300;

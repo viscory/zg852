@@ -25,18 +25,31 @@ test.beforeEach(async ({ page }) => {
   await openSettings(page);
 });
 
-test('the tolerance slider is logarithmic and keeps 0, 300 and Unlimited', async ({ page }) => {
+test('the tolerance slider is linear to 100%, logarithmic to 300%, then Unlimited', async ({ page }) => {
   await expect(page.locator('#tolerance')).toHaveAttribute('min', '0');
-  await expect(page.locator('#tolerance')).toHaveAttribute('max', '101');
+  await expect(page.locator('#tolerance')).toHaveAttribute('max', '201');
   await expect(page.locator('#tolerance')).toHaveAttribute('step', '1');
+  await expect(page.locator('#tolerance ~ .slider-row.ends span').last()).toHaveText('Unlimited');
 
   await setTolerance(page, 0);
   await expect(page.locator('#tolval')).toHaveText('0%');
   await expect(page.locator('#tolerance')).toHaveAttribute('aria-valuetext', '0%');
 
+  await setTolerance(page, 0.05);
+  await expect(page.locator('#tolval')).toHaveText('5%');
+
   await setTolerance(page, 0.1);
   await expect(page.locator('#tolval')).toHaveText('10%');
   await expect(page.locator('#tolerance')).toHaveAttribute('aria-valuetext', '10%');
+
+  await setTolerance(page, 0.15);
+  await expect(page.locator('#tolval')).toHaveText('15%');
+
+  await setTolerance(page, 1);
+  await expect(page.locator('#tolval')).toHaveText('100%');
+
+  await setTolerance(page, 1.01);
+  await expect(page.locator('#tolval')).toHaveText('101%');
 
   await setTolerance(page, 3);
   await expect(page.locator('#tolval')).toHaveText('300%');

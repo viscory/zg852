@@ -3,6 +3,7 @@ import { store } from './store.js';
 import { $,esc,clamp,icon,initialsFor,avatarClass,clone } from './util.js';
 import { t,tp,intNum,minuteText } from './i18n.js';
 import { normalizeVectors,vectorLabel,betaVectorsEnabled } from './vectors.js';
+import { syncScrollShadows } from './scroll.js';
 import { searchPlaces,districtFor } from './data.js';
 import { dedupePlaces,normLabel,photonSearch } from './search.js';
 import { fareMarkup } from './routing.js';
@@ -278,6 +279,7 @@ export function renderResults(active=store.activePeople){
     if(emptyRun)emptyRun.hidden=false;
     syncMobileResults('ready',active);
     applyUnboundedUi();
+    requestAnimationFrame(syncScrollShadows);
     return;
   }
   state.hidden=true;
@@ -294,6 +296,7 @@ export function renderResults(active=store.activePeople){
   list.querySelectorAll('.result-row').forEach(row=>{row.onclick=()=>selectResult(Number(row.dataset.index),active,true);});
   markSelectedResult();
   applyUnboundedUi();
+  requestAnimationFrame(syncScrollShadows);
 }
 export function markSelectedResult(){
   document.querySelectorAll('.result-row').forEach(row=>row.classList.toggle('selected',Number(row.dataset.index)===store.selected));
@@ -315,8 +318,11 @@ export function renderSkeleton(){
 }
 export function setWorking(working){
   const label=working?t('options.searching'):t('options.search');
-  const go=$('go');go.disabled=working;go.title=label;go.dataset.tooltip=label;go.setAttribute('aria-label',label);
-  $('goLabel').textContent=label;
+  ['go','goTop'].forEach(id=>{
+    const button=$(id);if(!button)return;
+    button.disabled=working;button.title=label;button.dataset.tooltip=label;button.setAttribute('aria-label',label);
+    const text=$(id==='go'?'goLabel':'goTopLabel');if(text)text.textContent=label;
+  });
   if(working)renderSkeleton();
 }
 export function setOrigin(person,place,input,sug){
@@ -727,7 +733,7 @@ document.addEventListener('click',event=>{
 function installUiListeners(){
   // Resolve typed text before the app's own search handler runs; unresolved
   // text is blocked here as well as by hasPendingOrigins() in the engine.
-  ['go','emptyRun'].forEach(id=>{
+  ['go','goTop','emptyRun'].forEach(id=>{
     $(id)?.addEventListener('click',event=>{
       if(!resolveAllPendingOrigins()){
         event.preventDefault();

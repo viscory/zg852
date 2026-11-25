@@ -140,6 +140,8 @@ input[type=text]:focus-visible{outline:2px solid var(--accent);outline-offset:1p
 .wide-icon:active:not(:disabled){background:var(--border)}
 .add:disabled{opacity:.4;cursor:not-allowed}
 .results-section{flex:1 1 auto;min-height:0;margin:0 0 12px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+[data-scroll-shadow]{position:relative}
+[data-scroll-shadow].scroll-bottom{box-shadow:inset 0 -20px 20px -20px rgba(80,20,20,.5)}
 .results-head{margin-bottom:8px}
 .result-state{font-size:12px;color:var(--muted);margin:0 0 8px}
 .result-row{display:grid;gap:6px;width:100%;padding:10px 12px;margin-bottom:8px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);color:var(--text);text-align:start}
@@ -195,6 +197,8 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .go:disabled{opacity:.5;cursor:wait}
 .go.secondary{margin-top:8px;background:transparent;color:var(--accent)}
 .go.secondary:hover:not(:disabled){background:var(--danger-bg)}
+.go-top{margin:0 0 12px}
+.go-top .go-text{position:static;width:auto;height:auto;margin:0;clip:auto;overflow:visible;white-space:nowrap;font-weight:600}
 .detail-panel{margin:0 0 16px;padding:12px;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--elevated)}
 .detail-panel h2{font-size:16px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}
 .detail-panel .sub{font-size:12px;color:var(--muted);margin:0 0 10px;font-family:var(--mono);font-variant-numeric:tabular-nums}
@@ -420,6 +424,7 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   body[data-mobile-view="plan"] #detailHeading,
   body[data-mobile-view="plan"] #swapFace{display:none!important}
   body[data-mobile-view="plan"] .options-panel{position:static;display:block;max-height:none;overflow:visible;margin:0;padding:0;border:0;box-shadow:none}
+  body[data-mobile-view="plan"] .go-top{display:none!important}
   body[data-mobile-view="plan"] #optionsHeading{margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
   body[data-mobile-view="plan"] .results-section,
   body[data-mobile-view="plan"] #error{display:none!important}
@@ -566,6 +571,10 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   .mobile-error[hidden]{display:none!important}
   .mobile-error:not([hidden]){animation:mobile-toast-in .18s ease-out both}
   .pin-banner:not([hidden]),.point-banner:not([hidden]),.point-notice:not([hidden]){animation:map-banner-in .16s ease-out both}
+  body[data-mobile-view="results"] .side-right.scroll-bottom::after,
+  body[data-mobile-view="plan"] .layout.scroll-bottom::after{content:"";position:fixed;left:0;right:0;z-index:1200;height:24px;pointer-events:none;background:linear-gradient(to top,rgba(80,20,20,.26),transparent)}
+  body[data-mobile-view="results"] .side-right.scroll-bottom::after{bottom:calc(var(--tabbar) + env(safe-area-inset-bottom))}
+  body[data-mobile-view="plan"] .layout.scroll-bottom::after{bottom:calc(var(--tabbar) + env(safe-area-inset-bottom) + 60px)}
 
 
   html[dir="rtl"] .layout{display:block}

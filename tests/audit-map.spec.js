@@ -107,7 +107,7 @@ test('heat cells are labelled, roving-focusable and keyboard-activatable', async
 test('an unbounded tap before Search reports that data is still loading without selecting a point', async ({ page }) => {
   await page.evaluate(() => {
     const slider = document.querySelector('#tolerance');
-    slider.value = '101';
+    slider.value = '201';
     slider.dispatchEvent(new Event('input', { bubbles: true }));
   });
   await page.locator('#mobileTabbar [data-mobile-view="map"]').click();

@@ -2,11 +2,11 @@
 
 This file records visual critiques of 就腳. The newest critique is first. Change `src/styles.css` so the page matches the newest sizes. Keep one size scale on `:root`.
 
-## 2026-11-25 Fairness metric toggle and logarithmic tolerance
+## 2026-11-25 Fairness metric toggle and tolerance slider
 
 The Parameters panel now starts with a two-state **Time / Fare** toggle. Time is the default; Fare keeps the 90-minute travel budget, drops the time-disparity filter, and ranks the time-feasible pool by fare spread. The active metric owns the tolerance slider and the map heat colour; the legend text changes from "darker means shorter travel time" to "darker means cheaper fares". Time heat uses the slowest trip; fare heat uses the highest fare, while the result order still uses the fare-disparity score. Each metric keeps its own percentage tolerance in settings and share links.
 
-The tolerance slider is logarithmic: 0%, 1–300%, then Unlimited. The DOM value is a slider position, while settings and share links continue to store the fraction. Fare disparity uses the same percentage shape with a HK$1.00 floor so a walk-only fare does not make the ratio meaningless.
+The tolerance slider is 0%, then linear in 1% steps from 5% to 100%, logarithmic to 300%, then Unlimited. The DOM value is a slider position, while settings and share links continue to store the fraction. Fare disparity uses the same percentage shape with a HK$1.00 floor so a walk-only fare does not make the ratio meaningless.
 
 Unlimited still respects the fixed 90-minute travel budget and each person's walk tolerance. A map pick only resolves to a stop everyone can reach within the budget after the final walk; if no such stop is close enough, the app shows a map notice that the point cannot be reached within 90 minutes instead of inventing a long walk from a distant stop. Pinned-point totals include the final walk, so the displayed total matches the route legs. Diagnostics export the active fairness metric, both tolerances and the travel budget.
 

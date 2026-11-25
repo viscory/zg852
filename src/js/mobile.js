@@ -1,6 +1,7 @@
 import { store } from './store.js';
 import { $ } from './util.js';
 import { t } from './i18n.js';
+import { syncScrollShadows } from './scroll.js';
 
 const VIEWS=['plan','results','map'];
 let viewAnimTimer=null;
@@ -104,6 +105,7 @@ export function setMobileView(view,{focus=false}={}){
   syncRouteCardHeight();
   syncResultsFallback();
   playViewAnimation();
+  requestAnimationFrame(syncScrollShadows);
   if(next==='map'){
     // Leaflet measured a zero-size container while the map screen was hidden.
     requestAnimationFrame(()=>{
@@ -168,6 +170,7 @@ function syncViewState(){
       button.removeAttribute('tabindex');
     });
   }
+  requestAnimationFrame(syncScrollShadows);
 }
 
 export function initMobile(){

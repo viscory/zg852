@@ -70,7 +70,7 @@
     </div>
   </div>
 </header>
-<div class="layout">
+<div class="layout" data-scroll-shadow>
   <aside class="side side-left" aria-label="People and selected route">
     <div class="sec-title">
       <span id="peopleHeading" data-face="people" data-i18n="people.title">People and start places</span>
@@ -165,9 +165,12 @@
       </div>
     </div>
   </main>
-  <aside class="side side-right" aria-label="Parameters and results">
+  <aside class="side side-right" aria-label="Parameters and results" data-scroll-shadow>
     <div class="options-panel" id="optionsPanel">
       <div class="section-title options-title" id="optionsHeading" tabindex="-1" data-i18n="options.title">Parameters</div>
+      <button class="go go-top" id="goTop" type="button" data-i18n-tooltip="options.search" data-i18n-aria-label="options.search" aria-label="Find fair areas" title="Find fair areas" data-tooltip="Find fair areas">
+        <span class="icon icon-search" aria-hidden="true"></span><span class="go-text" id="goTopLabel" data-i18n="options.search">Find fair areas</span>
+      </button>
       <div class="chips" role="group" aria-label="Transport modes" data-i18n-aria-label="options.modes">
         <button class="chip" type="button" aria-pressed="true" data-mode="rail" data-i18n-tooltip="options.rail" data-i18n-aria-label="options.rail" aria-label="MTR" title="MTR" data-tooltip="MTR">
           <span class="icon icon-rail" aria-hidden="true"></span><span class="sr-only" data-i18n="options.rail">MTR</span>
@@ -190,8 +193,8 @@
         <label for="tolerance" id="toleranceLabel" data-i18n="options.tolerance">How much longer the slowest trip may be than the fastest, as a percentage.</label>
         <span class="value" id="tolval">10%</span>
       </div>
-      <input type="range" id="tolerance" min="0" max="101" step="1" value="41" aria-valuetext="10%">
-      <div class="slider-row ends"><span data-i18n="options.toleranceNear">Near equal</span><span data-i18n="options.toleranceFlexible">More flexible</span></div>
+      <input type="range" id="tolerance" min="0" max="201" step="1" value="6" aria-valuetext="10%">
+      <div class="slider-row ends"><span data-i18n="options.toleranceNear">Near equal</span><span data-i18n="options.unbounded">Unlimited</span></div>
       <button class="mobile-beta-row" id="mobileBeta" type="button" aria-pressed="false" data-i18n-tooltip="beta.badgeTip" data-tooltip="Turns on experimental features. Interest preferences can change which areas the map shows.">
         <span class="icon icon-scan" aria-hidden="true"></span><span data-i18n="beta.title">Beta features</span><span class="mobile-beta-state" id="mobileBetaState" data-i18n="beta.off">Off</span>
       </button>
@@ -213,7 +216,7 @@
       </button>
     </div>
     <div class="error" id="error" role="alert" hidden></div>
-    <section class="results-section" aria-labelledby="resultsHeading">
+    <section class="results-section" aria-labelledby="resultsHeading" data-scroll-shadow>
       <div class="sec-title results-head">
         <span id="resultsHeading" data-i18n="results.title">Fair areas</span>
         <span class="count" id="nres"></span>

@@ -10,6 +10,7 @@ import { createMap,drawOrigins } from './js/map.js';
 import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,applyUnboundedUi,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,commitPeople,setSidebarFace,flashTooltip,setFairness,clearPointNotice } from './js/ui.js';
 import { exportDiagnostics } from './js/diagnostics.js';
 import { clearPoint } from './js/map.js';
+import { initScrollShadows } from './js/scroll.js';
 import { initMobile,isMobileLayout,setMobileView,openMobileRoute,closeMobileRoute } from './js/mobile.js';
 
 function storedValue(key){
@@ -115,6 +116,7 @@ $('jumpSettings')?.addEventListener('click',()=>{
   heading.focus({preventScroll:true});
 });
 $('go').onclick=()=>{setMobileView('results');triggerSearch(!isMobileLayout());};
+$('goTop').onclick=()=>{setMobileView('results');triggerSearch(!isMobileLayout());};
 $('emptyRun').onclick=()=>triggerSearch(!isMobileLayout());
 $('share').onclick=shareScenario;
 $('cancelPin').onclick=()=>{clearPinMode();setMobileView('plan');};
@@ -149,6 +151,7 @@ document.querySelectorAll('.disclosure').forEach(root=>{
   head.addEventListener('click',()=>setDisclosure(root,!root.classList.contains('open')));
 });
 initMobile();
+initScrollShadows();
 init().catch(err=>{
   console.error(err);
   if(document.documentElement.dataset.net!=='ready')document.documentElement.dataset.net='error';

@@ -1,3 +1,11 @@
+## 2026-11-25T09:46:31Z
+
+- Added a dynamic bottom scroll shadow. It appears on the desktop results list, the mobile Results pane and the mobile Plan pane only while more content exists below, and clears at the end. Mobile gets a fixed fade above the tabbar / fixed search button so the shadow is not hidden under them.
+- Added a second labelled **Find fair areas** action at the top of the Parameters panel and wired it to the same search, pending-origin guard and `Working` state as `#go`. It is desktop-only; mobile Plan already has the fixed bottom search button, and mobile Results hides the Parameters panel entirely.
+- Reworked the tolerance slider: 0%, then linear 1% steps from 5% to 100%, logarithmic from 100% to 300%, then Unlimited. The range max is now 201; stored tolerances below 5% snap to 5%. The right-hand label now says **Unlimited** instead of “More flexible”.
+- Updated the test slider helper, tolerance/max assertions, README/DESIGN and added regressions for the top button, bottom scroll shadow and the new slider stops. SW cache is `zg852-v61`.
+- `npm run lint` is clean; `CI=true npm test` passes 131/131. Commit, push, CI deploy and live verification are next.
+
 ## 2026-11-25T09:03:36Z
 
 - Pushed `742f1e0`; CI run `45581221743` passed the 130-test job and the Cloudflare deploy. Live is SW `zg852-v60`.
