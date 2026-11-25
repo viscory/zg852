@@ -68,17 +68,22 @@ export function clearError(){
   const mobile=$('mobileError');if(mobile){mobile.textContent='';mobile.hidden=true;}
 }
 let pointNoticeTimer=null;
+function hidePointNotice(){
+  clearTimeout(pointNoticeTimer);pointNoticeTimer=null;
+  const notice=$('pointNotice');if(notice)notice.hidden=true;
+}
 export function showPointNotice(message){
   const notice=$('pointNotice'),text=$('pointNoticeText');
   if(!notice||!text)return;
   text.textContent=message;
   notice.hidden=false;
+  applyUnboundedUi();
   clearTimeout(pointNoticeTimer);
-  pointNoticeTimer=setTimeout(()=>{notice.hidden=true;pointNoticeTimer=null;},7000);
+  pointNoticeTimer=setTimeout(()=>{hidePointNotice();applyUnboundedUi();},7000);
 }
 export function clearPointNotice(){
-  clearTimeout(pointNoticeTimer);pointNoticeTimer=null;
-  const notice=$('pointNotice');if(notice)notice.hidden=true;
+  hidePointNotice();
+  applyUnboundedUi();
 }
 export function setLabel(el,value){if(!el)return;el.setAttribute('aria-label',value);el.title=value;el.dataset.tooltip=value;}
 // Typed start text is only a query until it is resolved to a real place. Keep
@@ -186,12 +191,13 @@ export function isUnboundedReady(){
 export function applyUnboundedUi(){
   const ready=isUnboundedReady();
   if(!ready&&store.pointSelection)store.pointSelection=null;
-  if(!store.unbounded)clearPointNotice();
+  if(!store.unbounded)hidePointNotice();
   const pin=$('pinBanner');
   const pinning=Boolean(store.pinTarget)||Boolean(pin&&!pin.hidden);
-  // The pin banner and the unlimited hint occupy the same spot; the pin wins
-  // until clearPinMode() restores the hint through this function.
-  const hint=$('unboundedHint');if(hint)hint.hidden=!ready||pinning;
+  // The pin banner, point banner, notice and unlimited hint share the top slot;
+  // the most specific state wins so they never stack or peek out behind each other.
+  const noticeVisible=Boolean($('pointNotice')&&!$('pointNotice').hidden);
+  const hint=$('unboundedHint');if(hint)hint.hidden=!ready||pinning||Boolean(store.pointSelection)||noticeVisible;
   const banner=$('pointBanner');if(banner)banner.hidden=!ready||!store.pointSelection;
   const label=$('pointLabel');if(label&&ready&&store.pointSelection)label.textContent=t('map.pinnedPoint');
 }

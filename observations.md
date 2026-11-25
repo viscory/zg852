@@ -1,3 +1,9 @@
+## 2026-11-25T08:42:35Z
+
+- Refined the new map notice: it now suppresses the Unlimited hint while visible, and the hint stays hidden whenever a point is pinned too. The notice auto-hides after 7 seconds and the hint returns when appropriate.
+- Bumped the service worker to `zg852-v59` because the notice/hint logic changed after the v58 deploy.
+- `npm run lint` is clean; the full suite passed 130/130 before the v59 cache bump, and the targeted notice/SW tests pass after it. Commit and deploy are next.
+
 ## 2026-11-25T08:36:12Z
 
 - Reverted the blue heat palette to the documented warm dark-maroon → red → orange → yellow sequence (config, legend swatches and the heat-colour test). The blue scale was my call and it made the map read as water/cold rather than a heatmap.
