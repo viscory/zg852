@@ -349,6 +349,10 @@ test('travel budget slider is gone', async ({ page }) => {
 test('the search button sits at the top and the results list shows a bottom scroll shadow', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 });
   await expect(page.locator('#go')).toBeVisible();
+  await expect(page.locator('.side-right .go:visible')).toHaveCount(1);
+  const goBox = await page.locator('#go').boundingBox();
+  expect(goBox).not.toBeNull();
+  expect(goBox.height).toBeLessThan(45);
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
 

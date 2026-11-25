@@ -1,3 +1,9 @@
+## 2026-11-25T10:26:38Z
+
+- Removed the visible **Find fair areas** text from the single search button. It is now the same icon-only control as the original desktop `#go`, with the label kept as sr-only text for the accessible name, tooltip and tests.
+- `.go-top` is a flex row now, so the magnifier and label can never stack into two lines. Both desktop and mobile use the icon-only button.
+- SW cache is `zg852-v63`. `npm run lint` is clean; `CI=true npm test` passes 131/131. Commit, push, CI deploy and live verification are next.
+
 ## 2026-11-25T10:18:38Z
 
 - Pushed `2b0fb61`; CI run `45593077057` passed the 131-test job and the Cloudflare deploy. Live is SW `zg852-v62`.
