@@ -1,3 +1,9 @@
+## 2026-11-25T09:03:36Z
+
+- Pushed `742f1e0`; CI run `45581221743` passed the 130-test job and the Cloudflare deploy. Live is SW `zg852-v60`.
+- Live check: the right sidebar footer now reads only Privacy / Terms / Credits / Process, with no routing or FairPin copy. The Credits dialog still contains the FairPin inspiration and the Process dialog still contains the browser-routing/Photon/OpenFreeMap note.
+- No further source changes are pending.
+
 ## 2026-11-25T08:59:46Z
 
 - Removed the two footer paragraphs from the right sidebar: the browser-routing/Photon/OpenFreeMap note and the FairPin inspiration line. The footer now contains only Privacy / Terms / Credits / Process (and diagnostics in beta).
