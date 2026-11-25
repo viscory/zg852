@@ -1,3 +1,9 @@
+## 2026-11-25T07:31:00Z
+
+- Pushed commit `fed4638`; CI run `45568294664` passed the 128-test job and the Cloudflare deploy. Live is SW `zg852-v56`.
+- Live verification: the map key’s width/height samples shrink smoothly (305→293→179→113→112 px, height 124→106→66→42 px, body 82→64→24→0) with no tall reflow; fare Unlimited shows no heat cells and a pin tap produces the pinned-point banner.
+- No further source changes are pending.
+
 ## 2026-11-25T07:27:00Z
 
 - Moved the Find fair areas button inside the Parameters panel so it sits with the controls on desktop and mobile.
