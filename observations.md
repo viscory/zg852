@@ -1,3 +1,9 @@
+## 2026-11-25T08:46:52Z
+
+- Pushed `eb29b63`; CI run `45578686810` passed the 130-test job and the Cloudflare deploy. Live is SW `zg852-v59`.
+- Live checks: heat cells use the warm `#9F1239 → #E11D48 → #F97316 → #FACC15` steps; Yuen Long pins with the Tuen Ma Line route (52 min Alex, 58 min Sam); a far point shows the centred map notice at 12/64 px, 369×60 px on a 393 px phone, and the Unlimited hint is hidden behind it.
+- No further source changes are pending.
+
 ## 2026-11-25T08:42:35Z
 
 - Refined the new map notice: it now suppresses the Unlimited hint while visible, and the hint stays hidden whenever a point is pinned too. The notice auto-hides after 7 seconds and the hint returns when appropriate.
