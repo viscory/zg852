@@ -26,7 +26,7 @@
   "options.title": "प्यारामिटरहरू",
   "options.rail": "MTR",
   "options.bus": "बस / मिनिबस",
-  "options.tolerance": "सबैभन्दा ढिलो यात्रा सबैभन्दा छिटो भन्दा कति प्रतिशत बढी समय लिन सक्छ।",
+  "options.tolerance": "अधिकतम समय भिन्नता",
   "options.toleranceNear": "लगभग बराबर",
   "options.toleranceFlexible": "अझ लचिलो",
   "options.includeHeadway": "औसत अन्तराल समावेश गर्नुहोस्",
@@ -181,7 +181,7 @@
   "options.fairness": "निष्पक्षता",
   "options.time": "समय",
   "options.fare": "भाडा",
-  "options.fareTolerance": "सबैभन्दा महँगो भाडा सबैभन्दा सस्तोभन्दा कति बढी हुन सक्छ?",
+  "options.fareTolerance": "अधिकतम भाडा भिन्नता",
   "results.noFitFare": "यो भाडा सीमामा कुनै क्षेत्र छैन। बढाउनुहोस्।",
   "map.fairFare": "उपयुक्त क्षेत्र, गाढा रङ बढी सस्तो भाडा"
 }

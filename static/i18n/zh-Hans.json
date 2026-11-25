@@ -26,7 +26,7 @@
   "options.title": "参数",
   "options.rail": "港铁",
   "options.bus": "巴士／小巴",
-  "options.tolerance": "最慢行程相比最快行程可多出的时间百分比。",
+  "options.tolerance": "最大时间差",
   "options.toleranceNear": "尽量相近",
   "options.toleranceFlexible": "较有弹性",
   "options.includeHeadway": "计入平均发车间隔",
@@ -181,7 +181,7 @@
   "options.fairness": "公平度",
   "options.time": "时间",
   "options.fare": "车费",
-  "options.fareTolerance": "最贵车费可比最便宜车费高多少？",
+  "options.fareTolerance": "最大票价差",
   "results.noFitFare": "没有地区符合这个车费容差。请调高。",
   "map.fairFare": "公平区域，颜色越深代表车费越便宜"
 }

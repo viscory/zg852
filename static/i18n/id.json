@@ -26,7 +26,7 @@
   "options.title": "Parameter",
   "options.rail": "MTR",
   "options.bus": "Bus / minibus",
-  "options.tolerance": "Seberapa lebih lama perjalanan terlama boleh dibanding perjalanan tercepat, dalam persentase.",
+  "options.tolerance": "Selisih waktu maks.",
   "options.toleranceNear": "Hampir sama",
   "options.toleranceFlexible": "Lebih fleksibel",
   "options.includeHeadway": "Sertakan jeda waktu rata-rata",
@@ -181,7 +181,7 @@
   "options.fairness": "Keadilan",
   "options.time": "Waktu",
   "options.fare": "Tarif",
-  "options.fareTolerance": "Berapa lebih mahal tarif termahal dibanding termurah?",
+  "options.fareTolerance": "Selisih tarif maks.",
   "results.noFitFare": "Tidak ada area yang sesuai batas tarif ini. Naikkan.",
   "map.fairFare": "Area adil, makin gelap makin murah tarifnya"
 }

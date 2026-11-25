@@ -26,7 +26,7 @@
   "options.title": "พารามิเตอร์",
   "options.rail": "MTR",
   "options.bus": "รถบัส / รถตู้",
-  "options.tolerance": "เปอร์เซ็นต์ที่การเดินทางช้าที่สุดอาจใช้เวลานานกว่าการเดินทางเร็วที่สุด",
+  "options.tolerance": "ส่วนต่างเวลาสูงสุด",
   "options.toleranceNear": "ใกล้เคียงกัน",
   "options.toleranceFlexible": "ยืดหยุ่นกว่า",
   "options.includeHeadway": "รวมระยะห่างเฉลี่ยระหว่างรถ",
@@ -181,7 +181,7 @@
   "options.fairness": "ความเป็นธรรม",
   "options.time": "เวลา",
   "options.fare": "ค่าโดยสาร",
-  "options.fareTolerance": "ค่าโดยสารแพงที่สุดสูงกว่าถูกที่สุดได้เท่าไร",
+  "options.fareTolerance": "ส่วนต่างค่าโดยสารสูงสุด",
   "results.noFitFare": "ไม่มีพื้นที่ที่ตรงกับช่วงค่าโดยสารนี้ เพิ่มช่วง",
   "map.fairFare": "พื้นที่ที่เป็นธรรม สีเข้มหมายถึงค่าโดยสารถูกกว่า"
 }

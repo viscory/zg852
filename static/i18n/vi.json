@@ -26,7 +26,7 @@
   "options.title": "Tham số",
   "options.rail": "MTR",
   "options.bus": "Xe buýt / xe mini",
-  "options.tolerance": "Mức thời gian chuyến đi chậm nhất có thể hơn chuyến nhanh nhất, tính theo phần trăm.",
+  "options.tolerance": "Chênh lệch thời gian tối đa",
   "options.toleranceNear": "Gần bằng nhau",
   "options.toleranceFlexible": "Linh hoạt hơn",
   "options.includeHeadway": "Bao gồm khoảng thời gian trung bình giữa các chuyến xe",
@@ -181,7 +181,7 @@
   "options.fairness": "Công bằng",
   "options.time": "Thời gian",
   "options.fare": "Giá vé",
-  "options.fareTolerance": "Giá vé đắt nhất có thể cao hơn rẻ nhất bao nhiêu?",
+  "options.fareTolerance": "Chênh lệch giá vé tối đa",
   "results.noFitFare": "Không có khu vực nào phù hợp mức giá này. Hãy tăng.",
   "map.fairFare": "Khu vực công bằng, màu đậm hơn nghĩa là giá vé rẻ hơn"
 }

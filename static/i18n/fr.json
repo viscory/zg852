@@ -26,7 +26,7 @@
   "options.title": "Paramètres",
   "options.rail": "MTR",
   "options.bus": "Bus / minibus",
-  "options.tolerance": "Combien de temps le trajet le plus lent peut dépasser le plus rapide, en pourcentage.",
+  "options.tolerance": "Écart de temps max.",
   "options.toleranceNear": "Presque égaux",
   "options.toleranceFlexible": "Plus souple",
   "options.includeHeadway": "Inclure l'intervalle moyen",
@@ -181,7 +181,7 @@
   "options.fairness": "Équité",
   "options.time": "Temps",
   "options.fare": "Tarif",
-  "options.fareTolerance": "Combien le tarif le plus cher peut-il dépasser le moins cher ?",
+  "options.fareTolerance": "Écart de tarif max.",
   "results.noFitFare": "Aucune zone ne respecte cette tolérance tarifaire. Augmentez-la.",
   "map.fairFare": "Zone équitable, plus sombre signifie tarifs moins chers"
 }

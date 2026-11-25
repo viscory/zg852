@@ -26,7 +26,7 @@
   "options.title": "パラメーター",
   "options.rail": "MTR",
   "options.bus": "バス／ミニバス",
-  "options.tolerance": "最も遅い移動が最も速い移動より長くてもよい割合です。",
+  "options.tolerance": "時間差の上限",
   "options.toleranceNear": "できるだけ均等",
   "options.toleranceFlexible": "柔軟に調整",
   "options.includeHeadway": "平均運転間隔を含める",
@@ -181,7 +181,7 @@
   "options.fairness": "公平性",
   "options.time": "時間",
   "options.fare": "運賃",
-  "options.fareTolerance": "最も高い運賃は最安よりどれだけ高くてよいですか？",
+  "options.fareTolerance": "運賃差の上限",
   "results.noFitFare": "この運賃許容範囲に合うエリアはありません。広げてください。",
   "map.fairFare": "公平なエリア、色が濃いほど運賃が安い"
 }

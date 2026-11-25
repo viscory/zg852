@@ -1,3 +1,12 @@
+## 2026-11-25T10:14:24Z
+
+- Collapsed the search action back to one button. `#go` now sits at the top of the Parameters panel with a visible **Find fair areas** label; the duplicate `#goTop` and the empty-state `#emptyRun` are gone. On mobile Plan the same `#go` is the fixed bottom button; on mobile Results the Parameters panel stays hidden.
+- Removed the 0% stop. The slider now starts at 5% (`min=1`): 5% → 100% linear in 1% steps, 100% → 300% logarithmic, then Unlimited. Stored values below 5% snap to 5%, so a 0% difference can no longer be selected from an old link or saved setting.
+- Shortened the tolerance labels to one line in all 15 catalogues: **Max time difference** and **Max fare difference**. The right-hand end label remains **Unlimited**.
+- Fixed a dangling mobile Results CSS selector left by removing `#emptyRun`, which had stopped `#resultState` from being hidden.
+- Updated the slider helper, min/max assertions, label tests and the search/empty-state tests. SW cache is `zg852-v62`.
+- `npm run lint` is clean; `CI=true npm test` passes 131/131. Commit, push, CI deploy and live verification are next.
+
 ## 2026-11-25T09:50:16Z
 
 - Pushed `38d4390`; CI run `45588629039` passed the 131-test job and the Cloudflare deploy. Live is SW `zg852-v61`.

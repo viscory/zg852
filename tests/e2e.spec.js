@@ -135,8 +135,8 @@ test('brand copy and MTR-facing labels use the 就腳 name', async ({ page }) =>
   await expect(page.locator('.brand .meaning')).toHaveCount(0);
   await expect(page.locator('.chip[data-mode="rail"]')).toHaveAttribute('aria-label', 'MTR');
   await expect(page.locator('.route-key [data-i18n="map.railKey"]')).toHaveText('MTR');
-  await expect(page.locator('#tolerance')).toHaveAttribute('min', '0');
-  await expect(page.locator('label[for="tolerance"]')).toHaveText('How much longer the slowest trip may be than the fastest, as a percentage.');
+  await expect(page.locator('#tolerance')).toHaveAttribute('min', '1');
+  await expect(page.locator('label[for="tolerance"]')).toHaveText('Max time difference');
   await expect(page.locator('.tolerance-row #exportDiagnostics')).toHaveCount(0);
   await expect(page.locator('.legal-links #exportDiagnostics')).toBeHidden();
   await expect(page.locator('#exportDiagnostics .icon-download')).toHaveCount(1);
@@ -260,9 +260,9 @@ test('defaults load and a two-person search draws fair map areas', async ({ page
 });
 
 test('empty-state search also reveals the route detail face', async ({ page }) => {
-  await expect(page.locator('#emptyRun')).toBeVisible();
+  await expect(page.locator('#go')).toBeVisible();
   await expect(page.locator('.side-left .face[data-face="detail"]')).toBeHidden();
-  await page.locator('#emptyRun').click();
+  await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await expect(page.locator('.side-left .face[data-face="detail"]')).toBeVisible();
   await expect(page.locator('#detail')).toBeVisible();
@@ -346,10 +346,10 @@ test('travel budget slider is gone', async ({ page }) => {
   await expect(page.locator('label[for="budget"]')).toHaveCount(0);
 });
 
-test('the top find button searches and the results list shows a bottom scroll shadow', async ({ page }) => {
+test('the search button sits at the top and the results list shows a bottom scroll shadow', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 });
-  await expect(page.locator('#goTop')).toBeVisible();
-  await page.locator('#goTop').click();
+  await expect(page.locator('#go')).toBeVisible();
+  await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
 
   const section = page.locator('.results-section');
@@ -654,8 +654,8 @@ test('named people, Photon addresses and tolerance cloud work', async ({ page })
   await expect(page.locator('#goLabel')).toHaveText('Find fair areas');
 });
 
-test('tolerance runs from 0% to 300%, then opens free point picking', async ({ page }) => {
-  await expect(page.locator('#tolerance')).toHaveAttribute('min', '0');
+test('tolerance runs from 5% to 300%, then opens free point picking', async ({ page }) => {
+  await expect(page.locator('#tolerance')).toHaveAttribute('min', '1');
   await expect(page.locator('#tolerance')).toHaveAttribute('max', '201');
   await expect(page.locator('#tolerance')).toHaveAttribute('step', '1');
   await setRange(page, '#tolerance', '3');
@@ -826,7 +826,7 @@ test('all catalogues keep the same keys and avoid ranking wording', async ({ pag
   expect(catalogues[0]['options.rail']).toBe('MTR');
   expect(catalogues[0]['mode.rail']).toBe('MTR');
   expect(catalogues[0]['map.railKey']).toBe('MTR');
-  expect(catalogues[0]['options.tolerance']).toBe('How much longer the slowest trip may be than the fastest, as a percentage.');
+  expect(catalogues[0]['options.tolerance']).toBe('Max time difference');
   expect(catalogues[0]['results.fareTotal']).toBe('Fare {value}');
   expect(catalogues[0]['results.noFitMtr']).toContain('MTR');
   for (const entries of catalogues) {

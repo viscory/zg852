@@ -26,7 +26,7 @@
   "options.title": "Parameter",
   "options.rail": "MTR",
   "options.bus": "Bus / Minibus",
-  "options.tolerance": "Wie viel länger die langsamste Fahrt als die schnellste dauern darf, in Prozent.",
+  "options.tolerance": "Max. Zeitunterschied",
   "options.toleranceNear": "Fast gleich",
   "options.toleranceFlexible": "Flexibler",
   "options.includeHeadway": "Durchschnittlichen Taktabstand berücksichtigen",
@@ -181,7 +181,7 @@
   "options.fairness": "Fairness",
   "options.time": "Zeit",
   "options.fare": "Fahrpreis",
-  "options.fareTolerance": "Wie viel teurer darf der höchste Fahrpreis als der niedrigste sein?",
+  "options.fareTolerance": "Max. Fahrpreisunterschied",
   "results.noFitFare": "Keine Gebiete passen zu dieser Fahrpreistoleranz. Erhöhen Sie sie.",
   "map.fairFare": "Faires Gebiet, dunkler bedeutet günstigere Fahrpreise"
 }

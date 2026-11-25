@@ -26,7 +26,7 @@
   "options.title": "Mga parameter",
   "options.rail": "MTR",
   "options.bus": "Bus / minibus",
-  "options.tolerance": "Gaano katagal maaaring tumagal ang pinakamabagal na biyahe kumpara sa pinakamabilis, bilang porsiyento.",
+  "options.tolerance": "Max na pagkakaiba sa oras",
   "options.toleranceNear": "Halos pantay",
   "options.toleranceFlexible": "Mas maluwag",
   "options.includeHeadway": "Isama ang karaniwang agwat ng biyahe",
@@ -181,7 +181,7 @@
   "options.fairness": "Pagkakapantay",
   "options.time": "Oras",
   "options.fare": "Pamasahe",
-  "options.fareTolerance": "Gaano kalaki ang puwedeng idagdag ng pinakamahal na pamasahe sa pinakamura?",
+  "options.fareTolerance": "Max na pagkakaiba sa pamasahe",
   "results.noFitFare": "Walang lugar na umaayon sa pamasaheng ito. Taasan ito.",
   "map.fairFare": "Patas na lugar, mas madilim ang mas murang pamasahe"
 }

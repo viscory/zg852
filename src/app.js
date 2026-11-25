@@ -116,8 +116,6 @@ $('jumpSettings')?.addEventListener('click',()=>{
   heading.focus({preventScroll:true});
 });
 $('go').onclick=()=>{setMobileView('results');triggerSearch(!isMobileLayout());};
-$('goTop').onclick=()=>{setMobileView('results');triggerSearch(!isMobileLayout());};
-$('emptyRun').onclick=()=>triggerSearch(!isMobileLayout());
 $('share').onclick=shareScenario;
 $('cancelPin').onclick=()=>{clearPinMode();setMobileView('plan');};
 $('closeRoute')?.addEventListener('click',closeMobileRoute);

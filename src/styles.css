@@ -424,7 +424,6 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   body[data-mobile-view="plan"] #detailHeading,
   body[data-mobile-view="plan"] #swapFace{display:none!important}
   body[data-mobile-view="plan"] .options-panel{position:static;display:block;max-height:none;overflow:visible;margin:0;padding:0;border:0;box-shadow:none}
-  body[data-mobile-view="plan"] .go-top{display:none!important}
   body[data-mobile-view="plan"] #optionsHeading{margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
   body[data-mobile-view="plan"] .results-section,
   body[data-mobile-view="plan"] #error{display:none!important}
@@ -445,8 +444,7 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   body[data-mobile-view="results"] #resultsHeading{display:none}
   body[data-mobile-view="results"] .results-head{display:flex;align-items:baseline;margin:0 0 4px}
   body[data-mobile-view="results"] #nres{font-size:18px;color:var(--text);font-weight:700}
-  body[data-mobile-view="results"] #resultState,
-  body[data-mobile-view="results"] #emptyRun{display:none!important}
+  body[data-mobile-view="results"] #resultState{display:none!important}
   .mobile-scenario{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;color:var(--muted);font-size:12px}
   .mobile-scenario [hidden]{display:none!important}
   #mobileScenarioText{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

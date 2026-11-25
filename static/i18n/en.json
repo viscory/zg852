@@ -26,7 +26,7 @@
   "options.title": "Parameters",
   "options.rail": "MTR",
   "options.bus": "Bus / minibus",
-  "options.tolerance": "How much longer the slowest trip may be than the fastest, as a percentage.",
+  "options.tolerance": "Max time difference",
   "options.toleranceNear": "Near equal",
   "options.toleranceFlexible": "More flexible",
   "options.includeHeadway": "Include average headway",
@@ -181,7 +181,7 @@
   "options.fairness": "Fairness",
   "options.time": "Time",
   "options.fare": "Fare",
-  "options.fareTolerance": "How much more can the priciest fare be than the cheapest?",
+  "options.fareTolerance": "Max fare difference",
   "results.noFitFare": "No areas fit this fare tolerance. Increase it.",
   "map.fairFare": "Fair area, darker means cheaper fares"
 }

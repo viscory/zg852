@@ -269,21 +269,19 @@ export function syncMobileResults(mode='ready',active=store.activePeople){
   }
 }
 export function renderResults(active=store.activePeople){
-  const list=$('resultsList'),state=$('resultState'),count=$('nres'),emptyRun=$('emptyRun');
+  const list=$('resultsList'),state=$('resultState'),count=$('nres');
   if(!list||!state||!count)return;
   if(!store.results.length){
     list.innerHTML='';
     state.textContent=t('results.empty');
     state.hidden=false;
     count.textContent='';
-    if(emptyRun)emptyRun.hidden=false;
     syncMobileResults('ready',active);
     applyUnboundedUi();
     requestAnimationFrame(syncScrollShadows);
     return;
   }
   state.hidden=true;
-  if(emptyRun)emptyRun.hidden=true;
   count.textContent=t('results.areas',{count:store.results.length});
   syncMobileResults('ready',active);
   // Never switch mobile panes from a recompute: only explicit navigation or
@@ -309,20 +307,16 @@ export function renderEmpty(){
 export function renderSkeleton(){
   clearError();
   clearMapOutput();
-  const state=$('resultState'),count=$('nres'),emptyRun=$('emptyRun');
+  const state=$('resultState'),count=$('nres');
   if(state){state.textContent=t('options.searching');state.hidden=false;}
   if(count)count.textContent='';
-  if(emptyRun)emptyRun.hidden=true;
   syncMobileResults('loading');
   applyUnboundedUi();
 }
 export function setWorking(working){
   const label=working?t('options.searching'):t('options.search');
-  ['go','goTop'].forEach(id=>{
-    const button=$(id);if(!button)return;
-    button.disabled=working;button.title=label;button.dataset.tooltip=label;button.setAttribute('aria-label',label);
-    const text=$(id==='go'?'goLabel':'goTopLabel');if(text)text.textContent=label;
-  });
+  const go=$('go');go.disabled=working;go.title=label;go.dataset.tooltip=label;go.setAttribute('aria-label',label);
+  $('goLabel').textContent=label;
   if(working)renderSkeleton();
 }
 export function setOrigin(person,place,input,sug){
@@ -733,7 +727,7 @@ document.addEventListener('click',event=>{
 function installUiListeners(){
   // Resolve typed text before the app's own search handler runs; unresolved
   // text is blocked here as well as by hasPendingOrigins() in the engine.
-  ['go','goTop','emptyRun'].forEach(id=>{
+  ['go'].forEach(id=>{
     $(id)?.addEventListener('click',event=>{
       if(!resolveAllPendingOrigins()){
         event.preventDefault();

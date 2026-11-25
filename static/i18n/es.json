@@ -26,7 +26,7 @@
   "options.title": "Parámetros",
   "options.rail": "MTR",
   "options.bus": "Autobús / minibús",
-  "options.tolerance": "Cuánto más puede tardar el viaje más lento que el más rápido, en porcentaje.",
+  "options.tolerance": "Diferencia de tiempo máx.",
   "options.toleranceNear": "Casi igual",
   "options.toleranceFlexible": "Más flexible",
   "options.includeHeadway": "Incluir el intervalo medio",
@@ -181,7 +181,7 @@
   "options.fairness": "Equidad",
   "options.time": "Tiempo",
   "options.fare": "Tarifa",
-  "options.fareTolerance": "¿Cuánto más puede costar la tarifa más cara que la más barata?",
+  "options.fareTolerance": "Diferencia de tarifa máx.",
   "results.noFitFare": "Ninguna zona cumple esta tolerancia de tarifa. Auméntala.",
   "map.fairFare": "Zona equitativa, más oscuro significa tarifas más baratas"
 }

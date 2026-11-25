@@ -26,17 +26,14 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('the tolerance slider is linear to 100%, logarithmic to 300%, then Unlimited', async ({ page }) => {
-  await expect(page.locator('#tolerance')).toHaveAttribute('min', '0');
+  await expect(page.locator('#tolerance')).toHaveAttribute('min', '1');
   await expect(page.locator('#tolerance')).toHaveAttribute('max', '201');
   await expect(page.locator('#tolerance')).toHaveAttribute('step', '1');
   await expect(page.locator('#tolerance ~ .slider-row.ends span').last()).toHaveText('Unlimited');
 
   await setTolerance(page, 0);
-  await expect(page.locator('#tolval')).toHaveText('0%');
-  await expect(page.locator('#tolerance')).toHaveAttribute('aria-valuetext', '0%');
-
-  await setTolerance(page, 0.05);
   await expect(page.locator('#tolval')).toHaveText('5%');
+  await expect(page.locator('#tolerance')).toHaveAttribute('aria-valuetext', '5%');
 
   await setTolerance(page, 0.1);
   await expect(page.locator('#tolval')).toHaveText('10%');
@@ -65,7 +62,7 @@ test('the Fairness toggle switches labels and legend without losing each toleran
 
   await page.locator('#fairnessToggle [data-fairness="fare"]').click();
   await expect(page.locator('#fairnessToggle [data-fairness="fare"]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#toleranceLabel')).toContainText('priciest fare');
+  await expect(page.locator('#toleranceLabel')).toHaveText('Max fare difference');
   await expect(page.locator('#tolval')).toHaveText('25%');
   await expect(page.locator('#legendFairText')).toHaveText('Fair area, darker means cheaper fares');
 

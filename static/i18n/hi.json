@@ -26,7 +26,7 @@
   "options.title": "पैरामीटर",
   "options.rail": "MTR",
   "options.bus": "बस / मिनीबस",
-  "options.tolerance": "सबसे धीमी यात्रा सबसे तेज़ यात्रा से कितने प्रतिशत अधिक समय ले सकती है।",
+  "options.tolerance": "अधिकतम समय अंतर",
   "options.toleranceNear": "लगभग बराबर",
   "options.toleranceFlexible": "अधिक लचीला",
   "options.includeHeadway": "औसत अंतराल शामिल करें",
@@ -181,7 +181,7 @@
   "options.fairness": "निष्पक्षता",
   "options.time": "समय",
   "options.fare": "किराया",
-  "options.fareTolerance": "सबसे महंगा किराया सबसे सस्ते से कितना अधिक हो सकता है?",
+  "options.fareTolerance": "अधिकतम किराया अंतर",
   "results.noFitFare": "इस किराया सीमा में कोई क्षेत्र नहीं। इसे बढ़ाएं।",
   "map.fairFare": "उचित क्षेत्र, गहरा रंग अधिक सस्ता किराया"
 }

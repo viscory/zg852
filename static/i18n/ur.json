@@ -26,7 +26,7 @@
   "options.title": "پیرامیٹرز",
   "options.rail": "MTR",
   "options.bus": "بس / منی بس",
-  "options.tolerance": "سب سے سست سفر سب سے تیز سفر سے کتنے فیصد زیادہ وقت لے سکتا ہے۔",
+  "options.tolerance": "زیادہ سے زیادہ وقت کا فرق",
   "options.toleranceNear": "تقریباً برابر",
   "options.toleranceFlexible": "زیادہ لچکدار",
   "options.includeHeadway": "اوسط وقفہ شامل کریں",
@@ -181,7 +181,7 @@
   "options.fairness": "انصاف",
   "options.time": "وقت",
   "options.fare": "کرایہ",
-  "options.fareTolerance": "سب سے مہنگا کرایہ سب سے سستے سے کتنا زیادہ ہو سکتا ہے؟",
+  "options.fareTolerance": "زیادہ سے زیادہ کرایہ کا فرق",
   "results.noFitFare": "اس کرایہ حد میں کوئی علاقہ نہیں۔ اسے بڑھائیں۔",
   "map.fairFare": "منصفانہ علاقہ، گہرا رنگ زیادہ سستا کرایہ"
 }
