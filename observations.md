@@ -1,3 +1,10 @@
+## 2026-11-25T07:54:41Z
+
+- Pushed `1d76b45`; CI run `45571308419` passed the 129-test job and the Cloudflare deploy. Live is SW `zg852-v57`.
+- Live exact-scenario check: Metropole Building + Chai Wan, rail-only, Time Unlimited still ranks Tai Koo first (13 min longest), with no error.
+- Live Yuen Long check: with average headway on it now refuses the point with “That point cannot be reached by everyone within 60 minutes.” With headway off it pins Yuen Long and shows the Tuen Ma Line to Yuen Long (47 min Alex, 58 min Sam) instead of the old 58-minute walk from Kam Sheung Road.
+- No further source changes are pending.
+
 ## 2026-11-25T07:50:20Z
 
 - Reproduced the pasted scenario exactly: Metropole Building (walk to North Point) + Chai Wan, rail-only, Time Unlimited. Tai Koo at 12.2/12.6 min is the correct fair area, not a routing bug. Yuen Long is outside the 60-minute cap for Chai Wan when average headway is included.
