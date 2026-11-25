@@ -1,3 +1,8 @@
+## 2026-11-25T15:44:26Z
+
+- Committed and pushed `3c6db2a` ("fix: correct meeting-point fairness, fares and source selection") to `main` at `github.com:viscory/zg852.git`. The commit includes both this round's calc-logic fixes and the earlier uncommitted honest-copy fixes; 37 files, 767 insertions, 105 deletions.
+- Left the pre-existing untracked screenshot/audit artefacts (`audit/`, `*.png`) out of the commit. Working tree is clean apart from those artefacts and this observations block.
+
 ## 2026-11-25T15:39:11Z
 
 - Final pass: corrected the Light Rail stop count to include boarding and alighting stops (`sum(stopCount) + legs + 1`) and added a regression assertion. Re-ran lint (clean) and the full suite: 149/149 pass against built `public/`. No commit made; the unrelated dirty work is preserved.
