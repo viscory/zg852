@@ -1,3 +1,12 @@
+## 2026-11-25T12:57:29Z
+
+- Added 8 px inline-end padding to the results count so “7 areas” no longer sits against the edge.
+- Transport mode chips now refuse to switch off the last active mode; at least one of MTR / bus is always on, so the no-mode error cannot be triggered by clicking.
+- The results section now has a static bottom drop shadow above the footer, in addition to the existing dynamic inset shadow while more rows remain below.
+- In Unlimited mode, tapping the map no longer fits or recentres the view. `renderSelection` skips `fitMapTo` whenever `store.unbounded` is true, including explicit point selections.
+- Added regressions for all four and bumped the service worker to `zg852-v64`.
+- `npm run lint` is clean; `CI=true npm test` passes 132/132. Commit, push, CI deploy and live verification are next.
+
 ## 2026-11-25T11:38:38Z
 
 - Pushed `1e5e11d`; CI run `45595058732` passed the 131-test job and the Cloudflare deploy. Live is SW `zg852-v63`.

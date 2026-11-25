@@ -94,7 +94,12 @@ document.querySelectorAll('dialog').forEach(dialog=>{
   });
 });
 document.querySelectorAll('.legal-button[data-legal]').forEach(button=>{button.onclick=()=>openLegal(button.dataset.legal);});
-document.querySelectorAll('.chip').forEach(chip=>chip.onclick=()=>{chip.setAttribute('aria-pressed',String(chip.getAttribute('aria-pressed')!=='true'));clearError();readSettingsFromDom();});
+document.querySelectorAll('.chip').forEach(chip=>chip.onclick=()=>{
+  const on=chip.getAttribute('aria-pressed')==='true';
+  if(on&&document.querySelectorAll('.chip[aria-pressed="true"]').length<=1)return;
+  chip.setAttribute('aria-pressed',String(!on));
+  clearError();readSettingsFromDom();
+});
 document.querySelectorAll('#fairnessToggle [data-fairness]').forEach(button=>button.onclick=()=>setFairness(button.dataset.fairness));
 $('tolerance').oninput=readSettingsFromDom;
 async function setBetaEnabled(enabled){

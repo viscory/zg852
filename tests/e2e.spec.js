@@ -106,6 +106,28 @@ test('map renders a keyless vector canvas with no API-key errors', async ({ page
   expect(raster).toEqual([]);
 });
 
+test('transport modes never let both MTR and bus be switched off', async ({ page }) => {
+  const rail = page.locator('.chip[data-mode="rail"]');
+  const bus = page.locator('.chip[data-mode="bus"]');
+  await expect(rail).toHaveAttribute('aria-pressed', 'true');
+  await expect(bus).toHaveAttribute('aria-pressed', 'true');
+
+  await rail.click();
+  await expect(rail).toHaveAttribute('aria-pressed', 'false');
+  await expect(bus).toHaveAttribute('aria-pressed', 'true');
+  await bus.click();
+  await expect(bus).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#error')).toBeHidden();
+
+  await rail.click();
+  await expect(rail).toHaveAttribute('aria-pressed', 'true');
+  await bus.click();
+  await expect(bus).toHaveAttribute('aria-pressed', 'false');
+  await rail.click();
+  await expect(rail).toHaveAttribute('aria-pressed', 'true');
+  await expect(bus).toHaveAttribute('aria-pressed', 'false');
+});
+
 test('brand copy and MTR-facing labels use the 就腳 name', async ({ page }) => {
   const en = await catalog(page, 'en');
   await expect(page.locator('.brand .logo')).toHaveText('ZG');
@@ -355,6 +377,7 @@ test('the search button sits at the top and the results list shows a bottom scro
   expect(goBox.height).toBeLessThan(45);
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  expect(parseFloat(await page.locator('#nres').evaluate(el => getComputedStyle(el).paddingInlineEnd))).toBeGreaterThan(0);
 
   const section = page.locator('.results-section');
   await expect.poll(() => section.evaluate(el => el.scrollHeight > el.clientHeight + 2)).toBe(true);
@@ -675,8 +698,10 @@ test('tolerance runs from 5% to 300%, then opens free point picking', async ({ p
 
   const mapBox = await page.locator('#map').boundingBox();
   expect(mapBox).not.toBeNull();
+  const viewBefore = await page.locator('.leaflet-map-pane').evaluate(el => el.style.transform);
   await page.mouse.click(mapBox.x + mapBox.width * 0.52, mapBox.y + mapBox.height * 0.55);
   await expect(page.locator('#pointBanner')).toBeVisible();
+  await expect.poll(() => page.locator('.leaflet-map-pane').evaluate(el => el.style.transform)).toBe(viewBefore);
   await expect(page.locator('#detailTitle')).toHaveText('Pinned point');
   await expect(page.locator('#steps')).toContainText('Pinned point');
   await expect(page.locator('#steps .route-meta')).toHaveCount(2);

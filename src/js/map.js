@@ -414,7 +414,9 @@ export function renderSelection(r,active=store.activePeople,fit=false){
   // place so heat cells stay tappable; unbounded mode keeps the current view
   // free for the next pin tap. An explicit selection fits the full route
   // inside the map area left visible by the mobile sheet.
-  const pts=fit?r.paths.flat().concat(active.map(p=>[p.origin.lat,p.origin.lon])):store.unbounded?null:[[r.lat,r.lon]];
+  // Unlimited taps keep the current view; fitting here would snap or recentre
+  // the map under the point the user just chose.
+  const pts=store.unbounded?null:(fit?r.paths.flat().concat(active.map(p=>[p.origin.lat,p.origin.lon])):[[r.lat,r.lon]]);
   if(pts)fitMapTo(pts);
 }
 export function selectResult(i,active=store.activePeople,reveal=false){
