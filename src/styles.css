@@ -161,6 +161,7 @@ input[type=text]:focus-visible{outline:2px solid var(--accent);outline-offset:1p
 .fare.rail{border-color:var(--accent)}
 .fare.bus{border-style:dashed;border-color:var(--accent-hover)}
 .fare.total{border-color:var(--accent);font-weight:600}
+.fare-estimate{color:var(--accent);font-weight:700;margin-right:2px}
 .headway-section{margin:0 0 12px}
 .toggle-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);cursor:pointer}
 .toggle-row input[type=checkbox]{width:14px;height:14px;flex:none;margin:0;accent-color:var(--accent)}
@@ -278,6 +279,7 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .legend:not(.open){width:112px}
 .legend:not(.open) .legend-head{width:auto}
 .cloud-key{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.fare-scale{font-variant-numeric:tabular-nums;white-space:nowrap}
 .swatch{width:12px;height:12px;border:1px solid var(--border);border-radius:var(--r-sm);display:inline-block}
 .swatch.h1{background:#4C0519}
 .swatch.h2{background:#9F1239}

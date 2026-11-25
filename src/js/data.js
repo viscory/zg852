@@ -1,11 +1,18 @@
-import { HKBUS_SEARCH_URL,MTR_LINE_COLORS,MTR_LINE_DEFAULT_COLOR } from './config.js';
+import { MTR_LINE_COLORS,MTR_LINE_DEFAULT_COLOR } from './config.js';
 import { store } from './store.js';
 import { isNum,haversine } from './util.js';
 import { t } from './i18n.js';
 
 export function nodePriority(kind){return kind===1?0:kind===3?1:kind===4?2:3;}
 export function catKey(priority){return priority===0?'station':priority===1?'exit':'bus';}
-export function hkbusUrl(lineIndex){return store.HKBUS_URLS?.[lineIndex]||HKBUS_SEARCH_URL;}
+export function hkbusUrl(lineIndex){return store.HKBUS_URLS?.[lineIndex]??null;}
+// One resolver for every route chip: a link is only offered when the bundled
+// catalogue has a real route page. A generic search is not a route link.
+export function routeLink(leg){
+  if(!leg||leg.mode!=='bus'||!Number.isInteger(leg.lineIndex))return null;
+  const uri=hkbusUrl(leg.lineIndex);
+  return uri?{uri,titleKey:'route.busLink'}:null;
+}
 export function mtrLineCode(line){
   const match=/^MTR\s+([A-Z]{3})$/.exec(String(line||''));
   return match&&MTR_LINE_COLORS[match[1]]?match[1]:'';
@@ -54,6 +61,11 @@ export async function loadFares(){
   if(store.MTR_FARES)return store.MTR_FARES;
   store.MTR_FARES=await fetchJson('data/mtr-fares.json','MTR fares');
   if(!store.MTR_FARES?.fares||!store.MTR_FARES?.nodeStation)throw new Error('MTR fare data is invalid');
+  store.fareHeatMax=null;
+  // The bus/minibus/ferry snapshot is optional: a missing table must degrade
+  // to an explicitly flagged estimate, not break the app or hide MTR fares.
+  try{store.ROUTE_FARES=await fetchJson('data/route-fares.json','Route fares');}
+  catch(err){console.error(err);store.ROUTE_FARES={fares:{}};}
   return store.MTR_FARES;
 }
 export async function loadPoi(){

@@ -1,4 +1,4 @@
-import { LETTERS,VECTOR_KEYS,FAIRNESS_METRICS,travelTolerance,fareTolerance,isUnboundedTolerance,toleranceFromSlider,sliderPositionForTolerance } from './config.js';
+import { LETTERS,VECTOR_KEYS,FAIRNESS_METRICS,activeFairnessMetric,travelTolerance,fareTolerance,isUnboundedTolerance,toleranceFromSlider,sliderPositionForTolerance } from './config.js';
 import { store } from './store.js';
 import { $,esc,clamp,icon,initialsFor,avatarClass,clone } from './util.js';
 import { t,tp,intNum,minuteText } from './i18n.js';
@@ -6,7 +6,8 @@ import { normalizeVectors,vectorLabel,betaVectorsEnabled } from './vectors.js';
 import { syncScrollShadows } from './scroll.js';
 import { searchPlaces,districtFor } from './data.js';
 import { dedupePlaces,normLabel,photonSearch } from './search.js';
-import { fareMarkup } from './routing.js';
+import { fareMarkup,money } from './routing.js';
+import { fareHeatMax } from './fares.js';
 import { displayName,save,saveDirectory,profileFromPerson,profileLabel,profileDistrict } from './state.js';
 import { scheduleRecompute } from './engine.js';
 import { hideTooltip,clearMapOutput,selectResult } from './map.js';
@@ -157,7 +158,7 @@ export function flashTooltip(element,message){
   element.tooltipTimer=setTimeout(()=>setLabel(element,original),1600);
 }
 function activeMetric(){
-  return FAIRNESS_METRICS.includes(store.settings.fairness)?store.settings.fairness:'time';
+  return activeFairnessMetric(store.settings.fairness);
 }
 function activeTolerance(metric=activeMetric()){
   return metric==='fare'?fareTolerance(store.settings.fareTolerance):travelTolerance(store.settings.tolerance);
@@ -180,6 +181,11 @@ export function updateSettingsLabels(){
   document.querySelectorAll('#fairnessToggle [data-fairness]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.fairness===metric)));
   const legend=$('legendFairText');
   if(legend){const key=metric==='fare'?'map.fairFare':'map.fairArea';legend.dataset.i18n=key;legend.textContent=t(key);}
+  const scale=$('legendFareScale');
+  if(scale){
+    scale.hidden=metric!=='fare';
+    if(metric==='fare')scale.textContent=`${money(0)}–${money(fareHeatMax())}`;
+  }
   $('includeHeadway').checked=store.settings.includeHeadway!==false;
   store.settings.vectors=normalizeVectors(store.settings.vectors);
   VECTOR_KEYS.forEach(key=>{const label=$(`vec-${key}-val`);if(label)label.textContent=vectorLabel(store.settings.vectors[key]);});

@@ -1,3 +1,20 @@
+## 2026-11-25T15:39:11Z
+
+- Final pass: corrected the Light Rail stop count to include boarding and alighting stops (`sum(stopCount) + legs + 1`) and added a regression assertion. Re-ran lint (clean) and the full suite: 149/149 pass against built `public/`. No commit made; the unrelated dirty work is preserved.
+
+## 2026-11-25T15:35:53Z
+
+- Fixed the five remaining calc-logic findings without reverting the unrelated dirty work: (2) pin and cell walk tolerance now use the same raw comparison; (4) coordinate origins pool distinct nearby stations/platforms instead of collapsing to one exit; (6) long bus/minibus/ferry legs use official Transport Department full fares from a new bundled snapshot, with distance bands only as flagged fallbacks; (7) fare ranking sorts by total paid then relative spread and filters on mean fare; (10) stale hardcoded AEL fares are gone, AEL uses the bundled matrix, light rail has its own chart, and unknown fares carry an ≈ marker.
+- Added `scripts/generate-route-fares.py` (2,745 line fares from TD open data), `static/data/route-fares.json`, a `results.fareEstimated` key in all 15 catalogues, fare-estimate and diagnostics fields, and `tests/calc-logic-fixes.spec.js` with seven regressions.
+- Deployment allowlist and service-worker precache now include `route-fares.json`; service worker bumped to `zg852-v68` and the catalogue-count pin updated to 187.
+- `npm run lint` is clean and `CI=true npm test` passes 149/149 against built `public/`. No commit has been made yet.
+
+## 2026-11-25T15:02:02Z
+
+- Implemented the five approved findings without consulting `AUDIT-REPORT.md`: fairness copy now follows the shared Time/Fare metric definition; the fare heat scale is derived from bundled fares (top HK$120) instead of the old HK$25 cap; ride chips link only to real HK Bus route pages; source lookup returns typed availability reasons so mode exclusions get mode-specific copy; and pinned-point rejection distinguishes walk-limit failures from the 90-minute budget.
+- Added `tests/fixed-findings.spec.js` with five regressions, updated affected exact-copy assertions and all 15 catalogues (186 keys), and bumped the service worker to `zg852-v67`.
+- `npm run lint` is clean and `CI=true npm test` passes 142/142 against the built `public/` output. No commit has been made yet.
+
 ## 2026-11-25T14:12:20Z
 
 - Pushed `63de099`; CI run `45630686352` passed the 137-test job and the Cloudflare deploy. Live is SW `zg852-v66`.

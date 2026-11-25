@@ -28,6 +28,7 @@ function legFacts(leg,person){
     stopCount:leg.stopCount||0,
     interchangeWait:leg.interchangeWait||0,
     fare:leg.fare||0,
+    fareEstimated:!!leg.fareEstimated,
     person,
   };
 }
@@ -45,6 +46,10 @@ function areaFacts(result){
     slowest:result.slowest,
     gap:result.gap,
     score:result.score,
+    fareGap:result.fareGap??null,
+    fareSpread:result.fareSpread??null,
+    totalFare:result.totalFare??null,
+    fareEstimated:result.fareEstimated??false,
     interestFit:result.fit,
     interestRating:result.rating??null,
     interestRatings:result.ratings??null,

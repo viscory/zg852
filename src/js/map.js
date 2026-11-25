@@ -2,13 +2,14 @@ import * as L from 'leaflet';
 import { maplibreGL } from '@maplibre/maplibre-gl-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,TRAVEL_BUDGET_MINUTES,FARE_HEAT_MAX,WALK_SPEED_KMH,WALK_DETOUR } from './config.js';
+import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,TRAVEL_BUDGET_MINUTES,WALK_SPEED_KMH,WALK_DETOUR } from './config.js';
 import { store } from './store.js';
 import { $,esc,clamp,isNum,icon,initialsFor,avatarClass,haversine } from './util.js';
 import { t,intNum,minuteText } from './i18n.js';
 import { cellTopNames,cellRatings,cellVector,cellCount,cellPreference,overallRating } from './vectors.js';
 import { prepareRoutes,legLabel,fareMarkup,money,cellToResult,interchangeWaitText,walkBudget } from './routing.js';
-import { hkbusUrl,mtrLineCode,districtFor } from './data.js';
+import { routeLink,mtrLineCode,districtFor } from './data.js';
+import { fareHeatMax } from './fares.js';
 import { displayName,saveSelection } from './state.js';
 import { isMobileLayout,showMobileRoute } from './mobile.js';
 import { markSelectedResult,setPinOrigin,setLabel,setSidebarFace,showError,showPointNotice,clearPointNotice,applyUnboundedUi } from './ui.js';
@@ -189,7 +190,7 @@ function magneticCell(latlng){
 }
 export function heatColor(cell,budget,metric='time'){
   const ratio=metric==='fare'
-    ? clamp((Number(cell.maxFare)||0)/FARE_HEAT_MAX,0,1)
+    ? clamp((Number(cell.maxFare)||0)/fareHeatMax(),0,1)
     : clamp(cell.slowest/Math.max(budget,1),0,1);
   return HEAT_COLORS[Math.max(0,Math.min(HEAT_COLORS.length-1,Math.round(ratio*(HEAT_COLORS.length-1))))];
 }
@@ -217,6 +218,7 @@ export function drawCloud(budget){
     cellNode.setAttribute('role','button');
     cellNode.setAttribute('aria-label',`${t('map.areaTitle')}: ${minuteText(c.slowest)}`);
     cellNode.setAttribute('data-heat-cell','');
+    if(metric==='fare'&&isNum(c.maxFare))cellNode.setAttribute('data-max-fare',String(c.maxFare));
     entries.push({c,node:cellNode});
   });
   if(!entries.length)return;
@@ -365,11 +367,12 @@ function legChip(leg){
   const label=leg.lineName||String(leg.line).replace(/^MTR\s+/i,'');
   const dot=rail?`<span class="mtr-dot" data-line="${esc(mtrLineCode(leg.line))}" aria-hidden="true"></span>`:'';
   const number=String(leg.line||'');
-  const uri=rail?null:hkbusUrl(leg.lineIndex);
-  const numberMarkup=uri?`<a class="bus-link" href="${esc(uri)}" target="_blank" rel="noopener noreferrer" title="${esc(t('route.busLink'))}">${esc(number)}</a>`:esc(number);
+  const link=rail?null:routeLink(leg);
+  const numberMarkup=link?`<a class="bus-link" href="${esc(link.uri)}" target="_blank" rel="noopener noreferrer" title="${esc(t(link.titleKey))}">${esc(number)}</a>`:esc(number);
   const modeLabel=rail?`${dot}${esc(label)}`:`${esc(t('mode.bus'))} ${numberMarkup}`;
   const stops=`<span class="leg-stops" aria-label="${esc(t('route.stops',{from:leg.from,to:leg.to}))}"><span class="leg-from">${esc(leg.from)}</span> <span class="leg-arrow" aria-hidden="true">→</span> <span class="leg-to">${esc(leg.to)}</span></span>`;
-  const fare=leg.fare?`<span class="fare">${esc(t('results.fareTotal',{value:money(leg.fare)}))}</span>`:'';
+  const estimate=leg.fareEstimated?`<span class="fare-estimate" title="${esc(t('results.fareEstimated'))}" aria-label="${esc(t('results.fareEstimated'))}">≈</span>`:'';
+  const fare=leg.fare?`<span class="fare">${estimate}${esc(t('results.fareTotal',{value:money(leg.fare)}))}</span>`:'';
   const wait=interchangeWaitText(leg);
   const waitNote=wait?`<span class="interchange-wait">${esc(wait)}</span>`:'';
   return `<span class="ride-leg route-${leg.mode}"><span class="leg-mode"><span class="icon icon-${rail?'rail':'bus'}" aria-hidden="true"></span>${modeLabel}</span>${stops}<span class="leg-meta"><span class="leg-time">${esc(minuteText(leg.minutes))}</span>${fare}${waitNote}</span></span>`;
@@ -444,17 +447,23 @@ export function selectPoint(lat,lon){
   const grids=store.effectiveGrids,round=value=>Math.round(value*10)/10;
   const walkLimits=store.activePeople.map(person=>walkBudget(person));
   const approachMinutes=distance=>distance/1000/WALK_SPEED_KMH*60*WALK_DETOUR;
-  let nearest=-1,bestScore=Infinity;
+  let nearest=-1,bestScore=Infinity,walkOnlyRejected=false;
   for(const index of store.surface){
     const times=grids.map(grid=>grid[index]);
     if(times.some(value=>!isFinite(value)||value>TRAVEL_BUDGET_MINUTES))continue;
     const distance=haversine(lat,lon,store.NODES.lat[index],store.NODES.lon[index]);
     const walk=approachMinutes(distance);
-    if(times.some((value,person)=>Math.round(walk)>walkLimits[person]||Math.round(value+walk)>TRAVEL_BUDGET_MINUTES))continue;
+    if(walk>TRAVEL_BUDGET_MINUTES||times.some(value=>value+walk>TRAVEL_BUDGET_MINUTES))continue;
+    if(times.some((_,person)=>walk>walkLimits[person]+1e-9)){walkOnlyRejected=true;continue;}
     const score=distance+Math.max(...times)*10;
     if(score<bestScore){bestScore=score;nearest=index;}
   }
-  if(nearest<0){showPointNotice(t('error.pointOutOfReach'));return;}
+  if(nearest<0){
+    // A point that is within the travel budget but beyond someone's walk limit
+    // is a walk-limit failure even if other nearby stops are transit-infeasible.
+    showPointNotice(t(walkOnlyRejected?'error.pointWalkLimit':'error.pointOutOfReach'));
+    return;
+  }
   const walk=approachMinutes(haversine(lat,lon,store.NODES.lat[nearest],store.NODES.lon[nearest]));
   const times=grids.map(grid=>round(grid[nearest]+walk));
   const slowest=Math.max(...times),fastest=Math.min(...times);

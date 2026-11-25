@@ -129,7 +129,7 @@ for (const name of ['README.md', 'LICENSE', 'PRIVACY.md', 'TERMS.md', 'CREDITS.m
 // Only generated datasets the app fetches at runtime may ship. Everything
 // else in static/data (raw feeds, pipeline intermediates) stays out of the
 // deployment.
-const deployedDataFiles = new Set(['nodes.json', 'network.json', 'districts.json', 'poi-index.json', 'hkbus.json', 'mtr-fares.json']);
+const deployedDataFiles = new Set(['nodes.json', 'network.json', 'districts.json', 'poi-index.json', 'hkbus.json', 'mtr-fares.json', 'route-fares.json']);
 const dataDir = join(out, 'data');
 for (const entry of await readdir(dataDir)) {
   if (!deployedDataFiles.has(entry)) await rm(join(dataDir, entry), { recursive: true, force: true });

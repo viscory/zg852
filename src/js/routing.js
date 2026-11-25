@@ -1,5 +1,5 @@
-import { RAIL_FARE_BANDS,BUS_FARE_BANDS,AEL_FARES,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE,WALK_TOLERANCE_DEFAULT,WALK_TOLERANCE_MAX,WALK_SPEED_KMH,WALK_DETOUR } from './config.js';
-import { railFare,aelFareForNodes } from './fares.js';
+import { RAIL_FARE_BANDS,BUS_FARE_BANDS,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE,WALK_TOLERANCE_DEFAULT,WALK_TOLERANCE_MAX,WALK_SPEED_KMH,WALK_DETOUR } from './config.js';
+import { railFare,aelFareForNodes,lightRailFare } from './fares.js';
 import { store } from './store.js';
 import { isNum,haversine,walkMinutes,clamp,round1,esc } from './util.js';
 import { t,tp,num,minuteText } from './i18n.js';
@@ -21,48 +21,72 @@ export function legDistanceKm(leg){
 }
 const RIDE_MODES=['rail','bus','ferry','lightRail'];
 export function rideMode(code){return RIDE_MODES[code]||'bus';}
-export function aelFare(from,to){
-  const ends=new Set([stopName(from),stopName(to)]);
-  if(ends.size<2)return 0;
-  for(const [a,b,fare] of AEL_FARES)if(ends.has(a)&&ends.has(b))return fare;
-  return 64.5;
+export function scheduledRouteFare(leg){
+  const fares=store.ROUTE_FARES?.fares,fare=fares?.[leg.lineIndex];
+  return isNum(fare)&&fare>0?fare:null;
 }
 export function routeFares(route){
-  let rail=0,bus=0,railKm=0,railStart=null,railEnd=null,railLeg=null;
+  let rail=0,bus=0,lightRail=0,railKm=0,railStart=null,railEnd=null,railLegs=[],lrStops=0,lrLegs=[],estimated=false;
+  const mark=(legs,value)=>{
+    for(const leg of legs)leg.fareEstimated=value;
+    if(value)estimated=true;
+  };
   const flushRail=()=>{
     if(railKm>0){
       const looked=railFare(railStart,railEnd);
       if(looked===null)console.warn('MTR fare not in lookup table',railStart,railEnd);
       const fare=round1(looked??bandFare(railKm,RAIL_FARE_BANDS));
       rail+=fare;
-      if(railLeg)railLeg.fare=fare;
-      railKm=0;railStart=null;railEnd=null;railLeg=null;
+      for(const leg of railLegs)leg.fare=fare;
+      mark(railLegs,looked===null);
+      railKm=0;railStart=null;railEnd=null;railLegs=[];
+    }
+  };
+  const flushLightRail=()=>{
+    if(lrLegs.length){
+      // describe() counts stopCount as intermediate stops, so N ride edges on
+      // one leg give stopCount = N-1. The chart counts boarding and alighting
+      // stops too: sum(stopCount) + number of legs + 1.
+      const stops=lrStops+lrLegs.length+1;
+      const fare=round1(lightRailFare(stops));
+      lightRail+=fare;
+      for(const leg of lrLegs)leg.fare=fare;
+      mark(lrLegs,false);
+      lrStops=0;lrLegs=[];
     }
   };
   for(const leg of route.legs){
     if(leg.mode==='walk'){
-      leg.fare=0;
-      if(leg.minutes>FARE_INTERCHANGE_WALK_MINUTES)flushRail();
+      leg.fare=0;leg.fareEstimated=false;
+      if(leg.minutes>FARE_INTERCHANGE_WALK_MINUTES){flushRail();flushLightRail();}
       continue;
     }
     if(leg.mode==='rail'&&String(leg.line).startsWith('MTR AEL')){
-      flushRail();
-      const fare=round1(aelFareForNodes(leg.fromNode,leg.toNode)??aelFare(leg.from,leg.to));
-      rail+=fare;leg.fare=fare;
+      flushRail();flushLightRail();
+      const official=aelFareForNodes(leg.fromNode,leg.toNode);
+      // City-to-city AEL pairs are not published in the bundled matrix. Keep
+      // the ride usable, but never present the band estimate as an official fare.
+      const fare=round1(official??bandFare(legDistanceKm(leg),RAIL_FARE_BANDS));
+      rail+=fare;leg.fare=fare;mark([leg],official===null);
       continue;
     }
     const km=legDistanceKm(leg);
-    if(leg.mode==='rail'||leg.mode==='lightRail'){
+    if(leg.mode==='rail'){
+      flushLightRail();
       if(railKm===0)railStart=leg.fromNode;
-      railKm+=km;railEnd=leg.toNode;railLeg=leg;leg.fare=0;
-    }else{
+      railKm+=km;railEnd=leg.toNode;railLegs.push(leg);leg.fare=0;
+    }else if(leg.mode==='lightRail'){
       flushRail();
-      const fare=round1(bandFare(km,BUS_FARE_BANDS));
-      bus+=fare;leg.fare=fare;
+      lrStops+=leg.stopCount||0;lrLegs.push(leg);leg.fare=0;
+    }else{
+      flushRail();flushLightRail();
+      const official=scheduledRouteFare(leg);
+      const fare=round1(official??bandFare(km,BUS_FARE_BANDS));
+      bus+=fare;leg.fare=fare;mark([leg],official===null);
     }
   }
-  flushRail();
-  return{rail:round1(rail),bus:round1(bus),total:round1(rail+bus)};
+  flushRail();flushLightRail();
+  return{rail:round1(rail),lightRail:round1(lightRail),bus:round1(bus),total:round1(rail+lightRail+bus),estimated};
 }
 export const walkBudget=person=>clamp(person?.walkMinutes,0,WALK_TOLERANCE_MAX,WALK_TOLERANCE_DEFAULT);
 export function prepareRoutes(result,active=store.activePeople){
@@ -74,7 +98,8 @@ export function money(value){return `HK$${num(value)}`;}
 export function fareMarkup(route){
   const fares=route?.fares||{total:0};
   if(!fares.total)return `<span class="person-fares"><span class="fare total walk-only">${esc(t('results.walkOnly'))}</span></span>`;
-  return `<span class="person-fares"><span class="fare total">${esc(t('results.fareTotal',{value:money(fares.total)}))}</span></span>`;
+  const estimate=fares.estimated?`<span class="fare-estimate" title="${esc(t('results.fareEstimated'))}" aria-label="${esc(t('results.fareEstimated'))}">≈</span>`:'';
+  return `<span class="person-fares"><span class="fare total">${estimate}${esc(t('results.fareTotal',{value:money(fares.total)}))}</span></span>`;
 }
 
 export class MinHeap{
@@ -148,24 +173,58 @@ export function nodeCompatible(kind){
   if(modes.length!==1)return true;
   return modes[0]==='rail'?(kind===1||kind===2||kind===3):kind===4;
 }
+export const SOURCE_READY='ready';
+export const SOURCE_NO_STOP='no-stop';
+export const SOURCE_WRONG_MODE='wrong-mode';
+export const SOURCE_OUTSIDE_WALK='outside-walk';
+function sourceGroup(node){
+  const kind=store.NODES.kind[node],name=String(store.NODES.names[node]||'');
+  if(kind===1||kind===2||kind===3){
+    const marker=name.indexOf(' · ');
+    return `rail:${marker<0?name:name.slice(0,marker)}`;
+  }
+  return `stop:${name}:${store.NODES.lat[node]}:${store.NODES.lon[node]}`;
+}
+// Starting from a platform avoids paying the in-station walk again. An exit is
+// only preferred when it is meaningfully closer; a station node wins outright.
+// The penalty is in minutes, matching the walk budget it competes against.
+function sourcePenalty(node){
+  const kind=store.NODES.kind[node];
+  return kind===1?0:kind===2?0.2:kind===3?0.8:0;
+}
 export function nearestSources(lat,lon,budget,indices,allowFallback=true){
   const near=[];
   for(const idx of indices)near.push([haversine(lat,lon,store.NODES.lat[idx],store.NODES.lon[idx]),idx]);
   near.sort((a,b)=>a[0]-b[0]);
-  const within=near.filter(([d])=>d<=ACCESS_RADIUS_M).slice(0,MAX_ACCESS_NODES);
-  const use=within.length?within:(allowFallback?near.slice(0,3):[]);
-  return use.map(([d,idx])=>({node:idx,minutes:walkMinutes(d)})).filter(s=>s.minutes<=budget);
+  const within=near.filter(([d])=>d<=ACCESS_RADIUS_M);
+  const pool=within.length?within:(allowFallback?near.slice(0,MAX_ACCESS_NODES*2):[]);
+  const groups=new Map();
+  for(const [d,idx] of pool){
+    const minutes=walkMinutes(d),rank=minutes+sourcePenalty(idx),key=sourceGroup(idx),current=groups.get(key);
+    if(!current||rank<current.rank)groups.set(key,{minutes,idx,rank});
+  }
+  const use=[...groups.values()].sort((a,b)=>a.rank-b.rank).slice(0,MAX_ACCESS_NODES);
+  return use.map(({minutes,idx})=>({node:idx,minutes})).filter(s=>s.minutes<=budget);
 }
 export function sourcesFor(origin,budget){
-  if(!origin||!store.NODES)return[];
+  const empty=reason=>({sources:[],reason});
+  const ready=sources=>({sources,reason:SOURCE_READY});
+  if(!origin||!store.NODES)return empty(SOURCE_NO_STOP);
   const indices=sourceNodeIndices();
+  if(!indices.length)return empty(SOURCE_WRONG_MODE);
   if(origin.kind==='node'&&Number.isInteger(origin.node)&&origin.node>=0&&origin.node<store.NODES.names.length){
-    if(nodeCompatible(store.NODES.kind[origin.node]))return[{node:origin.node,minutes:0}];
-    if((store.settings.modes||[]).length!==1)return[{node:origin.node,minutes:0}];
-    return nearestSources(store.NODES.lat[origin.node],store.NODES.lon[origin.node],budget,indices,false).slice(0,1);
+    if(nodeCompatible(store.NODES.kind[origin.node]))return ready([{node:origin.node,minutes:0}]);
+    if((store.settings.modes||[]).length!==1)return ready([{node:origin.node,minutes:0}]);
+    const nearest=nearestSources(store.NODES.lat[origin.node],store.NODES.lon[origin.node],budget,indices,false);
+    return nearest.length?ready(nearest):empty(SOURCE_WRONG_MODE);
   }
-  if(!isNum(origin.lat)||!isNum(origin.lon))return[];
-  return nearestSources(origin.lat,origin.lon,budget,indices,true);
+  if(!isNum(origin.lat)||!isNum(origin.lon))return empty(SOURCE_NO_STOP);
+  const nearest=nearestSources(origin.lat,origin.lon,budget,indices,true);
+  if(nearest.length)return ready(nearest);
+  // A stop exists nearby but the chosen single mode excludes it: say so,
+  // instead of reporting that the place has no transit at all.
+  if((store.settings.modes||[]).length===1&&nearestSources(origin.lat,origin.lon,budget,store.surface,false).length)return empty(SOURCE_WRONG_MODE);
+  return empty(SOURCE_OUTSIDE_WALK);
 }
 export function dedupePath(path){
   return path.filter((p,i)=>i===0||Math.abs(p[0]-path[i-1][0])>1e-7||Math.abs(p[1]-path[i-1][1])>1e-7);
@@ -278,7 +337,7 @@ export function describe(sol,origin,target,walkMinutes=WALK_TOLERANCE_DEFAULT,ta
     const fares=routeFares({legs:merged});
     candidates.push({d,line:l,legs:merged,fares,total:fares.total});
   }
-  if(!candidates.length)return{text:t('route.unreachable'),legs:[],path:[[origin.lat,origin.lon]],fares:{rail:0,bus:0,total:0}};
+  if(!candidates.length)return{text:t('route.unreachable'),legs:[],path:[[origin.lat,origin.lon]],fares:{rail:0,lightRail:0,bus:0,total:0,estimated:false}};
   const walk=candidates.find(c=>c.line===-2&&c.d<=walkLimit);
   if(!walk)candidates.sort((a,b)=>a.d-b.d||a.total-b.total);
   const best=walk||candidates[0],legs=best.legs;
@@ -328,6 +387,8 @@ export function cellToResult(cell){
     cellLat:cell.cy*CELL_SIZE+CELL_SIZE/2,cellLon:cell.cx*CELL_SIZE+CELL_SIZE/2,
     times:cell.times.map(round),
     fastest:round(cell.fastest),slowest:round(cell.slowest),gap:round(cell.gap),score:round(cell.score),
+    fares:cell.fares,maxFare:cell.maxFare,totalFare:cell.totalFare,fareGap:cell.fareGap,
+    fareSpread:cell.fareSpread,fareScore:cell.fareScore,fareEstimated:cell.fareEstimated,
     fit:cellPreference(cell),vector:cellVector(cell),count:cellCount(cell),ratings:cellRatings(cell),rating:overallRating(cell),
   };
 }

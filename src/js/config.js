@@ -21,6 +21,7 @@ export const DEFAULT_INCLUDE_HEADWAY=true;
 // Settings and share links keep the fraction, not the slider position.
 export const FAIRNESS_METRICS=['time','fare'];
 export const FAIRNESS_DEFAULT='time';
+export function activeFairnessMetric(value){return FAIRNESS_METRICS.includes(value)?value:FAIRNESS_DEFAULT;}
 export const TRAVEL_TOLERANCE_MIN=0.05;
 export const TRAVEL_TOLERANCE_MAX=3.0;
 export const TRAVEL_TOLERANCE_UNBOUNDED=3.05;
@@ -60,30 +61,25 @@ export function sliderPositionForTolerance(value){
 }
 // Cost ranking keeps the top time-feasible cells and ranks those by fare.
 export const MAX_COST_CELLS=300;
-// Fare heat is absolute, like the time budget: HK$25 is the top of the scale.
-export const FARE_HEAT_MAX=25;
+// Used only if the bundled fare snapshot has not loaded yet. The live scale is
+// derived from that snapshot so every published fare has its own colour.
+export const FARE_HEAT_FALLBACK_MAX=25;
 // Standard MTR line colours, keyed by the line code used in network.json.
 export const MTR_LINE_COLORS={
   AEL:'#00857D',DRL:'#F283B6',EAL:'#5EB7E6',ISL:'#2475A0',KTL:'#3FA34D',
   SIL:'#008264',TCL:'#F5A623',TKL:'#9C5FB8',TML:'#923011',TWL:'#ED1D24',
 };
 export const MTR_LINE_DEFAULT_COLOR='#8A8A8A';
-export const HKBUS_SEARCH_URL='https://hkbus.app/en/search';
 export const WALK_TOLERANCE_DEFAULT=20;
 export const WALK_TOLERANCE_MAX=60;
 export const VECTOR_KEYS=['food','drinks','activities','culture','outdoors','shopping'];
 export const VECTOR_BONUS_MINUTES=6;
 export const RECOMPUTE_DELAY=500;
 export const RAIL_FARE_BANDS=[[2,4.9],[5,6.5],[9,8.2],[14,10.6],[20,13.2],[30,16.8],[Infinity,20.5]];
-// Adult Octopus fares for the Airport Express. The shared rail band tops out at HK$20.5.
-export const AEL_FARES=[
-  ['Airport','Tsing Yi',64.5],
-  ['Airport','Kowloon',100],
-  ['Airport','Hong Kong',115],
-  ['Airport','AsiaWorld-Expo',6.5],
-  ['AsiaWorld-Expo','Tsing Yi',70],
-  ['AsiaWorld-Expo','Kowloon',105],
-  ['AsiaWorld-Expo','Hong Kong',120],
-];
+// Adult Octopus Light Rail fares by number of stops travelled, including the
+// boarding and alighting stops (MTR Light Rail Fare Chart, effective 25 Aug 2024).
+export const LIGHT_RAIL_FARES=[[3,5.1],[6,5.3],[9,5.4],[12,5.4],[15,6.1],[18,6.5],[21,7.4],[Infinity,7.7]];
+// Only used when a bus, minibus or ferry line is missing from the bundled
+// Transport Department full-fare snapshot. Such fares are flagged as estimates.
 export const BUS_FARE_BANDS=[[4,5.5],[8,7.2],[15,9.6],[25,13.2],[Infinity,17.7]];
 export const FARE_INTERCHANGE_WALK_MINUTES=15;
