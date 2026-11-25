@@ -1,12 +1,14 @@
 const { test, expect, devices } = require('@playwright/test');
+const { sliderPosition } = require('./helpers');
 
 test.use({ ...devices['iPhone 15'], browserName: 'chromium' });
 
 async function setRange(page, id, value) {
-  await page.locator(id).evaluate((el, next) => {
-    el.value = next;
+  const next = id === '#tolerance' ? sliderPosition(Number(value)) : value;
+  await page.locator(id).evaluate((el, n) => {
+    el.value = n;
     el.dispatchEvent(new Event('input', { bubbles: true }));
-  }, value);
+  }, next);
 }
 
 async function waitForSearch(page, { heat = false } = {}) {
@@ -134,7 +136,7 @@ test('Plan settings are all reachable in one scroll and the CTA never covers the
   await layout.evaluate(el => { el.scrollTop = el.scrollHeight; });
   await expect(page.locator('#tolerance')).toBeVisible();
   await expect(page.locator('#includeHeadway')).toBeVisible();
-  await expect(page.locator('#tolerance')).toHaveValue('0.1');
+  await expect(page.locator('#tolval')).toHaveText('10%');
 
   const go = await rect(page.locator('#go'));
   const headway = await rect(page.locator('.toggle-row'));

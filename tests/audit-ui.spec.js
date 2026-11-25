@@ -1,4 +1,5 @@
 const { test, expect, devices } = require('@playwright/test');
+const { sliderPosition } = require('./helpers');
 
 // Match mobile.spec.js: Chromium with iPhone emulation (the project config
 // already pins the browser). defaultBrowserType cannot be set inside describe.
@@ -6,10 +7,11 @@ const iphone = { ...devices['iPhone 15'] };
 delete iphone.defaultBrowserType;
 
 async function setRange(page, selector, value) {
-  await page.locator(selector).evaluate((el, next) => {
-    el.value = next;
+  const next = selector === '#tolerance' ? sliderPosition(Number(value)) : value;
+  await page.locator(selector).evaluate((el, n) => {
+    el.value = n;
     el.dispatchEvent(new Event('input', { bubbles: true }));
-  }, value);
+  }, next);
 }
 
 async function catalog(page, code) {

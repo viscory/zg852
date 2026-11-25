@@ -176,5 +176,11 @@
   "beta.on": "On",
   "beta.off": "Off",
   "map.pinHint": "Tap the map to set this start.",
-  "app.tagline": "Find a fair place to meet"
+  "app.tagline": "Find a fair place to meet",
+  "options.fairness": "Fairness",
+  "options.time": "Time",
+  "options.fare": "Fare",
+  "options.fareTolerance": "How much more can the priciest fare be than the cheapest?",
+  "results.noFitFare": "No areas fit this fare tolerance. Increase it.",
+  "map.fairFare": "Fair area, darker means fairer fares"
 }

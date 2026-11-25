@@ -134,7 +134,7 @@ test.describe('coarse-pointer adaptive deck', () => {
     expect(results.first).toBeGreaterThan(100);
 
     await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
-    await page.waitForTimeout(260);
+    await expect.poll(() => page.evaluate(() => document.body.classList.contains('mobile-view-anim'))).toBe(false);
     const map = await page.evaluate(() => {
       const map = document.querySelector('#map').getBoundingClientRect();
       const tab = document.querySelector('#mobileTabbar').getBoundingClientRect();

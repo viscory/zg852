@@ -187,21 +187,26 @@ function magneticCell(latlng){
   });
   return best;
 }
-export function heatColor(cell,budget){
-  const ratio=clamp(cell.slowest/Math.max(budget,1),0,1.5);
-  return HEAT_COLORS[Math.max(0,Math.min(HEAT_COLORS.length-1,Math.round((1-ratio)*(HEAT_COLORS.length-1))))];
+export function heatColor(cell,budget,metric='time',range=null){
+  const ratio=metric==='fare'
+    ? (range&&range.max>range.min?clamp(((Number(cell.fareScore)||0)-range.min)/(range.max-range.min),0,1):.5)
+    : clamp(cell.slowest/Math.max(budget,1),0,1);
+  return HEAT_COLORS[Math.max(0,Math.min(HEAT_COLORS.length-1,Math.round(ratio*(HEAT_COLORS.length-1))))];
 }
 export function drawCloud(budget){
   hideTooltip();
   cloudLayer.clearLayers();
   if(store.unbounded)return;
+  const metric=store.settings.fairness==='fare'?'fare':'time';
+  const fareScores=metric==='fare'?store.cloudCells.map(cell=>Number(cell.fareScore)).filter(Number.isFinite):[];
+  const range=fareScores.length?{min:Math.min(...fareScores),max:Math.max(...fareScores)}:null;
   // One roving tab stop instead of hundreds: Tab enters the map once, arrow
   // keys move between cells, and Enter/Space selects. A row of 600 focusable
   // rectangles would otherwise sit between the sidebar and the results list.
   const entries=[];
   store.cloudCells.forEach(c=>{
-    const lat0=c.cy*CELL_SIZE,lon0=c.cx*CELL_SIZE,color=heatColor(c,budget);
-    const rect=L.rectangle([[lat0,lon0],[lat0+CELL_SIZE,lon0+CELL_SIZE]],{color,weight:0,fillColor:color,fillOpacity:.26,interactive:true,className:'heat-cell'});
+    const lat0=c.cy*CELL_SIZE,lon0=c.cx*CELL_SIZE,color=heatColor(c,budget,metric,range);
+    const rect=L.rectangle([[lat0,lon0],[lat0+CELL_SIZE,lon0+CELL_SIZE]],{color,weight:0,fillColor:color,fillOpacity:.34,interactive:true,className:'heat-cell'});
     rect.on('mouseover',e=>scheduleCellTooltip(c,e.originalEvent));
     rect.on('mousemove',e=>positionTooltip(e.originalEvent));
     rect.on('mouseout',hideTooltip);

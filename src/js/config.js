@@ -1,6 +1,6 @@
 export const ACCENT='#C8102E';
 export const PERSON_COLORS=['#F97316','#0E7490','#7C3AED','#B45309','#0F766E','#BE185D','#0891B2','#4D7C0F'];
-export const HEAT_COLORS=['#7F1D1D','#991B1B','#B91C1C','#DC2626','#EF4444','#FCA5A5'];
+export const HEAT_COLORS=['#4C0519','#9F1239','#E11D48','#F97316','#FACC15','#FDE68A'];
 export const LETTERS='ABCDEFGH';
 export const LOCALES=['en','zh-Hant','zh-Hans','ja','ko','hi','ur','fil','id','fr','th','vi','ne','es','de'];
 export const RTL_LOCALES=new Set(['ur']);
@@ -16,20 +16,46 @@ export const WALK_DETOUR=1.3;
 export const MAX_CLOUD_CELLS=600;
 export const TRAVEL_BUDGET_MINUTES=60;
 export const DEFAULT_INCLUDE_HEADWAY=true;
-// Travel-time disparity: 5% to 300% in 5% steps, then one unbounded stop.
-export const TRAVEL_TOLERANCE_MIN=0.05;
+// Fairness is a percentage of disparity. The slider is logarithmic: 0%, then
+// 1%..300%, then one unbounded stop. Settings and share links keep the
+// fraction, not the slider position.
+export const FAIRNESS_METRICS=['time','fare'];
+export const FAIRNESS_DEFAULT='time';
+export const TRAVEL_TOLERANCE_MIN=0;
 export const TRAVEL_TOLERANCE_MAX=3.0;
 export const TRAVEL_TOLERANCE_UNBOUNDED=3.05;
 export const TRAVEL_TOLERANCE_DEFAULT=0.1;
-export const TRAVEL_TOLERANCE_STEP=0.05;
+export const FARE_TOLERANCE_DEFAULT=0.25;
+export const FARE_GAP_FLOOR=1.0;
+export const TOLERANCE_SLIDER_MAX=101;
 export function travelTolerance(value){
   const n=Number(value);
   if(!Number.isFinite(n))return TRAVEL_TOLERANCE_DEFAULT;
   if(n>=TRAVEL_TOLERANCE_UNBOUNDED)return TRAVEL_TOLERANCE_UNBOUNDED;
-  const stepped=Math.round(n/TRAVEL_TOLERANCE_STEP)*TRAVEL_TOLERANCE_STEP;
-  return Math.min(TRAVEL_TOLERANCE_MAX,Math.max(TRAVEL_TOLERANCE_MIN,stepped));
+  return Math.min(TRAVEL_TOLERANCE_MAX,Math.max(TRAVEL_TOLERANCE_MIN,Math.round(n*100)/100));
+}
+export function fareTolerance(value){
+  const n=Number(value);
+  if(!Number.isFinite(n))return FARE_TOLERANCE_DEFAULT;
+  if(n>=TRAVEL_TOLERANCE_UNBOUNDED)return TRAVEL_TOLERANCE_UNBOUNDED;
+  return Math.min(TRAVEL_TOLERANCE_MAX,Math.max(0,Math.round(n*100)/100));
 }
 export function isUnboundedTolerance(value){return travelTolerance(value)>=TRAVEL_TOLERANCE_UNBOUNDED;}
+export function toleranceFromSlider(position){
+  const p=Math.max(0,Math.min(TOLERANCE_SLIDER_MAX,Math.round(Number(position)||0)));
+  if(p>=TOLERANCE_SLIDER_MAX)return TRAVEL_TOLERANCE_UNBOUNDED;
+  if(p<=0)return 0;
+  return travelTolerance(Math.pow(TRAVEL_TOLERANCE_MAX*100,(p-1)/99)/100);
+}
+export function sliderPositionForTolerance(value){
+  const tolerance=travelTolerance(value);
+  if(tolerance>=TRAVEL_TOLERANCE_UNBOUNDED)return TOLERANCE_SLIDER_MAX;
+  if(tolerance<=0)return 0;
+  const position=1+Math.round(Math.log(tolerance*100)/Math.log(TRAVEL_TOLERANCE_MAX*100)*99);
+  return Math.max(1,Math.min(100,position));
+}
+// Cost ranking keeps the top time-feasible cells and ranks those by fare.
+export const MAX_COST_CELLS=300;
 // Standard MTR line colours, keyed by the line code used in network.json.
 export const MTR_LINE_COLORS={
   AEL:'#00857D',DRL:'#F283B6',EAL:'#5EB7E6',ISL:'#2475A0',KTL:'#3FA34D',

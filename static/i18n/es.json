@@ -176,5 +176,11 @@
   "beta.on": "Activado",
   "beta.off": "Desactivado",
   "map.pinHint": "Toca el mapa para fijar este inicio.",
-  "app.tagline": "Encuentra un lugar justo para reunirse"
+  "app.tagline": "Encuentra un lugar justo para reunirse",
+  "options.fairness": "Equidad",
+  "options.time": "Tiempo",
+  "options.fare": "Tarifa",
+  "options.fareTolerance": "¿Cuánto más puede costar la tarifa más cara que la más barata?",
+  "results.noFitFare": "Ninguna zona cumple esta tolerancia de tarifa. Auméntala.",
+  "map.fairFare": "Zona equitativa, más oscuro significa tarifas más justas"
 }

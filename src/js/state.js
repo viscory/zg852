@@ -1,4 +1,4 @@
-import { LOCALES,KEY,LETTERS,HK_BBOX,travelTolerance } from './config.js';
+import { LOCALES,KEY,LETTERS,HK_BBOX,FAIRNESS_METRICS,FAIRNESS_DEFAULT,travelTolerance,fareTolerance } from './config.js';
 import { store } from './store.js';
 import { isNum,clamp,clone,decodeBase64Url,encodeBase64Url,$ } from './util.js';
 import { t } from './i18n.js';
@@ -55,7 +55,7 @@ export const normIncludeHeadway=value=>value===false?false:true;
 export function nextSeq(people){return Math.max(1,...people.map(p=>Number(String(p.id).replace(/\D/g,''))||0))+1;}
 function buildSettings(stored,modes){
   stored=stored&&typeof stored==='object'?stored:{};
-  return{modes:Array.isArray(modes)&&modes.length?modes:['rail','bus'],tolerance:travelTolerance(stored.tolerance),includeHeadway:normIncludeHeadway(stored.includeHeadway),vectors:migrateVectors(stored.vectors),beta:{vectors:!!stored.beta?.vectors}};
+  return{modes:Array.isArray(modes)&&modes.length?modes:['rail','bus'],fairness:FAIRNESS_METRICS.includes(stored.fairness)?stored.fairness:FAIRNESS_DEFAULT,tolerance:travelTolerance(stored.tolerance),fareTolerance:fareTolerance(stored.fareTolerance),includeHeadway:normIncludeHeadway(stored.includeHeadway),vectors:migrateVectors(stored.vectors),beta:{vectors:!!stored.beta?.vectors}};
 }
 export function displayName(person,i){
   const index=Number.isInteger(i)?i:Math.max(0,store.people.indexOf(person));

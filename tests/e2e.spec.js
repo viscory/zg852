@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { sliderPosition } = require('./helpers');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 
@@ -39,10 +40,11 @@ const PHOTON_FEATURES = [
 const LOCALES = ['en', 'zh-Hant', 'zh-Hans', 'ja', 'ko', 'hi', 'ur', 'fil', 'id', 'fr', 'th', 'vi', 'ne', 'es', 'de'];
 
 async function setRange(page, id, value) {
-  await page.locator(id).evaluate((el, next) => {
-    el.value = next;
+  const next = id === '#tolerance' ? sliderPosition(Number(value)) : value;
+  await page.locator(id).evaluate((el, n) => {
+    el.value = n;
     el.dispatchEvent(new Event('input', { bubbles: true }));
-  }, value);
+  }, next);
 }
 
 async function catalog(page, code) {
@@ -133,7 +135,7 @@ test('brand copy and MTR-facing labels use the 就腳 name', async ({ page }) =>
   await expect(page.locator('.brand .meaning')).toHaveCount(0);
   await expect(page.locator('.chip[data-mode="rail"]')).toHaveAttribute('aria-label', 'MTR');
   await expect(page.locator('.route-key [data-i18n="map.railKey"]')).toHaveText('MTR');
-  await expect(page.locator('#tolerance')).toHaveAttribute('min', '0.05');
+  await expect(page.locator('#tolerance')).toHaveAttribute('min', '0');
   await expect(page.locator('label[for="tolerance"]')).toHaveText('How much longer the slowest trip may be than the fastest, as a percentage.');
   await expect(page.locator('.tolerance-row #exportDiagnostics')).toHaveCount(0);
   await expect(page.locator('.legal-links #exportDiagnostics')).toBeHidden();
@@ -597,7 +599,7 @@ test('search results draw a discrete red heatmap instead of a gradient', async (
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   const fills = await page.locator('path.heat-cell').evaluateAll(els => [...new Set(els.map(el => el.getAttribute('fill')))]);
-  const allowed = ['#7F1D1D', '#991B1B', '#B91C1C', '#DC2626', '#EF4444', '#FCA5A5'];
+  const allowed = ['#4C0519', '#9F1239', '#E11D48', '#F97316', '#FACC15', '#FDE68A'];
   expect(fills.length).toBeGreaterThan(0);
   expect(fills.every(fill => allowed.includes(fill))).toBe(true);
   await expect(page.locator('.legend .swatch.h1')).toBeVisible();
@@ -629,10 +631,10 @@ test('named people, Photon addresses and tolerance cloud work', async ({ page })
   await expect(page.locator('#goLabel')).toHaveText('Find fair areas');
 });
 
-test('tolerance runs from 5% to 300%, then opens free point picking', async ({ page }) => {
-  await expect(page.locator('#tolerance')).toHaveAttribute('min', '0.05');
-  await expect(page.locator('#tolerance')).toHaveAttribute('max', '3.05');
-  await expect(page.locator('#tolerance')).toHaveAttribute('step', '0.05');
+test('tolerance runs from 0% to 300%, then opens free point picking', async ({ page }) => {
+  await expect(page.locator('#tolerance')).toHaveAttribute('min', '0');
+  await expect(page.locator('#tolerance')).toHaveAttribute('max', '101');
+  await expect(page.locator('#tolerance')).toHaveAttribute('step', '1');
   await setRange(page, '#tolerance', '3');
   await expect(page.locator('#tolval')).toHaveText('300%');
   await expect(page.locator('#unboundedHint')).toBeHidden();
@@ -739,7 +741,7 @@ test('settings, people, library and locale persist, and clearing storage restore
   await expect(page.locator('.name-input').first()).toHaveValue('Alex');
   await expect(page.locator('.chip[data-mode="rail"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.chip[data-mode="bus"]')).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.locator('#tolerance')).toHaveValue('0.25');
+  await expect(page.locator('#tolval')).toHaveText('25%');
 
   await page.locator('#locale').selectOption('en');
   await expect.poll(() => page.locator('html').getAttribute('lang')).toBe('en');
@@ -749,7 +751,7 @@ test('settings, people, library and locale persist, and clearing storage restore
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('.card')).toHaveCount(2);
   await expect(page.locator('.name-input').first()).toHaveValue('Person A');
-  await expect(page.locator('#tolerance')).toHaveValue('0.1');
+  await expect(page.locator('#tolval')).toHaveText('10%');
 });
 
 test('locale switching translates static text and enables RTL layout', async ({ page }) => {
@@ -784,7 +786,7 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
-  expect(expected).toHaveLength(178);
+  expect(expected).toHaveLength(184);
   for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'vector.ratings', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
@@ -834,7 +836,7 @@ test('tight tolerance across spread-out starts produces no map areas', async ({ 
 test('MTR-only search still finds fair areas with default settings', async ({ page }) => {
   await expect(page.locator('.card')).toHaveCount(2);
   await expect(page.locator('.chip[data-mode="rail"]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#tolerance')).toHaveValue('0.1');
+  await expect(page.locator('#tolval')).toHaveText('10%');
   await page.locator('.chip[data-mode="bus"]').click();
   await expect(page.locator('.chip[data-mode="bus"]')).toHaveAttribute('aria-pressed', 'false');
   await page.locator('#go').click();

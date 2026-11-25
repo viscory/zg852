@@ -176,5 +176,11 @@
   "beta.on": "An",
   "beta.off": "Aus",
   "map.pinHint": "Tippen Sie auf die Karte, um diesen Start festzulegen.",
-  "app.tagline": "Finden Sie einen fairen Treffpunkt"
+  "app.tagline": "Finden Sie einen fairen Treffpunkt",
+  "options.fairness": "Fairness",
+  "options.time": "Zeit",
+  "options.fare": "Fahrpreis",
+  "options.fareTolerance": "Wie viel teurer darf der höchste Fahrpreis als der niedrigste sein?",
+  "results.noFitFare": "Keine Gebiete passen zu dieser Fahrpreistoleranz. Erhöhen Sie sie.",
+  "map.fairFare": "Faires Gebiet, dunkler bedeutet fairere Fahrpreise"
 }

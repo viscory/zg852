@@ -176,5 +176,11 @@
   "beta.on": "オン",
   "beta.off": "オフ",
   "map.pinHint": "地図をタップして出発地を設定します。",
-  "app.tagline": "公平な待ち合わせ場所を探す"
+  "app.tagline": "公平な待ち合わせ場所を探す",
+  "options.fairness": "公平性",
+  "options.time": "時間",
+  "options.fare": "運賃",
+  "options.fareTolerance": "最も高い運賃は最安よりどれだけ高くてよいですか？",
+  "results.noFitFare": "この運賃許容範囲に合うエリアはありません。広げてください。",
+  "map.fairFare": "公平なエリア、色が濃いほど運賃が公平"
 }

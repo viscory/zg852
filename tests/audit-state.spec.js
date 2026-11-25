@@ -157,7 +157,7 @@ test('a shared result selection survives hash cleanup and reload', async ({ page
   expect(new URL(page.url()).hash).toBe('');
   await expect(page.locator('#error')).toBeHidden();
   expect(await nameValues(page)).toEqual(['Alex', 'Sam']);
-  await expect(page.locator('#tolerance')).toHaveValue('0.15');
+  await expect(page.locator('#tolval')).toHaveText('15%');
   await expect(page.locator('.chip[data-mode="rail"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.chip[data-mode="bus"]')).toHaveAttribute('aria-pressed', 'false');
   await expect(page.locator('#includeHeadway')).not.toBeChecked();
@@ -166,7 +166,7 @@ test('a shared result selection survives hash cleanup and reload', async ({ page
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('html')).toHaveAttribute('lang', 'zh-Hant');
   expect(await nameValues(page)).toEqual(['Alex', 'Sam']);
-  await expect(page.locator('#tolerance')).toHaveValue('0.15');
+  await expect(page.locator('#tolval')).toHaveText('15%');
   await expect(page.locator('#includeHeadway')).not.toBeChecked();
 
   await page.locator('#go').click();
@@ -203,7 +203,7 @@ test('a shared pinned point survives reload', async ({ page }) => {
   // After the hash is consumed the results are gone again; the banner waits
   // for a search, while the persisted selection and tolerance remain.
   await expect(page.locator('#pointBanner')).toBeHidden();
-  await expect(page.locator('#tolerance')).toHaveValue('3.05');
+  await expect(page.locator('#tolval')).toHaveText('Unlimited');
 
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);

@@ -176,5 +176,11 @@
   "beta.on": "Aktif",
   "beta.off": "Nonaktif",
   "map.pinHint": "Ketuk peta untuk menetapkan titik awal.",
-  "app.tagline": "Temukan tempat bertemu yang adil"
+  "app.tagline": "Temukan tempat bertemu yang adil",
+  "options.fairness": "Keadilan",
+  "options.time": "Waktu",
+  "options.fare": "Tarif",
+  "options.fareTolerance": "Berapa lebih mahal tarif termahal dibanding termurah?",
+  "results.noFitFare": "Tidak ada area yang sesuai batas tarif ini. Naikkan.",
+  "map.fairFare": "Area adil, makin gelap makin adil tarifnya"
 }

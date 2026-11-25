@@ -1,3 +1,11 @@
+## 2026-11-25T00:31:00Z
+
+- Added a **Time / Fare** fairness toggle with clock/coins icons. Time keeps the existing filter and ranking; Fare keeps the 60-minute budget, drops the time-disparity filter, and ranks the top 300 time-feasible cells by `maxFare + fareGap`, with a HK$1 floor on the percentage. Each metric stores its own tolerance and share-link value.
+- Replaced the linear tolerance slider with a logarithmic position model: 0%, 1–300%, then Unlimited. `#tolerance.value` is now a position; settings/share links keep the fraction. `travelTolerance()` no longer snaps to 5%.
+- Reworked the heat palette to dark maroon → red → orange → yellow, raised fill opacity, and made dark mean *more fair* for both metrics. The legend text switches between travel time and fares.
+- Updated the desktop Parameters panel, mobile Plan, all 15 catalogues (184 keys), tests, README and DESIGN. Added `tests/fairness.spec.js` and a shared slider-position helper; the suite now has 126 tests.
+- `npm run lint` is clean; `CI=true npm test` passes 126/126 twice. SW cache is `zg852-v54`. Commit, push, CI deploy and live verification are next.
+
 ## 2026-11-24T14:43:00Z
 
 - Made the red-area interest tooltip a fixed 240 px wide on desktop and 280 px on phones, with the title allowed to wrap. `positionTooltip` now clamps against the tooltip’s real width and height after it becomes visible, so long place names no longer resize or push the panel.

@@ -4,7 +4,7 @@ let selectionState={kind:'result',index:0};
 let sharedSelectionState=null;
 export const store={
   NODES:{names:[],kind:[],lat:[],lon:[]},lowerNames:[],NET:null,HKBUS_URLS:null,walkAdj:null,rideAdj:null,nodeLines:null,surface:[],
-  people:[],directory:[],settings:{modes:['rail','bus'],tolerance:0.1,includeHeadway:true,vectors:null,beta:{vectors:false}},seq:1,directorySeq:1,pendingDelete:null,lastDialogFocus:null,
+  people:[],directory:[],settings:{modes:['rail','bus'],fairness:'time',tolerance:0.1,fareTolerance:0.25,includeHeadway:true,vectors:null,beta:{vectors:false}},seq:1,directorySeq:1,pendingDelete:null,lastDialogFocus:null,
   results:[],cloudCells:[],sols:[],effectiveGrids:null,unbounded:false,pointSelection:null,activePeople:[],selected:0,
   get selection(){return selectionState;},
   // Clearing map output must not discard a point/cell selection that is still

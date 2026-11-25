@@ -137,7 +137,7 @@
     <details class="legend" id="mapLegend" open>
       <summary class="legend-head"><span class="icon icon-scan" aria-hidden="true"></span><span data-i18n="map.legend">Map key</span></summary>
       <div class="legend-body">
-        <div class="cloud-key"><span class="swatch h6"></span><span class="swatch h5"></span><span class="swatch h4"></span><span class="swatch h3"></span><span class="swatch h2"></span><span class="swatch h1"></span> <span data-i18n="map.fairArea">Fair area, darker means shorter travel time</span></div>
+        <div class="cloud-key"><span class="swatch h6"></span><span class="swatch h5"></span><span class="swatch h4"></span><span class="swatch h3"></span><span class="swatch h2"></span><span class="swatch h1"></span> <span id="legendFairText" data-i18n="map.fairArea">Fair area, darker means shorter travel time</span></div>
         <div class="route-key">
           <span data-i18n="map.routeKey">Route key</span>
           <span class="key-line route-walk"></span><span data-i18n="map.walkKey">Walk</span>
@@ -167,11 +167,15 @@
           <span data-i18n="options.includeHeadway">Include average headway</span>
         </label>
       </div>
+      <div class="fairness-toggle" id="fairnessToggle" role="group" aria-label="Fairness" data-i18n-aria-label="options.fairness">
+        <button type="button" data-fairness="time" aria-pressed="true"><span class="icon icon-clock" aria-hidden="true"></span><span data-i18n="options.time">Time</span></button>
+        <button type="button" data-fairness="fare" aria-pressed="false"><span class="icon icon-coins" aria-hidden="true"></span><span data-i18n="options.fare">Fare</span></button>
+      </div>
       <div class="slider-row tolerance-row">
-        <label for="tolerance" data-i18n="options.tolerance">How much longer the slowest trip may be than the fastest, as a percentage.</label>
+        <label for="tolerance" id="toleranceLabel" data-i18n="options.tolerance">How much longer the slowest trip may be than the fastest, as a percentage.</label>
         <span class="value" id="tolval">10%</span>
       </div>
-      <input type="range" id="tolerance" min="0.05" max="3.05" step="0.05" value="0.1">
+      <input type="range" id="tolerance" min="0" max="101" step="1" value="41" aria-valuetext="10%">
       <div class="slider-row ends"><span data-i18n="options.toleranceNear">Near equal</span><span data-i18n="options.toleranceFlexible">More flexible</span></div>
       <button class="mobile-beta-row" id="mobileBeta" type="button" aria-pressed="false" data-i18n-tooltip="beta.badgeTip" data-tooltip="Turns on experimental features. Interest preferences can change which areas the map shows.">
         <span class="icon icon-scan" aria-hidden="true"></span><span data-i18n="beta.title">Beta features</span><span class="mobile-beta-state" id="mobileBetaState" data-i18n="beta.off">Off</span>

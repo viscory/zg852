@@ -176,5 +176,11 @@
   "beta.on": "Activé",
   "beta.off": "Désactivé",
   "map.pinHint": "Touchez la carte pour définir ce départ.",
-  "app.tagline": "Trouvez un lieu de rencontre équitable"
+  "app.tagline": "Trouvez un lieu de rencontre équitable",
+  "options.fairness": "Équité",
+  "options.time": "Temps",
+  "options.fare": "Tarif",
+  "options.fareTolerance": "Combien le tarif le plus cher peut-il dépasser le moins cher ?",
+  "results.noFitFare": "Aucune zone ne respecte cette tolérance tarifaire. Augmentez-la.",
+  "map.fairFare": "Zone équitable, plus sombre signifie tarifs plus équitables"
 }

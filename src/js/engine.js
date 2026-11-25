@@ -1,10 +1,10 @@
-import { MAX_CLOUD_CELLS,RECOMPUTE_DELAY,TRAVEL_BUDGET_MINUTES,travelTolerance,isUnboundedTolerance } from './config.js';
+import { MAX_CLOUD_CELLS,MAX_COST_CELLS,RECOMPUTE_DELAY,TRAVEL_BUDGET_MINUTES,FARE_GAP_FLOOR,travelTolerance,fareTolerance,isUnboundedTolerance } from './config.js';
 import { store } from './store.js';
-import { $ } from './util.js';
+
 import { t,applyStaticText } from './i18n.js';
 import { districtFor,loadNetwork } from './data.js';
 import { cellFitScore } from './vectors.js';
-import { sourcesFor,solve,bestTimes,walkTimes,walkBudget,buildCells,prepareRoutes,cellToResult,meetingTieBreak,legLabel } from './routing.js';
+import { sourcesFor,solve,bestTimes,walkTimes,walkBudget,buildCells,prepareRoutes,cellToResult,meetingTieBreak,meetingSuitability,legLabel } from './routing.js';
 import { save } from './state.js';
 import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,refreshTranslatedNames,setWorking,setSidebarFace,applyUnboundedUi,hasPendingOrigins } from './ui.js';
 import { drawOrigins,drawCloud,applySelection,applyMapLabels } from './map.js';
@@ -20,9 +20,11 @@ export function compute(reveal=false){
   if(store.activePeople.length<2){renderEmpty();showError(t('error.needTwo'));return;}
   const mask=store.settings.modes.reduce((m,mode)=>m|(mode==='rail'?1|(1<<3):mode==='bus'?2|(1<<2):0),0);
   if(!mask){renderEmpty();showError(t('error.noMode'));return;}
-  const tolerance=travelTolerance($('tolerance').value);
-  store.settings.tolerance=tolerance;
-  store.unbounded=isUnboundedTolerance(tolerance);
+  const metric=store.settings.fairness==='fare'?'fare':'time';
+  const tolerance=travelTolerance(store.settings.tolerance);
+  const fareLimit=fareTolerance(store.settings.fareTolerance);
+  store.settings.fairness=metric;store.settings.tolerance=tolerance;store.settings.fareTolerance=fareLimit;
+  store.unbounded=metric==='time'&&isUnboundedTolerance(tolerance);
   if(!store.unbounded)store.pointSelection=null;
   applyUnboundedUi();
   save();
@@ -54,16 +56,54 @@ export function compute(reveal=false){
     return out;
   });
   store.effectiveGrids=effectiveGrids;
-  // Unbounded mode keeps every reachable node available for free-point picks.
-  const cells=buildCells(effectiveGrids,store.unbounded?Infinity:tolerance,TRAVEL_BUDGET_MINUTES);
-  const ordered=cells.map(cell=>({cell,fitScore:cellFitScore(cell)})).sort((a,b)=>meetingTieBreak(a,b,item=>item.fitScore));
-  store.cloudCells=ordered.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
-  store.results=ordered.slice(0,7).map(({cell:c})=>cellToResult(c));
-  store.results.forEach(r=>prepareRoutes(r,store.activePeople));
+  if(metric==='time'){
+    // Unbounded mode keeps every reachable node available for free-point picks.
+    const cells=buildCells(effectiveGrids,store.unbounded?Infinity:tolerance,TRAVEL_BUDGET_MINUTES);
+    const ordered=cells.map(cell=>({cell,fitScore:cellFitScore(cell)})).sort((a,b)=>meetingTieBreak(a,b,item=>item.fitScore));
+    store.cloudCells=ordered.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
+    store.results=ordered.slice(0,7).map(({cell:c})=>cellToResult(c));
+    store.results.forEach(r=>prepareRoutes(r,store.activePeople));
+  }else{
+    // Fare fairness is a real objective: keep the 60-minute budget, drop the
+    // time-disparity filter, rank the time-feasible pool by fare disparity.
+    const timeCells=buildCells(effectiveGrids,Infinity,TRAVEL_BUDGET_MINUTES);
+    const ordered=timeCells.map(cell=>({cell,fitScore:cellFitScore(cell)}))
+      .sort((a,b)=>meetingTieBreak(a,b,item=>item.fitScore)).slice(0,MAX_COST_CELLS);
+    const cacheKey=`${solveKey}|${store.activePeople.map(p=>walkBudget(p)).join(',')}`;
+    if(store.costCacheKey!==cacheKey){store.costCacheKey=cacheKey;store.costCache=new Map();}
+    const fareUnbounded=isUnboundedTolerance(fareLimit);
+    const passing=[];
+    for(const {cell,fitScore} of ordered){
+      let cached=store.costCache.get(cell.key);
+      if(!cached){
+        const probe=cellToResult(cell);
+        prepareRoutes(probe,store.activePeople);
+        const fares=probe.routes.map(route=>Number(route.fares?.total)||0);
+        const minFare=Math.min(...fares),maxFare=Math.max(...fares);
+        const fareGap=Math.round((maxFare-minFare)*10)/10;
+        const fareScore=Math.round((maxFare+fareGap)*10)/10;
+        cached={fares,minFare,maxFare,fareGap,fareScore};
+        store.costCache.set(cell.key,cached);
+      }
+      if(!fareUnbounded&&cached.fareGap>Math.max(cached.minFare*fareLimit,FARE_GAP_FLOOR))continue;
+      cell.fares=cached.fares;cell.fareGap=cached.fareGap;cell.fareScore=cached.fareScore;
+      passing.push({cell,fitScore});
+    }
+    passing.sort((a,b)=>(a.cell.fareScore-b.cell.fareScore)||(meetingSuitability(a)-meetingSuitability(b))||String(a.cell.key).localeCompare(String(b.cell.key)));
+    store.cloudCells=passing.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
+    store.results=passing.slice(0,7).map(({cell})=>{
+      const result=cellToResult(cell);
+      prepareRoutes(result,store.activePeople);
+      return result;
+    });
+  }
   if(!store.results.length){
     renderEmpty();
-    const mode=store.settings.modes.length===1?store.settings.modes[0]:null;
-    showError(t(mode==='rail'?'results.noFitMtr':mode==='bus'?'results.noFitBus':'results.noFit'));
+    if(metric==='fare')showError(t('results.noFitFare'));
+    else{
+      const mode=store.settings.modes.length===1?store.settings.modes[0]:null;
+      showError(t(mode==='rail'?'results.noFitMtr':mode==='bus'?'results.noFitBus':'results.noFit'));
+    }
     return;
   }
   renderResults(store.activePeople);

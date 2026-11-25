@@ -176,5 +176,11 @@
   "beta.on": "开启",
   "beta.off": "关闭",
   "map.pinHint": "点击地图设置此出发地。",
-  "app.tagline": "找一个公平的见面地点"
+  "app.tagline": "找一个公平的见面地点",
+  "options.fairness": "公平度",
+  "options.time": "时间",
+  "options.fare": "车费",
+  "options.fareTolerance": "最贵车费可比最便宜车费高多少？",
+  "results.noFitFare": "没有地区符合这个车费容差。请调高。",
+  "map.fairFare": "公平区域，颜色越深代表车费越公平"
 }

@@ -176,5 +176,11 @@
   "beta.on": "Bật",
   "beta.off": "Tắt",
   "map.pinHint": "Nhấn bản đồ để đặt điểm bắt đầu.",
-  "app.tagline": "Tìm điểm hẹn công bằng"
+  "app.tagline": "Tìm điểm hẹn công bằng",
+  "options.fairness": "Công bằng",
+  "options.time": "Thời gian",
+  "options.fare": "Giá vé",
+  "options.fareTolerance": "Giá vé đắt nhất có thể cao hơn rẻ nhất bao nhiêu?",
+  "results.noFitFare": "Không có khu vực nào phù hợp mức giá này. Hãy tăng.",
+  "map.fairFare": "Khu vực công bằng, màu đậm hơn nghĩa là giá vé công bằng hơn"
 }

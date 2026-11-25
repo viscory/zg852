@@ -176,5 +176,11 @@
   "beta.on": "Naka-on",
   "beta.off": "Naka-off",
   "map.pinHint": "I-tap ang mapa para itakda ang simula.",
-  "app.tagline": "Humanap ng patas na tagpuan"
+  "app.tagline": "Humanap ng patas na tagpuan",
+  "options.fairness": "Pagkakapantay",
+  "options.time": "Oras",
+  "options.fare": "Pamasahe",
+  "options.fareTolerance": "Gaano kalaki ang puwedeng idagdag ng pinakamahal na pamasahe sa pinakamura?",
+  "results.noFitFare": "Walang lugar na umaayon sa pamasaheng ito. Taasan ito.",
+  "map.fairFare": "Patas na lugar, mas madilim ang mas patas na pamasahe"
 }

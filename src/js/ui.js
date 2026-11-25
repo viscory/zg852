@@ -1,4 +1,4 @@
-import { LETTERS,VECTOR_KEYS,travelTolerance,isUnboundedTolerance } from './config.js';
+import { LETTERS,VECTOR_KEYS,FAIRNESS_METRICS,travelTolerance,fareTolerance,isUnboundedTolerance,toleranceFromSlider,sliderPositionForTolerance } from './config.js';
 import { store } from './store.js';
 import { $,esc,clamp,icon,initialsFor,avatarClass,clone } from './util.js';
 import { t,tp,intNum,minuteText } from './i18n.js';
@@ -137,9 +137,30 @@ export function flashTooltip(element,message){
   clearTimeout(element.tooltipTimer);
   element.tooltipTimer=setTimeout(()=>setLabel(element,original),1600);
 }
+function activeMetric(){
+  return FAIRNESS_METRICS.includes(store.settings.fairness)?store.settings.fairness:'time';
+}
+function activeTolerance(metric=activeMetric()){
+  return metric==='fare'?fareTolerance(store.settings.fareTolerance):travelTolerance(store.settings.tolerance);
+}
+export function setFairness(metric){
+  if(!FAIRNESS_METRICS.includes(metric)||metric===activeMetric())return;
+  store.settings.fairness=metric;
+  save();
+  applySettingsToDom();
+  scheduleRecompute();
+}
 export function updateSettingsLabels(){
-  const tolerance=travelTolerance(store.settings.tolerance);
-  $('tolval').textContent=isUnboundedTolerance(tolerance)?t('options.unbounded'):`${Math.round(tolerance*100)}%`;
+  const metric=activeMetric();
+  const tolerance=activeTolerance(metric);
+  const value=isUnboundedTolerance(tolerance)?t('options.unbounded'):`${Math.round(tolerance*100)}%`;
+  const tolval=$('tolval');if(tolval)tolval.textContent=value;
+  const slider=$('tolerance');if(slider)slider.setAttribute('aria-valuetext',value);
+  const label=$('toleranceLabel');
+  if(label){const key=metric==='fare'?'options.fareTolerance':'options.tolerance';label.dataset.i18n=key;label.textContent=t(key);}
+  document.querySelectorAll('#fairnessToggle [data-fairness]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.fairness===metric)));
+  const legend=$('legendFairText');
+  if(legend){const key=metric==='fare'?'map.fairFare':'map.fairArea';legend.dataset.i18n=key;legend.textContent=t(key);}
   $('includeHeadway').checked=store.settings.includeHeadway!==false;
   store.settings.vectors=normalizeVectors(store.settings.vectors);
   VECTOR_KEYS.forEach(key=>{const label=$(`vec-${key}-val`);if(label)label.textContent=vectorLabel(store.settings.vectors[key]);});
@@ -173,8 +194,9 @@ export function applySettingsToDom(){
   document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',String(store.settings.modes.includes(c.dataset.mode))));
   const headway=$('includeHeadway');
   if(headway)headway.onchange=()=>{clearError();readSettingsFromDom();};
-  $('tolerance').value=store.settings.tolerance;
-  store.unbounded=isUnboundedTolerance(store.settings.tolerance);
+  const metric=activeMetric();
+  $('tolerance').value=sliderPositionForTolerance(activeTolerance(metric));
+  store.unbounded=metric==='time'&&isUnboundedTolerance(store.settings.tolerance);
   if(!store.unbounded)store.pointSelection=null;
   applyUnboundedUi();
   store.settings.vectors=normalizeVectors(store.settings.vectors);
@@ -185,8 +207,11 @@ export function applySettingsToDom(){
 export function readSettingsFromDom(){
   store.settings.modes=[...document.querySelectorAll('.chip[aria-pressed="true"]')].map(c=>c.dataset.mode);
   store.settings.includeHeadway=$('includeHeadway')?.checked!==false;
-  store.settings.tolerance=travelTolerance($('tolerance').value);
-  store.unbounded=isUnboundedTolerance(store.settings.tolerance);
+  const metric=activeMetric();
+  const tolerance=toleranceFromSlider($('tolerance').value);
+  if(metric==='fare')store.settings.fareTolerance=fareTolerance(tolerance);
+  else store.settings.tolerance=travelTolerance(tolerance);
+  store.unbounded=metric==='time'&&isUnboundedTolerance(store.settings.tolerance);
   if(!store.unbounded)store.pointSelection=null;
   applyUnboundedUi();
   const vectors=normalizeVectors(store.settings.vectors);

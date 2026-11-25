@@ -7,7 +7,7 @@ import { betaVectorsEnabled } from './js/vectors.js';
 import { applySharedState,restoreState,restoreDirectory,restoreSelection,readSavedSelection,shareScenario,readHashState,save } from './js/state.js';
 import { triggerSearch } from './js/engine.js';
 import { createMap,drawOrigins } from './js/map.js';
-import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,applyUnboundedUi,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,commitPeople,setSidebarFace,flashTooltip } from './js/ui.js';
+import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,applyUnboundedUi,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,commitPeople,setSidebarFace,flashTooltip,setFairness } from './js/ui.js';
 import { exportDiagnostics } from './js/diagnostics.js';
 import { clearPoint } from './js/map.js';
 import { initMobile,isMobileLayout,setMobileView,openMobileRoute,closeMobileRoute } from './js/mobile.js';
@@ -94,6 +94,7 @@ document.querySelectorAll('dialog').forEach(dialog=>{
 });
 document.querySelectorAll('.legal-button[data-legal]').forEach(button=>{button.onclick=()=>openLegal(button.dataset.legal);});
 document.querySelectorAll('.chip').forEach(chip=>chip.onclick=()=>{chip.setAttribute('aria-pressed',String(chip.getAttribute('aria-pressed')!=='true'));clearError();readSettingsFromDom();});
+document.querySelectorAll('#fairnessToggle [data-fairness]').forEach(button=>button.onclick=()=>setFairness(button.dataset.fairness));
 $('tolerance').oninput=readSettingsFromDom;
 async function setBetaEnabled(enabled){
   store.settings.beta={vectors:!!enabled};
