@@ -1,3 +1,9 @@
+## 2026-11-25T11:38:38Z
+
+- Pushed `1e5e11d`; CI run `45595058732` passed the 131-test job and the Cloudflare deploy. Live is SW `zg852-v63`.
+- Live checks: one icon-only search button in the right bar — 36 px at the top of Parameters on desktop, 44 px fixed at the bottom on mobile Plan — with no visible text. The accessible label and tooltip still say “Find fair areas”.
+- No further source changes are pending.
+
 ## 2026-11-25T10:26:38Z
 
 - Removed the visible **Find fair areas** text from the single search button. It is now the same icon-only control as the original desktop `#go`, with the label kept as sr-only text for the accessible name, tooltip and tests.
