@@ -1,3 +1,8 @@
+## 2026-11-25T06:59:00Z
+
+- Pushed commit `57b956e`; CI run `45564173986` passed the 127-test job and the Cloudflare deploy. Live is SW `zg852-v55`. Desktop map key toggles cleanly (`open` true → false, body height 0), and the fare legend says “cheaper fares”.
+- No further source changes are pending after the deploy.
+
 ## 2026-11-25T06:55:00Z
 
 - Replaced the native `<details>` map key and interest ratings with shared disclosure panels: a proper button, `aria-expanded`, +/− mark, and an animated `grid-template-rows`/opacity transition. The desktop map key now starts open and is collapsible; the mobile key starts closed. The key body is pointer-transparent so it no longer blocks map hovers, while the header stays clickable.
