@@ -152,13 +152,13 @@ test('brand copy and MTR-facing labels use the 就腳 name', async ({ page }) =>
   expect(sizes.saveWidth).toBeCloseTo(sizes.input, 0);
   expect(sizes.pin).toBeCloseTo(sizes.input, 0);
   expect(sizes.pinWidth).toBeCloseTo(sizes.input, 0);
-  await expect(page.locator('.brand .sub')).toHaveText('Find the most convenient meeting point for everyone');
+  await expect(page.locator('.brand .sub')).toHaveText('Find a fair meeting point in Hong Kong');
   await expect(page.locator('.brand .sub')).toHaveText(en['app.subtitle']);
   await expect(page.locator('.brand .meaning')).toHaveCount(0);
   await expect(page.locator('.chip[data-mode="rail"]')).toHaveAttribute('aria-label', 'MTR');
   await expect(page.locator('.route-key [data-i18n="map.railKey"]')).toHaveText('MTR');
   await expect(page.locator('#tolerance')).toHaveAttribute('min', '1');
-  await expect(page.locator('label[for="tolerance"]')).toHaveText('Max time difference');
+  await expect(page.locator('label[for="tolerance"]')).toHaveText('Target time difference');
   await expect(page.locator('.tolerance-row #exportDiagnostics')).toHaveCount(0);
   await expect(page.locator('.legal-links #exportDiagnostics')).toBeHidden();
   await expect(page.locator('#exportDiagnostics .icon-download')).toHaveCount(1);
@@ -843,7 +843,7 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
-  expect(expected).toHaveLength(185);
+  expect(expected).toHaveLength(184);
   for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'vector.ratings', 'results.fareTotal', 'results.noFitMtr', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
@@ -851,11 +851,11 @@ test('all catalogues keep the same keys and avoid ranking wording', async ({ pag
     expect(Object.keys(catalogues[0])).not.toContain(key);
   }
   expect(catalogues[0]['app.title']).toBe('就腳 zau6 goek3');
-  expect(catalogues[0]['app.subtitle']).toBe('Find the most convenient meeting point for everyone');
+  expect(catalogues[0]['app.subtitle']).toBe('Find a fair meeting point in Hong Kong');
   expect(catalogues[0]['options.rail']).toBe('MTR');
   expect(catalogues[0]['mode.rail']).toBe('MTR');
   expect(catalogues[0]['map.railKey']).toBe('MTR');
-  expect(catalogues[0]['options.tolerance']).toBe('Max time difference');
+  expect(catalogues[0]['options.tolerance']).toBe('Target time difference');
   expect(catalogues[0]['results.fareTotal']).toBe('Fare {value}');
   expect(catalogues[0]['results.noFitMtr']).toContain('MTR');
   for (const entries of catalogues) {

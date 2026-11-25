@@ -62,7 +62,7 @@ test('production header copy is exact and no raw i18n keys leak into the UI', as
   await expect(page.locator('.brand .logo')).toBeVisible();
   await expect(page.locator('h1')).toHaveText('就腳 zau6 goek3');
   await expect(page.locator('h1')).toBeVisible();
-  await expect(page.locator('.brand .sub')).toHaveText('Find the most convenient meeting point for everyone');
+  await expect(page.locator('.brand .sub')).toHaveText('Find a fair meeting point in Hong Kong');
   await expect(page.locator('.brand .sub')).toBeVisible();
   await expect(page.locator('.brand .meaning')).toHaveCount(0);
   const logoStyle = await page.locator('.brand .logo').evaluate(element => {

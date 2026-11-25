@@ -62,7 +62,7 @@ test('the Fairness toggle switches labels and legend without losing each toleran
 
   await page.locator('#fairnessToggle [data-fairness="fare"]').click();
   await expect(page.locator('#fairnessToggle [data-fairness="fare"]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#toleranceLabel')).toHaveText('Max fare difference');
+  await expect(page.locator('#toleranceLabel')).toHaveText('Target fare difference');
   await expect(page.locator('#tolval')).toHaveText('25%');
   await expect(page.locator('#legendFairText')).toHaveText('Fair area, darker means cheaper fares');
 

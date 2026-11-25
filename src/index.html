@@ -31,12 +31,12 @@
     <div>
       <h1>就腳 <span class="jyutping">zau6 goek3</span></h1>
       <span class="brand-tagline" data-i18n="app.tagline">Find a fair place to meet</span>
-      <p class="sub" data-i18n="app.subtitle">Find the most convenient meeting point for everyone</p>
+      <p class="sub" data-i18n="app.subtitle">Find a fair meeting point in Hong Kong</p>
     </div>
   </div>
   <div class="header-end">
     <div class="header-actions">
-      <button class="beta-badge" id="betaBadge" type="button" aria-pressed="false" data-i18n-tooltip="beta.badgeTip" data-i18n-aria-label="beta.badgeTip" aria-label="Turns on experimental features. Interest preferences can change which areas the map shows." title="Turns on experimental features. Interest preferences can change which areas the map shows." data-tooltip="Turns on experimental features. Interest preferences can change which areas the map shows.">
+      <button class="beta-badge" id="betaBadge" type="button" aria-pressed="false" data-i18n-tooltip="beta.badgeTip" data-i18n-aria-label="beta.badgeTip" aria-label="Turns on experiments and a data export." title="Turns on experiments and a data export." data-tooltip="Turns on experiments and a data export.">
         <span data-i18n="beta.badge">Beta</span>
       </button>
       <button class="icon-button" id="library" type="button" data-i18n-tooltip="people.library" data-i18n-aria-label="people.library" aria-label="Saved people" title="Saved people" data-tooltip="Saved people">
@@ -190,17 +190,19 @@
         <button type="button" data-fairness="fare" aria-pressed="false"><span class="icon icon-coins" aria-hidden="true"></span><span data-i18n="options.fare">Fare</span></button>
       </div>
       <div class="slider-row tolerance-row">
-        <label for="tolerance" id="toleranceLabel" data-i18n="options.tolerance">How much longer the slowest trip may be than the fastest, as a percentage.</label>
+        <label for="tolerance" id="toleranceLabel" data-i18n="options.tolerance">Target time difference</label>
         <span class="value" id="tolval">10%</span>
       </div>
       <input type="range" id="tolerance" min="1" max="201" step="1" value="6" aria-valuetext="10%">
       <div class="slider-row ends"><span data-i18n="options.toleranceNear">Near equal</span><span data-i18n="options.unbounded">Unlimited</span></div>
-      <button class="mobile-beta-row" id="mobileBeta" type="button" aria-pressed="false" data-i18n-tooltip="beta.badgeTip" data-tooltip="Turns on experimental features. Interest preferences can change which areas the map shows.">
+      <p class="note tolerance-help" id="toleranceHelp" data-i18n="options.toleranceHelp">A target has a floor: 8 min at stations, 5 min at other stops, HK$1 for fares.</p>
+      <button class="mobile-beta-row" id="mobileBeta" type="button" aria-pressed="false" data-i18n-tooltip="beta.badgeTip" data-tooltip="Turns on experiments and a data export.">
         <span class="icon icon-scan" aria-hidden="true"></span><span data-i18n="beta.title">Beta features</span><span class="mobile-beta-state" id="mobileBetaState" data-i18n="beta.off">Off</span>
       </button>
       <div class="vector-section" id="vectorSection" hidden>
         <div class="section-title vector-title" data-i18n="options.interests">Nearby interests</div>
         <p class="note vector-help" data-i18n="options.interestsHelp">Areas are chosen by travel time. Preferences can make nearby interests count. Off adds no preference.</p>
+        <p class="note beta-disclosure" data-i18n="beta.diagnosticsHelp">Beta also shows a Diagnostics button in the footer. It downloads and copies your names, start places and routes.</p>
         <div class="vector-grid">
           <div class="vector-row"><span class="icon icon-food" aria-hidden="true"></span><label for="vec-food" data-i18n="vector.food">Food</label><input type="range" id="vec-food" data-vector="food" min="-3" max="3" step="1" value="0"><span class="value" id="vec-food-val" data-i18n="vector.off">Off</span></div>
           <div class="vector-row"><span class="icon icon-drinks" aria-hidden="true"></span><label for="vec-drinks" data-i18n="vector.drinks">Drinks</label><input type="range" id="vec-drinks" data-vector="drinks" min="-3" max="3" step="1" value="0"><span class="value" id="vec-drinks-val" data-i18n="vector.off">Off</span></div>

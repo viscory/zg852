@@ -34,6 +34,10 @@ The app does not use analytics, advertising, cookies, or tracking pixels.
 
 A service worker caches app assets, local data files, and translation catalogues so the app can load again later. Clearing site data removes this cache.
 
+## Diagnostics export
+
+Turning on Beta features reveals a Diagnostics button in the footer. Pressing it downloads a JSON file and copies the same text to your clipboard. The file contains your people's names, start places (including coordinates), routes, fares, settings, and the current page URL. The app does not send this file anywhere; only you decide what to do with it.
+
 ## Contact
 
 Questions or privacy reports: open an issue at https://github.com/viscory/zg852/issues

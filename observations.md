@@ -1,3 +1,10 @@
+## 2026-11-25T14:06:11Z
+
+- Implemented audit fixes 1–6 with the recommended defaults. Copy changes across all 15 catalogues: `app.subtitle` → "Find a fair meeting point in Hong Kong", `results.areas` → "Top {count} areas", tolerance labels → "Target … difference" plus a new `options.toleranceHelp` note disclosing the 8-minute/5-minute/HK$1 floors, a new `beta.diagnosticsHelp` note and a shorter Beta tooltip. Deleted the dormant preference keys and the unused `preferenceText()`; catalogue key count is now 184.
+- `buildCells()` now updates label, priority and keyCat together with the chosen node, so a result's title names the same stop used by its marker and routes. Ordering and times are unchanged.
+- Privacy page and `PRIVACY.md` now describe the Beta Diagnostics download and clipboard copy. Added `tests/truth.spec.js` with three regressions and updated exact-copy assertions in e2e, mobile, fairness and production-smoke specs.
+- Service worker cache bumped to `zg852-v66` and the pin in `tests/audit-sw.spec.js` updated. `npm run lint` clean; `CI=true npm test` passes 137/137. Commit, push and live verification are next.
+
 ## 2026-11-25T13:51:21Z
 
 - Pushed `0efcb0d`; CI run `45627098663` passed the 134-test job and the Cloudflare deploy. Live is SW `zg852-v65`.

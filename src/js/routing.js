@@ -314,8 +314,10 @@ export function buildCells(grids,tolerance,budget){
     const score=slowest+gap,priority=nodePriority(store.NODES.kind[idx]);
     let cell=cells.get(cellKey);
     if(!cell){cells.set(cellKey,{key:cellKey,cy,cx,node:idx,label:store.NODES.names[idx],priority,keyCat:catKey(priority),times,fastest,slowest,gap,score});continue;}
-    if(priority<cell.priority){cell.label=store.NODES.names[idx];cell.priority=priority;cell.keyCat=catKey(priority);}
-    if(score<cell.score||score===cell.score&&gap<cell.gap){cell.node=idx;cell.times=times;cell.fastest=fastest;cell.slowest=slowest;cell.gap=gap;cell.score=score;}
+    if(score<cell.score||score===cell.score&&gap<cell.gap){
+      cell.node=idx;cell.label=store.NODES.names[idx];cell.priority=priority;cell.keyCat=catKey(priority);
+      cell.times=times;cell.fastest=fastest;cell.slowest=slowest;cell.gap=gap;cell.score=score;
+    }
   }
   return[...cells.values()].sort((a,b)=>meetingTieBreak(a,b));
 }

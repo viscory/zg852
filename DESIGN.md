@@ -2,6 +2,10 @@
 
 This file records visual critiques of 就腳. The newest critique is first. Change `src/styles.css` so the page matches the newest sizes. Keep one size scale on `:root`.
 
+## 2026-11-25 Honest wording and disclosures
+
+The header subtitle now says "Find a fair meeting point in Hong Kong"; "most convenient for everyone" was dropped because the solver minimises a speed-and-spread score, not group convenience. The results count reads "Top {count} areas" because only seven rows are listed while up to 600 cells are drawn. The tolerance labels say "Target time difference" and "Target fare difference", and a note under the slider states the floors that the percentage does not override: 8 minutes at stations, 5 minutes at other stops, HK$1 for fares. The dormant preference strings and their unused formatter are gone; the hidden preference scoring is unchanged. Turning Beta on now shows a note that Diagnostics downloads and copies names, start places and routes, and the Privacy page documents the export. A selected area's title now comes from the same stop used for its marker and routes instead of a higher-priority neighbour in the same grid cell.
+
 ## 2026-11-25 Fairness metric toggle and tolerance slider
 
 The Parameters panel now starts with a two-state **Time / Fare** toggle. Time is the default; Fare keeps the 90-minute travel budget, drops the time-disparity filter, and ranks the time-feasible pool by fare spread. The active metric owns the tolerance slider and the map heat colour; the legend text changes from "darker means shorter travel time" to "darker means cheaper fares". Time heat uses the slowest trip; fare heat uses the highest fare, while the result order still uses the fare-disparity score. Each metric keeps its own percentage tolerance in settings and share links.

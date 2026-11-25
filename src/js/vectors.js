@@ -1,7 +1,7 @@
 import { VECTOR_KEYS,VECTOR_BONUS_MINUTES } from './config.js';
 import { store } from './store.js';
-import { round1,round2,clamp } from './util.js';
-import { t,num } from './i18n.js';
+import { round2,clamp } from './util.js';
+import { t } from './i18n.js';
 
 export function defaultVectors(){return Object.fromEntries(VECTOR_KEYS.map(k=>[k,0]));}
 export function betaVectorsEnabled(){return !!(store.settings.beta&&store.settings.beta.vectors);}
@@ -19,12 +19,6 @@ export function vectorLabel(value){
   const amount=Number(value)||0;
   if(!amount)return t('vector.off');
   return amount<0?t('vector.avoid',{value:Math.abs(amount)}):t('vector.prefer',{value:amount});
-}
-export function preferenceText(value){
-  const amount=round1(Math.abs(value));
-  if(value>0.05)return t('results.preferenceUp',{value:num(amount)});
-  if(value<-0.05)return t('results.preferenceDown',{value:num(amount)});
-  return t('results.preferenceNone');
 }
 export function cellVector(cell){
   const values=store.POI?.cells?.[cell.key]?.v;

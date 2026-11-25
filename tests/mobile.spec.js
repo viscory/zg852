@@ -101,7 +101,7 @@ test('search moves to Fair areas and a result opens the route card on Map', asyn
   await page.locator('#go').click();
   await waitForSearch(page, { heat: true });
   await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'results');
-  await expect(page.locator('#nres')).toHaveText('7 areas');
+  await expect(page.locator('#nres')).toHaveText('Top 7 areas');
   await expect(page.locator('#mobileScenarioText')).toHaveText('Tsuen Wan → North Point');
   await expect(page.locator('.result-row')).toHaveCount(7);
 
