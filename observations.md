@@ -1,3 +1,9 @@
+## 2026-11-25T10:18:38Z
+
+- Pushed `2b0fb61`; CI run `45593077057` passed the 131-test job and the Cloudflare deploy. Live is SW `zg852-v62`.
+- Live checks: exactly one visible **Find fair areas** button in the right bar, at the top of Parameters on desktop and fixed at the bottom on mobile Plan; none on mobile Results. “Max time difference” is a single 15 px line. The slider min is 1 and maps to 5%; 0% is no longer selectable. Mobile Results hides `#resultState` correctly again.
+- No further source changes are pending.
+
 ## 2026-11-25T10:14:24Z
 
 - Collapsed the search action back to one button. `#go` now sits at the top of the Parameters panel with a visible **Find fair areas** label; the duplicate `#goTop` and the empty-state `#emptyRun` are gone. On mobile Plan the same `#go` is the fixed bottom button; on mobile Results the Parameters panel stays hidden.
