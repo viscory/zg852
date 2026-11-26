@@ -1,3 +1,17 @@
+## 2026-11-26T11:55Z — Executed the forensic findings plan (behaviour-preserving where possible)
+- Re-verified the 168 reported findings against current HEAD (6418f37); commit 861fb6e had already fixed some (SW/deployed parity, prepend hook, several source-regex suites), so only live items were changed.
+- Three parallel agents fixed docs/governance (README, DESIGN, AUDIT-REPORT, AGENTS, SKILL, graph_sanity, check-i18n, llms.txt), tests (behavioural assertions, real `_headers` server, fabricated-oracle removal, derived constants, new real-network spec), and the build/data pipeline (SW parity assertion, honest host config via `preview-config.js`, `hkbus-meta.json`, non-fake UA, structured POI categories, build-failing data checks).
+- Core logic: exact Transport Department/MTR/Light-Rail snapshot fares are no longer relabelled `≈` — `isEstimatedFare()` now means a band fallback was used; each leg carries `fareSource`. Removed the hidden 300-cell fare prefilter and interest preference from ranking; ranking now uses displayed whole-minute values, and leg minutes are independently rounded with the shown total derived from them. Added four explicit transport-mode chips (MTR/bus/light rail/ferry) instead of silent companion bits. Removed dead CSS channel, fabricated map event, invented tooltip fallbacks, fuzzy place identity, generic-search-as-route-link, and loose ID parsing.
+- i18n: removed dead keys from FALLBACK and all catalogues, translated the previously English-only fare/spread/error strings, added singular results header and two mode-specific no-fit keys; `npm run lint` passes (196 keys, no dead keys, no untranslated live copy).
+- Verification: `npm run lint` green; `npm test` green with 186 passed against built `public/`. Bumped SW cache to `zg852-v76` and rebuilt; `public/sw.js` matches source.
+- Not fully executed: deep sentinel refactor (slider 201 / 3.05), Dijkstra integer-state codec, WeakMap/global timer unification, private `_glMap` stub, capture-phase veto, duplicated animation keyframes, and fixed-timer synchronisation. These are larger behavioural refactors; they remain documented here rather than being silently half-fixed.
+
+## 2026-11-26T12:45Z — Process cleanup on a loaded machine
+- User reported the PC was dying under random processes. Inventoried first: load ~15 on 12 cores, 104 chrome/chromium processes, 19 GiB RAM used with 6.5 GiB swapped.
+- Root cause was a leaked 4h-old headless Chromium tree (51 processes, PGID 1182930, own session) spawned by the long-running @playwright/mcp server; its GPU process was pinned around 46% CPU.
+- Terminated only that stale browser group with SIGTERM; left the active `npm test` run, the playwright-mcp server itself, Firefox/Thunderbird/Steam, and all root services (docker, pihole, immich, victoriametrics, glances, kwin, mergerfs) untouched.
+- After cleanup: chrome processes 104→15 (remaining are Steam webhelpers), RAM used 19→10 GiB, available 11→20 GiB, load 15.16→10.72 and falling. A separate agent's focused e2e regression was still running and was not disturbed.
+- No application source, tests, or i18n files changed; this log block is the only file edit.
 
 ## 2026-11-26T11:58Z — Live black-box QA pass
 - Tested production URL https://zg852.pages.dev only (Chromium 159.0.8154.6), explicit 1440x900 and 375x812/touch; spoofed iPhone Safari UA noted.
