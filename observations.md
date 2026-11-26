@@ -1,3 +1,34 @@
+
+## 2026-11-26T18:14Z — Fix push for the unacceptable live QA findings
+- Fixed three genuinely unacceptable issues only: (1) a shared `#s=` link silently overwrote the recipient's people/settings, (2) a consumed-but-still-present hash re-imported the original link on reload and reverted edits, (3) displayed route leg minutes did not add up to the displayed Total.
+- Share imports now consume the fragment on arrival, back up any edited local scenario, show a 12s non-blocking Undo status, and let Undo restore the backup via reload. Added localized `share.replaced` and `share.undo` across FALLBACK and all 15 catalogues (204 keys).
+- Route display now reconciles rounded leg minutes (and interchange-wait notes) to the rounded total; fares still use raw minutes, so domain logic is unchanged.
+- Updated share-link tests to reflect immediate-on-arrival import instead of reload-to-import; added regressions for hash consumption, Undo, edit persistence, and leg-minute sums. Bumped SW cache v73->v74.
+- `npm run lint` and full `npm test` pass (185 tests); browser spot-check found 0 leg/total mismatches across 14 routes.
+- Dropped false positives from the report after reading source: Saved-people Delete is a two-click confirm, Edit mutates the board behind the dialog, and the last-mode guard already shows an inline error.
+## 2026-11-26T10:13:45Z
+
+- Rewrote the QA prompt so it reports a variable number of findings, requires self-checking intentionality against `observations.md`, and treats uncertain candidates as notes rather than forced issues.
+
+## 2026-11-26T10:12:07Z
+
+- Output a reconstructed, updated black-box QA prompt with an appended QA-only runbook: capture exact selectors, computed styles, bounding boxes, repro steps, and expected/actual evidence while leaving every test route reachable.
+
+## 2026-11-26T10:09:03.616999Z
+
+- Printed the updated `AGENTS.md` prompt/runbook verbatim on request. No code or configuration was changed in this round.
+
+## 2026-11-26T10:08:28.457764Z
+
+- Added a fast runbook to `AGENTS.md` for turning a QA report into a verified fix push: parallel inventory, shared UI/i18n hooks, exact-English and catalogue-count/SW-version traps, focused-then-full testing, and a no-route-blocking rule.
+- Found unrelated in-progress source/test changes and an uncommitted 09:49Z QA block in the worktree; left those changes untouched and will commit only the prompt/runbook update.
+
+## 2026-11-26T09:49Z — Live black-box QA of https://zg852.pages.dev
+- Ran fresh isolated browser context, desktop 1440x900 and mobile 375x812/touch; cleared localStorage/sessionStorage/IndexedDB/SW and reloaded.
+- Deployment fingerprint changed mid-session: ETag W/"792880a15f3ae941881188c842bb68f1" -> W/"aa5d38d69e0bcd49cde65257680751f7"; all 10 reported findings were re-verified against the final build.
+- Verified localization (15 languages), legend/colour honesty, offline cache, privacy/network hosts, headway notes, pin flow, and multi-day/isolated origins; no issues reported for those.
+- Identified and double-verified 10 issues: share-link silent overwrite, share-link reload revert, dead library Edit/Delete, route leg/total minute mismatch, unchangeable 90-minute empty-state bound, duplicate Top-7 areas, reload drops results with misleading empty copy, no-op last-mode toggle, silent 8-person cap, and miscoloured place suggestions.
+- Dropped a suspected fare 'approximate' marker inconsistency after the build change made it consistent (bus vs MTR).
 ## 2026-11-26T09:35:58.640597Z
 
 - Committed the 10-fix implementation as `1d561e2` ("fix: close final production QA findings") and pushed it to `origin/main`; 27 files changed, 403 insertions and 40 deletions.
