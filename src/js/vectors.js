@@ -59,4 +59,6 @@ export function cellPreference(cell){
   const weighted=VECTOR_KEYS.reduce((sum,key)=>sum+vectors[key]*values[key],0);
   return round2(weighted/total*VECTOR_BONUS_MINUTES);
 }
-export function cellFitScore(cell){return cell.score-cellPreference(cell);}
+// Interest preferences are informational: they are shown as ratings but never
+// change which area counts as fairest. Ranking uses the displayed score alone.
+export function cellFitScore(cell){return cell.score;}

@@ -78,7 +78,7 @@ test('production header copy is exact and no raw i18n keys leak into the UI', as
   await expect(page.locator('[data-legal="process"]')).toHaveText('Process');
   await expect(page.locator('#budget')).toHaveCount(0);
   await expect(page.locator('#shareStatus')).toBeAttached();
-  await expect(page.locator('aside.side-right')).toHaveAttribute('aria-label', 'Parameters and results');
+  await expect(page.locator('aside.side-right')).toHaveAttribute('aria-label', 'Parameters');
   await expect(page.locator('.options-title').first()).toHaveText('Parameters');
   await expect(page.locator('label[for="includeHeadway"]')).toHaveText('Include average headway');
   expect(await page.locator('body').innerText()).not.toMatch(RAW_KEY);
@@ -103,7 +103,7 @@ test('production headway parameter and fare output are visible', async ({ page }
   await expect(page.locator('.result-row').first().locator('.fare.total').first()).toContainText('Fare HK$');
   await expect(page.locator('.side-left .face[data-face="detail"]')).toBeVisible();
   await expect(page.locator('.fare-note')).toBeVisible();
-  await expect(page.locator('.fare-note')).toContainText('Total adult Octopus fare estimate');
+  await expect(page.locator('.fare-note')).toContainText('Fares are published adult Octopus values where available');
   await expect(page.locator('#steps')).not.toContainText('Get on:');
   await expect(page.locator('#steps')).not.toContainText('Get off:');
 });

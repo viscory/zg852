@@ -7,6 +7,9 @@ const root = join(__dirname, '..');
 const publicDir = join(root, 'public');
 const SW_SOURCE = readFileSync(join(root, 'static', 'sw.js'), 'utf8');
 const SW_CACHE_NAME = SW_SOURCE.match(/CACHE='([^']+)'/)[1];
+// Derive the worker cache-buster from the installed package so a maplibre
+// upgrade cannot silently desynchronise this test from the shipped bundle.
+const MAPLIBRE_VERSION = require('maplibre-gl/package.json').version;
 
 async function setupWithServiceWorker(page) {
   await page.route('**/tiles.openfreemap.org/**', route => route.abort());
@@ -31,10 +34,10 @@ test('service worker serves the versioned maplibre worker from precache offline'
   expect(precached, 'bare worker URL should be precached').toBeTruthy();
 
   await context.setOffline(true);
-  const result = await page.evaluate(async () => {
-    const response = await fetch('/maplibre-gl-worker.mjs?v=6.19.0');
+  const result = await page.evaluate(async workerVersion => {
+    const response = await fetch(`/maplibre-gl-worker.mjs?v=${workerVersion}`);
     return { ok: response.ok, status: response.status, bodyLength: (await response.text()).length };
-  });
+  }, MAPLIBRE_VERSION);
   expect(result.ok).toBeTruthy();
   expect(result.status).toBe(200);
   expect(result.bodyLength).toBeGreaterThan(0);
@@ -89,8 +92,11 @@ test('service worker does not cache non-OK responses', async ({ page, context })
 });
 
 test('service worker precache list still covers required offline assets', () => {
-  expect(SW_CACHE_NAME).toBe('zg852-v75');
+  expect(SW_CACHE_NAME.length).toBeGreaterThan(0);
   const sw = readFileSync(join(publicDir, 'sw.js'), 'utf8');
+  // The deployed worker is copied verbatim; a divergent cache name would make
+  // offline assertions target a cache the page never opens.
+  expect(sw.match(/CACHE='([^']+)'/)?.[1]).toBe(SW_CACHE_NAME);
   const list = sw.match(/const ASSETS=\[([^\]]*)\]/);
   expect(list).not.toBeNull();
   const assets = [...list[1].matchAll(/['"](\.\/[^'"]+)['"]/g)].map(match => match[1].replace(/^\.\//, '/'));
@@ -117,8 +123,8 @@ test('build emits precompressed assets and gzip headers without dropping origina
   const gzipBlocks = headers.split(/\n\s*\n/).filter(block => block.includes('Content-Encoding: gzip'));
   expect(gzipBlocks.length).toBeGreaterThanOrEqual(required.length);
   for (const block of gzipBlocks) {
-    expect(block).toMatch(/Content-Type: /);
-    expect(block).toMatch(/Cache-Control: /);
+    expect(block.toLowerCase()).toContain('content-type:');
+    expect(block.toLowerCase()).toContain('cache-control:');
   }
 
   const app = readFileSync(join(publicDir, 'app.js'));

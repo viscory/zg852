@@ -30,21 +30,26 @@ export function overFairnessBand(cell,tolerance){
   return gap > Math.max(fastest * tolerance, floor);
 }
 
-// The visible ordering. Time mode uses the vector-adjusted fairness score
-// (the displayed spread and longest, with the disclosed interest preference as
-// a final tie-break). Fare mode starts with the displayed fare spread, then
-// the largest visible fare chip and the displayed time numbers. The heat
-// colour still follows the largest fare chip, as the map key states.
+// The visible ordering. Every field here is one the user can see on the card:
+// the whole-minute score (longest + spread), then the displayed longest and
+// spread as tie-breaks, then a stable area key. Interest ratings are disclosed
+// as information only and never change this order. In fare mode the displayed
+// fare spread comes first, then the largest visible fare chip and the same
+// displayed time numbers. The heat colour follows the largest fare chip.
 export function areaRank(area,metric='time'){
   if(metric === 'fare')return [
     Number(area?.fareGap) || 0,
     Number(area?.maxFare) || 0,
-    Number(area?.slowest) || 0,
-    Number(area?.gap) || 0,
-    Number(area?.vectorAdjustment) || 0,
+    Number(area?.shownSlowest ?? area?.slowest) || 0,
+    Number(area?.shownGap ?? area?.gap) || 0,
     String(area?.key ?? ''),
   ];
-  return [Number(area?.fitScore ?? area?.score ?? 0), String(area?.key ?? '')];
+  return [
+    Number(area?.fitScore ?? area?.score ?? 0),
+    Number(area?.shownSlowest ?? area?.slowest) || 0,
+    Number(area?.shownGap ?? area?.gap) || 0,
+    String(area?.key ?? ''),
+  ];
 }
 // Rank tuples are positionally typed: numbers first, the string area key last.
 // Compare each position within its own type rather than coercing through one
@@ -81,8 +86,11 @@ export function noReachErrorKey(reason){
   return reason === 'no-common-area' ? 'error.noCommonArea' : 'error.noReach';
 }
 export function noFitErrorKey(modes){
-  const enabled = Array.isArray(modes) ? modes.filter(mode => mode === 'rail' || mode === 'bus') : [];
-  if(enabled.length === 1)return enabled[0] === 'rail' ? 'results.noFitMtr' : 'results.noFitBus';
+  const enabled = Array.isArray(modes) ? modes.filter(mode => ['rail','bus','lightRail','ferry'].includes(mode)) : [];
+  if(enabled.length === 1)return {
+    rail:'results.noFitMtr',bus:'results.noFitBus',
+    lightRail:'results.noFitLightRail',ferry:'results.noFitFerry',
+  }[enabled[0]];
   if(enabled.length === 0)return 'error.noMode';
   return 'results.noFitTolerance';
 }

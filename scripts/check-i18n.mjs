@@ -10,9 +10,9 @@ const sourceDir = path.join(root, 'src');
 const i18nFile = path.join(root, 'src/js/i18n.js');
 
 // This package is CommonJS and i18n.js imports browser-only modules, so import
-// the exported FALLBACK from an import-free copy of its source. The object is
-// literal data; loading it this way avoids both a source-text regex parser and
-// a fragile literal-string search.
+// the exported FALLBACK from an import-free copy of its source. This strips
+// import lines and evaluates the literal FALLBACK object via a data: import;
+// it is a source-text transform and must be kept minimal.
 const i18nSource = fs.readFileSync(i18nFile, 'utf8');
 const standalone = i18nSource.replace(/^import [^\n]*\n/gm, '');
 const { FALLBACK } = await import(`data:text/javascript;base64,${Buffer.from(standalone).toString('base64')}`);
@@ -22,6 +22,13 @@ const pluralBases = new Set(['route.stopCount', 'unit.min', 'place.stops']);
 // These prefixes are assembled at runtime (e.g. t('cat.'+key)), not literal keys.
 const dynamicFamilies = ['cat.', 'mode.', 'vector.', 'legal.', 'tag.'];
 const keyPattern = /^[A-Za-z][A-Za-z0-9-]*\.[A-Za-z0-9_-]+$/;
+// Reviewed allowlist: proper nouns and brand names are legitimately identical
+// across catalogues, so an identical value is not an English leak.
+const PROPER_NOUN_KEYS = new Set(['options.rail', 'map.railKey', 'mode.rail', 'beta.badge', 'locale.label']);
+// Small explicit set of live copy that must be translated in every catalogue.
+const REQUIRED_TRANSLATION_KEYS = [
+  'results.fareSpread', 'error.someNoReach', 'results.header', 'map.areaHint', 'beta.diagnosticsHelp'
+];
 
 const errors = [];
 const list = keys => [...keys].sort().join(', ');
@@ -101,8 +108,59 @@ if (!en) {
       errors.push(`Literal i18n keys missing from FALLBACK: ${missingLiteralFromFallback.sort().join('; ')}`);
     }
 
+    // 4–5 are policy checks. They run only when the structural checks above
+    // are clean, so a broken catalogue cannot bury its own parse/key errors
+    // under derived findings.
     if (!errors.length) {
-      console.log(`i18n check passed: ${catalogFiles.length} catalogues, ${enKeys.length} keys each, ${Object.keys(FALLBACK).length} fallback keys, ${used.size} literal keys verified.`);
+      // 4. DEAD KEYS. Reuse the literalPatterns results above, and also collect
+      // literal key strings outside i18n.js so keys dispatched through a
+      // variable (t(metric === 'fare' ? a : b), error-code maps, etc.) are not
+      // mistaken for dead entries. The FALLBACK definitions in i18n.js are not
+      // usage, so that file is excluded from the broad scan.
+      const referenced = new Set(used.keys());
+      const literalKey = /['"`]([A-Za-z][A-Za-z0-9-]*\.[A-Za-z0-9_-]+)['"`]/g;
+      for (const file of walk(sourceDir).filter(f => /\.(?:js|html)$/.test(f) && f !== i18nFile).sort()) {
+        const text = fs.readFileSync(file, 'utf8');
+        for (const match of text.matchAll(literalKey)) {
+          const key = match[1];
+          if (keyPattern.test(key) && !dynamicFamilies.some(prefix => key.startsWith(prefix))) referenced.add(key);
+        }
+      }
+      // Plural families: tp() resolves the _one/_other variants at runtime, so
+      // neither the base nor its variants are dead even when only the base is
+      // written in source.
+      const pluralFamilies = new Set(pluralBases);
+      for (const file of walk(sourceDir).filter(f => /\.(?:js|html)$/.test(f)).sort()) {
+        const text = fs.readFileSync(file, 'utf8');
+        for (const match of text.matchAll(/\btp\s*\(\s*(['"`])([^'"`]+)\1/g)) pluralFamilies.add(match[2]);
+      }
+      const isPluralKey = key => {
+        if (pluralFamilies.has(key)) return true;
+        const base = key.replace(/_(one|other|few|many)$/, '');
+        return base !== key && (pluralFamilies.has(base) || referenced.has(base));
+      };
+      const dead = enKeys.filter(key =>
+        !referenced.has(key) &&
+        !isPluralKey(key) &&
+        !dynamicFamilies.some(prefix => key.startsWith(prefix))
+      );
+      if (dead.length) errors.push(`Unused i18n keys in en.json (dead keys): ${list(dead)}`);
+
+      // 5. UNTRANSLATED LIVE COPY. Flag values byte-identical to English for
+      // the reviewed set of strings that must be translated in every locale.
+      for (const [file, catalog] of catalogs) {
+        if (file === 'en.json') continue;
+        for (const key of REQUIRED_TRANSLATION_KEYS) {
+          if (PROPER_NOUN_KEYS.has(key)) continue;
+          if (Object.prototype.hasOwnProperty.call(catalog, key) && catalog[key] === en[key]) {
+            errors.push(`static/i18n/${file}: "${key}" is untranslated (identical to en.json)`);
+          }
+        }
+      }
+    }
+
+    if (!errors.length) {
+      console.log(`i18n check passed: ${catalogFiles.length} catalogues, ${enKeys.length} keys each, ${Object.keys(FALLBACK).length} fallback keys, ${used.size} literal keys verified, no dead keys, no untranslated live copy.`);
     }
   }
 }

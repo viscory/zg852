@@ -54,7 +54,8 @@ test('the results heading counts only the displayed top areas', async ({ page })
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   const rows = await page.locator('.result-row').count();
-  await expect(page.locator('#nres')).toHaveText(`Top ${rows} areas · fairest first`);
+  const en = await (await page.request.get('i18n/en.json')).json();
+  await expect(page.locator('#nres')).toHaveText(en['results.header'].replace('{count}', String(rows)));
 });
 
 test('displayed route minutes add up to the displayed total', async ({ page }) => {

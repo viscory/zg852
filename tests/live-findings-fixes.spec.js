@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { readFileSync } = require('node:fs');
 
 test.use({ serviceWorkers: 'block' });
 
@@ -223,24 +224,34 @@ test('fare mode orders results by the displayed fare spread', async ({ page }) =
   expect(spreads).toEqual([...spreads].sort((a, b) => a - b));
 });
 
-test('every displayed bus fare carries the estimate marker', async ({ page }) => {
+test('bus fares are marked estimated only when a band fallback is used', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(1);
-  const rows = await page.locator('.result-row').count();
-  let checked = 0;
-  for (let index = 0; index < rows; index++) {
-    await page.locator(`.result-row[data-index="${index}"]`).click();
-    const fares = page.locator('#steps .route-bus .leg-meta .fare');
-    const count = await fares.count();
-    if (!count) continue;
-    checked = count;
-    const missing = await fares.evaluateAll(els => els.filter(el => !el.querySelector('.fare-estimate')).length);
-    expect(missing, `bus fares in result ${index}`).toBe(0);
-    break;
+
+  // Diagnostics export carries the provenance of every leg on every result.
+  await page.locator('#betaBadge').click();
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#exportDiagnostics').click();
+  const dump = JSON.parse(readFileSync(await (await downloadPromise).path(), 'utf8'));
+  const busLegs = dump.areas.flatMap(area => area.routes.flatMap(route => route.legs.filter(leg => leg.mode === 'bus')));
+  expect(busLegs.length).toBeGreaterThan(0);
+  for (const leg of busLegs) {
+    expect(['td-snapshot', 'band']).toContain(leg.fareSource);
+    // Exact full fares must be shown as exact; only band fallbacks get ≈.
+    expect(leg.fareEstimated).toBe(leg.fareSource === 'band');
+    expect(leg.fare).toBeGreaterThan(0);
   }
-  expect(checked).toBeGreaterThan(0);
+  expect(busLegs.some(leg => leg.fareSource === 'td-snapshot' && !leg.fareEstimated)).toBe(true);
+
+  // The visible chips must agree with the exported provenance for the selected
+  // area: no ≈ on snapshot fares, and ≈ on every band fallback.
+  const selectedBus = dump.selectedArea.routes.flatMap(route => route.legs.filter(leg => leg.mode === 'bus'));
+  const marked = await page.locator('#steps .route-bus .leg-meta .fare').evaluateAll(els =>
+    els.map(el => Boolean(el.querySelector('.fare-estimate'))));
+  expect(marked.length).toBe(selectedBus.length);
+  expect(marked).toEqual(selectedBus.map(leg => leg.fareEstimated));
 });
 
 test('the rejected last-mode toggle is announced in the shared status', async ({ page }) => {
@@ -301,7 +312,8 @@ test('the results count and legal summaries follow the selected language', async
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   const rows = await page.locator('.result-row').count();
-  await expect(page.locator('#nres')).toHaveText(`Top ${rows} areas · fairest first`);
+  const en = await (await page.request.get('i18n/en.json')).json();
+  await expect(page.locator('#nres')).toHaveText(en['results.header'].replace('{count}', String(rows)));
 
   const german = await (await page.request.get('i18n/de.json')).json();
   await page.locator('#locale').selectOption('de');

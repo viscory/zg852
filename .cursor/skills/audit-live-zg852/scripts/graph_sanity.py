@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Read-only sanity check of the shipped 就腳 transit graph.
 
-Run from the repo root. Prints ISSUE lines. Exit 0 either way.
+Run from the repo root. Prints an ISSUE line for every finding and an
+ISSUE_COUNT derived from all of them, then exits 1 if any issue was found
+(0 otherwise). It never writes to the graph or the repository.
 """
 import json
 import math
@@ -42,11 +44,14 @@ def stop_name(name):
 
 
 def main():
+    issues = 0
     nodes_path = os.path.join(DATA, "nodes.json")
     net_path = os.path.join(DATA, "network.json")
     if not os.path.exists(nodes_path) or not os.path.exists(net_path):
         print("ISSUE missing nodes.json or network.json under static/data")
-        return
+        issues += 1
+        print("ISSUE_COUNT", issues)
+        return issues
     nodes = json.load(open(nodes_path, encoding="utf-8"))
     net = json.load(open(net_path, encoding="utf-8"))
     names, lats, lons, kinds = nodes["names"], nodes["lat"], nodes["lon"], nodes["kind"]
@@ -59,12 +64,12 @@ def main():
         idxs = stations.get(name, [])
         if not idxs:
             print(f"ISSUE missing station node {name}")
+            issues += 1
             continue
         err = min(hav((lats[i], lons[i]), coord) for i in idxs)
         if err > 400:
             print(f"ISSUE {name} is {err:.0f} m from the known position")
-
-    issues = 0
+            issues += 1
 
     def hop(i, j):
         return hav((lats[i], lons[i]), (lats[j], lons[j]))
@@ -100,8 +105,8 @@ def main():
     if 2 not in codes and 3 not in codes:
         print("NOTE no ferry (c 2) or light rail (c 3) category. Non-MTR agencies may all be bus.")
     print("ISSUE_COUNT", issues)
+    return issues
 
 
 if __name__ == "__main__":
-    main()
-    sys.exit(0)
+    sys.exit(1 if main() else 0)

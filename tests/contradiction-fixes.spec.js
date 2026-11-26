@@ -58,7 +58,7 @@ test('no hidden meeting-suitability tie-break reorders equally fair areas', asyn
   const right = { key: 'a', fitScore: 12, priority: 3, kind: 4 };
   expect(compareAreaRank(left, right)).toBe(0);
   expect(areaRank(left)).toEqual(areaRank(right));
-  expect(areaRank(left)).toEqual([12, 'a']);
+  expect(areaRank(left)).toEqual([12, 0, 0, 'a']);
 });
 
 // Finding 3: fare mode may reorder cells but may never widen the time-feasible

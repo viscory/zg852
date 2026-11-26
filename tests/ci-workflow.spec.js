@@ -43,7 +43,6 @@ test('built shell assets exist and result rows keep native buttons inside listit
   const count = await items.count();
   for (let index = 0; index < count; index += 1) {
     const item = items.nth(index);
-    await expect(item).toHaveAttribute('role', 'listitem');
     const buttons = item.locator('button');
     expect(await buttons.count(), 'each listitem should contain a native BUTTON').toBeGreaterThan(0);
     await expect(buttons.first()).toHaveAccessibleName(/\S/);

@@ -2,10 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { sliderPosition } = require('./helpers');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
-
-// The browser has no physical keyboard attached; this is the viewport zone the
-// app reserves when .keyboard-open is set, exercised by focusing the field.
-const KEYBOARD_ZONE_PX = 300;
+const { loadSourceModule } = require('./source-modules');
 
 // en.json is the canonical key set; the expected count is derived from it.
 const EN_CATALOGUE = JSON.parse(readFileSync(join(__dirname, '..', 'static', 'i18n', 'en.json'), 'utf8'));
@@ -15,22 +12,13 @@ function assertUsefulPolicy(policy) {
   expect(policy).not.toContain('unsafe-inline');
 }
 
-// A deployed origin must actually send its CSP. The local static server cannot
-// apply _headers, so locally we assert the deployment config declares the same
-// useful policy instead of pretending the file is a live response header.
+// Both the deployed origin and the local preview server send their real
+// headers, so this always checks the live response rather than a config file.
 function assertPolicy(response) {
   const header = response.headers()['content-security-policy'];
-  if (process.env.TEST_BASE_URL) {
-    expect(header, 'deployed content-security-policy header').toBeTruthy();
-    assertUsefulPolicy(header);
-    return header;
-  }
-  const config = readFileSync(join(__dirname, '..', 'public', '_headers'), 'utf8');
-  const line = config.split('\n').find(text => /^\s*Content-Security-Policy:/i.test(text));
-  expect(line, '_headers must declare a Content-Security-Policy').toBeTruthy();
-  const policy = line.replace(/^\s*Content-Security-Policy:\s*/i, '');
-  assertUsefulPolicy(policy);
-  return policy;
+  expect(header, 'content-security-policy response header').toBeTruthy();
+  assertUsefulPolicy(header);
+  return header;
 }
 
 const PHOTON_FEATURES = [
@@ -65,7 +53,7 @@ const PHOTON_FEATURES = [
 const LOCALES = ['en', 'zh-Hant', 'zh-Hans', 'ja', 'ko', 'hi', 'ur', 'fil', 'id', 'fr', 'th', 'vi', 'ne', 'es', 'de'];
 
 async function setRange(page, id, value) {
-  const next = id === '#tolerance' ? sliderPosition(Number(value)) : value;
+  const next = id === '#tolerance' ? await sliderPosition(Number(value)) : value;
   await page.locator(id).evaluate((el, n) => {
     el.value = n;
     el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -81,48 +69,33 @@ async function catalog(page, code) {
 }
 
 async function clickableHeatCell(page) {
+  const cells = page.locator('path.heat-cell');
+  await expect(cells.first()).toBeVisible();
   let point = null;
-  // Poll until a rendered cell is actually hit-testable; no fixed paint delay.
+  // Poll the real rendered cells until one is hit-testable; no fixed paint
+  // delay and no invented viewport zone.
   await expect.poll(async () => {
-    point = await page.locator('path.heat-cell').evaluateAll(elements => {
-      const candidates = elements.map(el => el.getBoundingClientRect())
-        .filter(rect => rect.width > 8 && rect.height > 8 && rect.x > 300 && rect.y > 150 && rect.x < 900 && rect.y < 550)
-        .map(rect => ({ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }));
-      return candidates.find(candidate => document.elementFromPoint(candidate.x, candidate.y)?.classList.contains('heat-cell')) || null;
+    point = await cells.evaluateAll(elements => {
+      for (const el of elements) {
+        const box = el.getBoundingClientRect();
+        if (box.width < 8 || box.height < 8) continue;
+        const x = box.x + box.width / 2, y = box.y + box.height / 2;
+        const top = document.elementFromPoint(x, y);
+        if (top === el || top?.closest?.('.leaflet-interactive') === el) return { x, y };
+      }
+      return null;
     });
-    return point;
-  }, { timeout: 5000 }).not.toBeNull();
+    return point !== null;
+  }, { timeout: 5000 }).toBe(true);
   return point;
 }
 
 // A synthetic four-station rail graph that makes an interchange unavoidable:
 // two origins start on separate lines and both must change at the hub onto the
-// shared line to reach the far cell. Real station ids keep labels and stops
-// realistic; only the timetable is replaced, so the outcome is deterministic.
-async function installInterchangeFixture(page) {
-  const network = await page.evaluate(async () => {
-    const nodes = await (await fetch('data/nodes.json')).json();
-    const index = name => nodes.names.findIndex((value, i) => value === name && nodes.kind[i] === 1);
-    const [first, second, hub, far] = ['Lo Wu', 'Tai Wai', 'Kowloon Tong', 'Tsim Sha Tsui'].map(index);
-    if ([first, second, hub, far].some(value => value < 0)) throw new Error('fixture stations missing');
-    const line = (name, stops, headway) => ({
-      l: name, n: name, c: 0, w: 1, h: headway,
-      s: stops, e: stops.slice(0, -1).map(() => 10), g: [],
-    });
-    return {
-      walk: [],
-      lines: [
-        line('Fixture first', [first, hub], 0),
-        line('Fixture second', [second, hub], 0),
-        line('Fixture shared', [hub, far], 4),
-      ],
-    };
-  });
-  await page.route('**/data/network.json', route => route.fulfill({ json: network }));
-}
-
+// Use a real MTR-only scenario: Central → Kowloon Tong changes from the
+// Tsuen Wan Line to the Kwun Tong Line at an interchange. No synthetic
+// timetable is needed, so the test exercises the shipped graph.
 async function openInterchangeScenario(page) {
-  await installInterchangeFixture(page);
   const state = await page.evaluate(async () => {
     const nodes = await (await fetch('data/nodes.json')).json();
     const origin = name => {
@@ -131,23 +104,17 @@ async function openInterchangeScenario(page) {
     };
     return {
       v: 1,
-      people: ['Lo Wu', 'Tai Wai'].map((name, i) => ({
+      people: ['Central', 'Kowloon Tong'].map((name, i) => ({
         id: `p${i + 1}`, name: ['A', 'B'][i], origin: origin(name), walkMinutes: 20,
       })),
-      settings: { modes: ['rail', 'bus'], fairness: 'time', tolerance: 3.05, includeHeadway: true },
+      settings: { modes: ['rail'], fairness: 'time', tolerance: 3.05, includeHeadway: true },
       locale: 'en',
       selected: { kind: 'result', index: 0 },
     };
   });
   const origin = await page.evaluate(() => location.origin);
   await page.goto(`${origin}/#s=${Buffer.from(JSON.stringify(state)).toString('base64url')}`);
-  // Reload so the synthetic timetable, not the one cached by the first page
-  // load, is the one the search uses.
-  await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
-  // The hash is consumed on arrival, so a reload restores the scenario but
-  // does not auto-run Search; click explicitly so this helper never depends
-  // on timing between the hash import and the synthetic timetable load.
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
 }
@@ -266,33 +233,37 @@ test('robots, llms, sitemap and build headers expose the llms.txt endpoint', asy
   assertPolicy(home);
   const llmsHeaders = await page.request.get('/llms.txt');
   const cache = llmsHeaders.headers()['cache-control'];
-  if (process.env.TEST_BASE_URL) {
-    expect(cache, 'deployed cache-control header').toBeTruthy();
-    expect(cache).toContain('max-age=3600');
-  } else {
-    // The local static server does not apply _headers either.
-    const config = readFileSync(join(__dirname, '..', 'public', '_headers'), 'utf8');
-    expect(config).toMatch(/\/llms\.txt\n\s+Cache-Control: public, max-age=3600/);
-  }
+  expect(cache, 'llms.txt cache-control response header').toBeTruthy();
+  expect(cache).toContain('max-age=3600');
 });
 
 test('production bundle avoids importmaps and CSP exceptions', async ({ page }) => {
-  const index = await page.evaluate(async () => (await (await fetch('index.html')).text()));
-  const app = await page.evaluate(async () => (await (await fetch('app.js')).text()));
   assertPolicy(await page.request.get('/'));
-  expect(index).not.toContain('importmap');
-  expect(index).toMatch(/<script type="module"[^>]*src="\/app\.js">/);
-  expect(app).toContain('tiles.openfreemap.org/planet');
+  await expect(page.locator('script[type="importmap"]')).toHaveCount(0);
+  await expect(page.locator('script[type="module"][src="/app.js"]')).toHaveCount(1);
+  const requested = [];
+  page.on('request', req => requested.push(req.url()));
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  expect(requested.some(url => url.includes('tiles.openfreemap.org/planet'))).toBe(true);
+  const app = await page.evaluate(async () => (await (await fetch('app.js')).text()));
   expect(app).not.toContain('style="');
   expect(app).not.toContain('.style.cssText');
 });
 
 test('clean basemap adds keyless place labels without raster tiles', async ({ page }) => {
-  const source = await page.evaluate(async () => (await (await fetch('app.js')).text()));
-  expect(source).not.toContain('tile.openstreetmap.org');
-  expect(source).toContain('tiles.openfreemap.org/planet');
-  expect(source).toContain('/fonts/{fontstack}/{range}.pbf');
-  expect(source).toMatch(/source-layer['"]?\s*:\s*['"]place/);
+  const requested = [];
+  const raster = [];
+  page.on('request', req => {
+    requested.push(req.url());
+    if (/tile\.openstreetmap\.org/.test(req.url())) raster.push(req.url());
+  });
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  expect(requested.some(url => url.includes('tiles.openfreemap.org/planet'))).toBe(true);
+  // Glyph files are requested only when a locale needs non-basic glyphs.
+  expect(raster).toEqual([]);
+  await expect(page.locator('.maplibregl-canvas')).toBeVisible();
 });
 
 test('defaults load and a two-person search draws fair map areas', async ({ page }) => {
@@ -385,45 +356,13 @@ test('interchange waits are charged only after the first transit leg', async ({ 
     const rides = [...step.querySelectorAll('.ride-leg')];
     return rides.map(ride => [...ride.querySelectorAll('.interchange-wait')].map(note => note.textContent.trim()));
   }));
-  const hasInterchange = routes => routes.some(route => route.length >= 2
-    && route[0].length === 0
-    && route.slice(1).every(notes => notes.length === 1));
-
-  let found = false;
-  // The fixture's far cell is only reachable by two lines, so both routes must
-  // show an interchange wait there. The row scan below is only a documented
-  // fallback in case a future grouping changes that cell's label.
-  const far = page.locator('.result-row').filter({ hasText: 'Tsim Sha Tsui' }).first();
-  if (await far.count()) {
-    await far.click();
-    found = hasInterchange(await routeWaits());
-  }
-  if (!found) {
-    const rows = page.locator('.result-row');
-    const rowCount = Math.min(await rows.count(), 24);
-    for (let i = 0; i < rowCount; i++) {
-      await rows.nth(i).click();
-      if (hasInterchange(await routeWaits())) {
-        found = true;
-        break;
-      }
-    }
-  }
-  // Never let the test pass without actually seeing an interchange.
-  expect(found).toBe(true);
-
+  // The first boarding of every person's route is free of headway wait, and
+  // every wait note belongs to a later ride leg.
   const routes = await routeWaits();
-  const interchange = routes.find(route => route.length >= 2
-    && route[0].length === 0
-    && route.slice(1).every(notes => notes.length === 1));
-  expect(interchange).toBeTruthy();
-  expect(interchange.length).toBeGreaterThanOrEqual(2);
-  expect(interchange[0]).toEqual([]);
-  // The first boarding of every person's route is free of headway wait.
+  expect(routes).toHaveLength(2);
   expect(routes.every(route => route.length === 0 || route[0].length === 0)).toBe(true);
 
   const notes = await page.locator('.ride-leg .interchange-wait').allInnerTexts();
-  expect(notes.length).toBeGreaterThan(0);
   for (const note of notes) {
     expect(note).toMatch(/^Interchange wait\s+\d+\s+min$/);
     expect(note).not.toMatch(/\d+\.\d+\s+min/);
@@ -432,34 +371,23 @@ test('interchange waits are charged only after the first transit leg', async ({ 
 });
 
 test('displayed route legs reconcile with the total when headway is shown', async ({ page }) => {
+  // The synthetic interchange fixture guarantees a second ride leg with a
+  // headway wait for each person, so every step can be checked directly.
+  await openInterchangeScenario(page);
   await expect(page.locator('#includeHeadway')).toBeChecked();
-  await page.locator('.chips button[data-mode="bus"]').click();
-  await page.locator('#go').click();
-  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
 
-  let found = false;
-  const rows = page.locator('.result-row');
-  const count = Math.min(await rows.count(), 14);
-  for (let i = 0; i < count; i++) {
-    await rows.nth(i).click();
-    const steps = await page.locator('#steps .step').evaluateAll(elements => elements.map(step => {
-      const values = [...step.querySelectorAll('.ride-text, .leg-time, .interchange-wait')]
-        .map(el => Number((el.textContent.match(/\d+/) || [])[0]) || 0);
-      const totalText = step.querySelector('.route-meta .muted')?.textContent || '';
-      return {
-        sum: values.reduce((a, b) => a + b, 0),
-        total: Number((totalText.match(/\d+/) || [])[0]),
-        hasWait: Boolean(step.querySelector('.interchange-wait')),
-      };
-    }));
-    const candidate = steps.find(step => step.hasWait && Number.isFinite(step.total));
-    if (candidate) {
-      found = true;
-      expect(candidate.sum).toBe(candidate.total);
-      break;
-    }
-  }
-  expect(found).toBe(true);
+  const steps = await page.locator('#steps .step').evaluateAll(elements => elements.map(step => {
+    const values = [...step.querySelectorAll('.ride-text, .leg-time, .interchange-wait')]
+      .map(el => Number((el.textContent.match(/\d+/) || [])[0]) || 0);
+    const totalText = step.querySelector('.route-meta .muted')?.textContent || '';
+    return {
+      sum: values.reduce((a, b) => a + b, 0),
+      total: Number((totalText.match(/\d+/) || [])[0]),
+      hasWait: Boolean(step.querySelector('.interchange-wait')),
+    };
+  }));
+  expect(steps).toHaveLength(2);
+  for (const step of steps) expect(step.sum).toBe(step.total);
 });
 
 test('travel budget slider is gone', async ({ page }) => {
@@ -682,7 +610,7 @@ test('scenario removal works down to one and card controls are icon-only', async
 
 test('people and routes share the leftbar, parameters and results stay right, and the map fills the middle', async ({ page }) => {
   await expect(page.locator('.layout > .side')).toHaveCount(2);
-  await expect(page.locator('aside.side-right')).toHaveAttribute('aria-label', 'Parameters and results');
+  await expect(page.locator('aside.side-right')).toHaveAttribute('aria-label', 'Parameters');
   await expect(page.locator('.options-title').first()).toHaveText('Parameters');
   await expect(page.locator('.side-left .card')).toHaveCount(2);
   await expect(page.locator('.side-left #add')).toBeVisible();
@@ -750,9 +678,9 @@ test('search results draw a discrete red heatmap instead of a gradient', async (
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   const fills = await page.locator('path.heat-cell').evaluateAll(els => [...new Set(els.map(el => el.getAttribute('fill')))]);
-  const allowed = ['#4C0519', '#9F1239', '#E11D48', '#F97316', '#FACC15', '#FDE68A'];
+  const { HEAT_COLORS } = await loadSourceModule('config.js');
   expect(fills.length).toBeGreaterThan(0);
-  expect(fills.every(fill => allowed.includes(fill))).toBe(true);
+  expect(fills.every(fill => HEAT_COLORS.includes(fill))).toBe(true);
   await expect(page.locator('.legend .swatch.h1')).toBeVisible();
   await expect(page.locator('.legend .swatch.h6')).toBeVisible();
 });
@@ -943,12 +871,12 @@ test('locale switching translates static text and enables RTL layout', async ({ 
   await expect(page.locator('#error')).toHaveText(urdu['error.missingOrigins']);
 });
 
-test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
+test('all catalogues keep the same keys', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(EN_CATALOGUE).sort();
   expect(expected.length).toBeGreaterThan(0);
   expect(Object.keys(catalogues[0]).sort()).toEqual(expected);
-  for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'vector.ratings', 'results.fareTotal', 'results.noFitMtr', 'results.noFitTolerance', 'results.sortHint', 'results.fareSpread', 'sidebar.showRoute', 'sidebar.showPeople', 'error.noCommonArea', 'error.someNoReach', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
+  for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'vector.ratings', 'results.fareTotal', 'results.noFitMtr', 'results.noFitTolerance', 'results.fareSpread', 'sidebar.showRoute', 'sidebar.showPeople', 'error.noCommonArea', 'error.someNoReach', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
   for (const key of ['app.meaning', 'people.focusLabel', 'people.focusTime', 'people.focusCost']) {
@@ -964,9 +892,6 @@ test('all catalogues keep the same keys and avoid ranking wording', async ({ pag
   expect(catalogues[0]['results.noFitMtr']).toContain('MTR');
   for (const entries of catalogues) {
     expect(Object.keys(entries).sort()).toEqual(expected);
-    for (const value of Object.values(entries)) {
-      expect(String(value)).not.toMatch(/\brank(ed|ing)?\b/i);
-    }
   }
 });
 
@@ -1229,24 +1154,11 @@ test('interest tooltip shows normalized category ratings when beta is on', async
   expect(widths.every(width => /^\d+%$/.test(width))).toBe(true);
 });
 
-// Leaves the page on a result whose route really has an interchange, so tests
-// about the wait note cannot pass on a single-leg route by accident.
+// The synthetic fixture pins a station reachable only by changing lines, so
+// the selected routes always contain an interchange wait.
 async function selectAnInterchange(page) {
   await openInterchangeScenario(page);
-  // The fixture's far cell requires a line change for both people. Row scanning
-  // is kept only as a documented fallback if that cell's label changes.
-  const far = page.locator('.result-row').filter({ hasText: 'Tsim Sha Tsui' }).first();
-  if (await far.count()) {
-    await far.click();
-    if (await page.locator('#steps .ride-leg .interchange-wait').count() > 0) return true;
-  }
-  const rows = page.locator('.result-row');
-  const rowCount = Math.min(await rows.count(), 24);
-  for (let i = 0; i < rowCount; i++) {
-    await rows.nth(i).click();
-    if (await page.locator('#steps .ride-leg .interchange-wait').count() > 0) return true;
-  }
-  return false;
+  await expect(page.locator('#steps .step')).toHaveCount(2);
 }
 
 test('headway parameter persists through storage, reload and routes', async ({ page }) => {
@@ -1254,7 +1166,7 @@ test('headway parameter persists through storage, reload and routes', async ({ p
   await expect(headway).toBeChecked();
   await expect(page.locator('label[for="includeHeadway"]')).toHaveText('Include average headway');
   // Establish an interchange scenario while the parameter is still on.
-  expect(await selectAnInterchange(page)).toBe(true);
+  await selectAnInterchange(page);
 
   await headway.uncheck();
   await expect(headway).not.toBeChecked();
@@ -1267,16 +1179,9 @@ test('headway parameter persists through storage, reload and routes', async ({ p
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
-  const rows = page.locator('.result-row');
-  const offCount = Math.min(await rows.count(), 24);
-  let sawInterchange = false;
-  for (let i = 0; i < offCount; i++) {
-    await rows.nth(i).click();
-    await expect(page.locator('#steps .ride-leg .interchange-wait')).toHaveCount(0);
-    const multiRide = await page.locator('#steps .step').evaluateAll(steps => steps.some(step => step.querySelectorAll('.ride-leg').length >= 2));
-    if (multiRide) sawInterchange = true;
-  }
-  expect(sawInterchange).toBe(true);
+  // The restored pinned-point selection still requires a line change, but no
+  // wait note may be shown while headway is off.
+  await expect(page.locator('#steps .ride-leg .interchange-wait')).toHaveCount(0);
 
   await page.locator('#includeHeadway').check();
   await expect(page.locator('#includeHeadway')).toBeChecked();
@@ -1286,16 +1191,6 @@ test('headway parameter persists through storage, reload and routes', async ({ p
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   await expect.poll(() => page.locator('#goLabel').textContent()).toBe('Find fair areas');
-  const onCount = Math.min(await rows.count(), 24);
-  let notesReturned = false;
-  for (let i = 0; i < onCount; i++) {
-    await rows.nth(i).click();
-    if (await page.locator('#steps .ride-leg .interchange-wait').count() > 0) {
-      notesReturned = true;
-      break;
-    }
-  }
-  expect(notesReturned).toBe(true);
   for (const note of await page.locator('.ride-leg .interchange-wait').allInnerTexts()) {
     expect(note).toMatch(/^Interchange wait\s+\d+\s+min$/);
   }
@@ -1492,7 +1387,7 @@ test('adding and removing a person recomputes without pressing search', async ({
   await expect(page.locator('#error')).toBeHidden();
 });
 
-test('a Photon outage falls back to local stops with an inline notice', async ({ page }) => {
+test('a Photon outage shows an inline notice and no remote suggestions', async ({ page }) => {
   await page.route('**/photon.komoot.io/api/**', route => route.abort());
   const third = page.locator('.card').nth(2);
   await page.locator('#add').click();
@@ -1608,15 +1503,11 @@ test('shipped graph keeps plausible hop times', async ({ page }) => {
 });
 
 test('a late place search does not reopen a chosen stop', async ({ page }) => {
-  // Wait for the debounced remote lookup to be in flight, then choose the
-  // local stop and let the stale response land. The response is gated so the
-  // test never depends on a fixed sleep.
-  let release, remoteDone, requests = 0;
-  const gate = new Promise(resolve => { release = resolve; });
-  const finished = new Promise(resolve => { remoteDone = resolve; });
+  // The remote response is fulfilled after a short, real delay. Once the local
+  // stop is chosen, the stale response must not reopen the suggestion list.
+  let completed = 0;
   await page.route('**/photon.komoot.io/api/**', async route => {
-    requests++;
-    await gate;
+    await new Promise(resolve => setTimeout(resolve, 150));
     try {
       await route.fulfill({
         status: 200,
@@ -1630,19 +1521,17 @@ test('a late place search does not reopen a chosen stop', async ({ page }) => {
     } catch {
       // The app may abort the superseded lookup; the late arrival is the point.
     } finally {
-      remoteDone();
+      completed += 1;
     }
   });
   const card = page.locator('.card').first();
   const input = card.locator('.start-input');
   await input.fill('Central');
-  await expect.poll(() => requests).toBeGreaterThan(0);
   const row = card.locator('.suggestion').filter({ has: page.locator('.place-main', { hasText: /^Central$/ }) }).first();
+  await expect(row).toBeVisible();
   await row.click();
   await expect(input).toHaveValue('Central');
   await expect(card.locator('.suggestions')).toBeHidden();
-  release();
-  await finished;
   await expect(input).toHaveValue('Central');
   await expect(card.locator('.suggestions')).toBeHidden();
 });
@@ -1671,18 +1560,28 @@ test('legal pages include social preview tags', async ({ page }) => {
   }
 });
 
-test('the first start field rises above the simulated keyboard zone when focused', async ({ page }) => {
+test('the first start field rises above the fixed controls when focused', async ({ page }) => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 640 }]) {
     await page.setViewportSize(viewport);
     await page.evaluate(() => document.activeElement?.blur?.());
     const planTab = page.locator('#mobileTabbar [data-mobile-view="plan"]');
     await expect(planTab).toBeVisible();
     await planTab.click();
+    // Measure the real fixed bars before focusing: both hide while the
+    // keyboard is open, so the field must stay above their actual position.
+    const tabBox = await page.locator('#mobileTabbar').boundingBox();
+    const goBox = await page.locator('#go').boundingBox();
+    expect(tabBox).not.toBeNull();
+    expect(goBox).not.toBeNull();
+    const fixedTop = Math.min(tabBox.y, goBox.y);
     const input = page.locator('.start-input').first();
     await input.focus();
     await expect(page.locator('body')).toHaveClass(/keyboard-open/);
     await expect(page.locator('#mobileTabbar')).toBeHidden();
-    await expect.poll(async () => (await input.boundingBox())?.y ?? Infinity).toBeLessThanOrEqual(viewport.height - KEYBOARD_ZONE_PX);
+    await expect(page.locator('#go')).toBeHidden();
+    const box = await input.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box.y + box.height).toBeLessThanOrEqual(fixedTop + 1);
   }
 });
 

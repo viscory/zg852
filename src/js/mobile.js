@@ -2,7 +2,7 @@ import { store } from './store.js';
 import { $ } from './util.js';
 import { t } from './i18n.js';
 import { syncScrollShadows } from './scroll.js';
-import { invalidateMapSize } from './map.js';
+import { invalidateMapSize,revealMap } from './map.js';
 import { playMotion,SCREEN_IN_FRAMES } from './ui.js';
 
 const VIEWS=['plan','results','map'];
@@ -128,10 +128,8 @@ export function setMobileView(view,{focus=false}={}){
   requestAnimationFrame(syncScrollShadows);
   if(next==='map'){
     // Leaflet measured a zero-size container while the map screen was hidden.
-    requestAnimationFrame(()=>{
-      invalidateMapSize();
-      window.dispatchEvent(new CustomEvent('mobile:map-shown'));
-    });
+    requestAnimationFrame(invalidateMapSize);
+    revealMap();
   }
   if(focus){
     const tab=document.querySelector(`#mobileTabbar [data-mobile-view="${next}"]`);

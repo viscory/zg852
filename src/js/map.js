@@ -21,9 +21,6 @@ import { markSelectedResult,setPinOrigin,setLabel,setSidebarFace,showError,showP
 const WEB_MERCATOR_BOUNDS=[[85.05,-180],[-85.05,180]];
 // A tap only snaps to a heat cell within this many layer pixels of its centre.
 const TAP_SNAP_RADIUS=56;
-// Widths used only until the tooltip has been laid out and measured.
-const TOOLTIP_FALLBACK_WIDTH=240;
-const TOOLTIP_FALLBACK_HEIGHT=140;
 
 export const CLEAN_STYLE={
   version:8,
@@ -114,16 +111,6 @@ export function createMap(){
     }
   });
   window.addEventListener('resize',()=>map.invalidateSize());
-  window.addEventListener('mobile:map-shown',()=>{
-    requestAnimationFrame(()=>{
-      map.invalidateSize();
-      if(!store.mobile.mapShown){
-        store.mobile.mapShown=true;
-        if(store.results.length)recenterMap();
-        else fitMapTo([]);
-      }
-    });
-  });
   const glLayer=maplibreGL({style:CLEAN_STYLE,interactive:false,attributionControl:false});
   try{
     glLayer.addTo(map);
@@ -140,6 +127,18 @@ export function createMap(){
 // faking a window resize event.
 export function invalidateMapSize(){
   map?.invalidateSize();
+}
+// The mobile map screen was sized while hidden. Remeasure it and, once per
+// session, fit the view — called directly by mobile.js, with no synthetic event.
+export function revealMap(){
+  requestAnimationFrame(()=>{
+    map?.invalidateSize();
+    if(!store.mobile.mapShown){
+      store.mobile.mapShown=true;
+      if(store.results.length)recenterMap();
+      else fitMapTo([]);
+    }
+  });
 }
 export function clearMapOutput(){
   store.results=[];
@@ -300,8 +299,8 @@ export function drawCloud(budget){
 export function positionTooltip(event){
   if(!event)return;
   const tooltip=$('mapTooltip');
-  const width=tooltip.offsetWidth||TOOLTIP_FALLBACK_WIDTH;
-  const height=tooltip.offsetHeight||TOOLTIP_FALLBACK_HEIGHT;
+  const rect=tooltip.getBoundingClientRect();
+  const width=rect.width||0,height=rect.height||0;
   tooltip.style.left=`${Math.max(8,Math.min(event.clientX+12,window.innerWidth-width-8))}px`;
   tooltip.style.top=`${Math.max(8,Math.min(event.clientY+12,window.innerHeight-height-8))}px`;
 }
@@ -320,19 +319,19 @@ function applyBarWidths(root){
 function ratingTooltipMarkup(title,subtitle,ratings){
   return `<b>${esc(title)}</b>${subtitle?`<span class="tooltip-sub">${esc(subtitle)}</span>`:''}${ratings.map(({key,rating})=>{
     const value=Math.round(Number(rating)||0),label=t('vector.'+key);
-    return `<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}" aria-label="${esc(label)}: ${value}%"><span>${esc(label)}</span><span class="tooltip-track">${barMarkup('tooltip-fill',rating)}</span></span>`;
+    return `<span class="tooltip-vector" aria-label="${esc(label)}: ${value}%"><span>${esc(label)}</span><span class="tooltip-track">${barMarkup('tooltip-fill',rating)}</span></span>`;
   }).join('')}`;
 }
 function showRatingTooltip(target,event,delay,title,subtitle,ratings){
   clearTimeout(store.tooltipTimer);
   store.hoverCell=target;
-  positionTooltip(event);
   store.tooltipTimer=setTimeout(()=>{
     if(store.hoverCell!==target)return;
     const tooltip=$('mapTooltip');
     tooltip.innerHTML=ratingTooltipMarkup(title,subtitle,ratings);
     applyBarWidths(tooltip);
     tooltip.hidden=false;
+    // Measure only while the tooltip is actually visible.
     positionTooltip(event);
   },delay);
 }
@@ -414,7 +413,7 @@ export function applySelection(active=store.activePeople){
 function interestRatingMarkup(result){
   return (result.ratings||cellRatings(result)).map(({key,rating})=>{
     const value=Math.round(Number(rating)||0),label=t('vector.'+key);
-    return `<div class="fit-row" data-category="${esc(key)}" data-rating="${rating}" role="meter" aria-label="${esc(label)}: ${value}%" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${value}">
+    return `<div class="fit-row" role="meter" aria-label="${esc(label)}: ${value}%" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${value}">
       <span class="fit-label">${esc(label)}</span>
       <span class="fit-track">${barMarkup('fit-fill',rating)}</span>
     </div>`;
@@ -428,7 +427,7 @@ function legChip(leg){
   const number=String(leg.line||'');
   const link=rail?null:routeLink(leg);
   const numberMarkup=link?`<a class="bus-link" href="${esc(link.uri)}" target="_blank" rel="noopener noreferrer" title="${esc(t(link.titleKey))}">${esc(number)}</a>`:esc(number);
-  const modeLabel=rail?`${dot}${esc(label)}`:`${esc(t('mode.bus'))} ${numberMarkup}`;
+  const modeLabel=rail?`${dot}${esc(label)}`:`${esc(t('mode.'+leg.mode)||t('mode.bus'))} ${numberMarkup}`;
   const stops=`<span class="leg-stops" aria-label="${esc(t('route.stops',{from:leg.from,to:leg.to}))}"><span class="leg-from">${esc(leg.from)}</span> <span class="leg-arrow" aria-hidden="true">→</span> <span class="leg-to">${esc(leg.to)}</span></span>`;
   const estimate=leg.fareEstimated?`<span class="fare-estimate" title="${esc(t('results.fareEstimated'))}" aria-label="${esc(t('results.fareEstimated'))}">≈</span>`:'';
   const fare=leg.fare?`<span class="fare">${estimate}${esc(t('results.fareTotal',{value:money(leg.fare)}))}</span>`:'';

@@ -8,17 +8,13 @@ export const KEY={people:'hkfair.v2.people',settings:'hkfair.v2.settings',geocac
 export const HK_BBOX=[113.83,22.15,114.45,22.58];
 export const HK_BBOX_STR=HK_BBOX.join(',');
 export const HK_CENTER={lat:22.31,lon:114.17};
-// Line categories in network.json map directly onto mode bits. Selecting the
-// rail/bus mode picker also enables its companion category (light rail/ferry),
-// so one mask is enough for both Dijkstra and the route narrator.
+// Line categories in network.json map onto mode bits one-to-one. Every travel
+// mode has its own chip; selecting MTR never silently enables light rail, and
+// selecting bus never silently enables ferry.
 export const MODE_BITS={rail:1,bus:2,ferry:4,lightRail:8};
 export function lineCategoryBit(category){return 1<<category;}
 export function modesMask(modes){
-  return (modes||[]).reduce((mask,mode)=>{
-    if(mode==='rail')return mask|MODE_BITS.rail|MODE_BITS.lightRail;
-    if(mode==='bus')return mask|MODE_BITS.bus|MODE_BITS.ferry;
-    return mask;
-  },0);
+  return (modes||[]).reduce((mask,mode)=>mask|(MODE_BITS[mode]||0),0);
 }
 export const ACCESS_RADIUS_M=1200;
 export const MAX_ACCESS_NODES=12;

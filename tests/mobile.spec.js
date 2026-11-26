@@ -1,14 +1,14 @@
 const { test, expect, devices } = require('@playwright/test');
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
 const { sliderPosition } = require('./helpers');
 
-// No physical keyboard is attached; the app reserves this much viewport space
-// when the body gets .keyboard-open, and the test only simulates that state.
-const KEYBOARD_ZONE_PX = 300;
+const EN_CATALOGUE = JSON.parse(readFileSync(join(__dirname, '..', 'static', 'i18n', 'en.json'), 'utf8'));
 
 test.use({ ...devices['iPhone 15'], browserName: 'chromium' });
 
 async function setRange(page, id, value) {
-  const next = id === '#tolerance' ? sliderPosition(Number(value)) : value;
+  const next = id === '#tolerance' ? await sliderPosition(Number(value)) : value;
   await page.locator(id).evaluate((el, n) => {
     el.value = n;
     el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -105,7 +105,7 @@ test('search moves to Fair areas and a result opens the route card on Map', asyn
   await page.locator('#go').click();
   await waitForSearch(page, { heat: true });
   await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'results');
-  await expect(page.locator('#nres')).toHaveText('Top 7 areas · fairest first');
+  await expect(page.locator('#nres')).toHaveText(EN_CATALOGUE['results.header'].replace('{count}', '7'));
   await expect(page.locator('#mobileScenarioText')).toHaveText('Tsuen Wan → North Point');
   await expect(page.locator('.result-row')).toHaveCount(7);
 
@@ -225,7 +225,8 @@ test('bounded heat tap opens the route card with bar-only ratings', async ({ pag
   await page.locator('#go').click();
   await waitForSearch(page, { heat: true });
   await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
-  await page.waitForTimeout(500);
+  await expect(page.locator('#map')).toBeVisible();
+  await expect(page.locator('path.heat-cell').first()).toBeVisible();
   const target = await page.evaluate(() => {
     for (const el of document.querySelectorAll('path.heat-cell')) {
       const box = el.getBoundingClientRect();
@@ -272,7 +273,8 @@ test('an expanded route card scrolls to the fare disclaimer instead of clipping 
   await page.locator('#go').click();
   await waitForSearch(page, { heat: true });
   await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
-  await page.waitForTimeout(500);
+  await expect(page.locator('#map')).toBeVisible();
+  await expect(page.locator('path.heat-cell').first()).toBeVisible();
   const target = await page.evaluate(() => {
     for (const el of document.querySelectorAll('path.heat-cell')) {
       const box = el.getBoundingClientRect();
@@ -296,8 +298,13 @@ test('an expanded route card scrolls to the fare disclaimer instead of clipping 
   await expect(page.locator('.fare-note')).toBeInViewport();
 });
 
-test('focusing a start hides the bars and keeps suggestions above the simulated keyboard', async ({ page }) => {
+test('focusing a start hides the bars and keeps suggestions above the fixed controls', async ({ page }) => {
   await page.setViewportSize({ width: 393, height: 664 });
+  // Both bars hide on focus, so record their real position beforehand and
+  // require the field to stay above it instead of guessing a keyboard height.
+  const tab = await rect(page.locator('#mobileTabbar'));
+  const go = await rect(page.locator('#go'));
+  const fixedTop = Math.min(tab.y, go.y);
   const input = page.locator('#start-p1');
   await input.focus();
   await expect(page.locator('body')).toHaveClass(/keyboard-open/);
@@ -306,5 +313,6 @@ test('focusing a start hides the bars and keeps suggestions above the simulated 
   await input.fill('Central');
   await expect(page.locator('#suggest-p1')).toBeVisible();
   const box = await input.boundingBox();
-  expect(box.y).toBeLessThan(664 - KEYBOARD_ZONE_PX);
+  expect(box).not.toBeNull();
+  expect(box.y + box.height).toBeLessThanOrEqual(fixedTop + 1);
 });

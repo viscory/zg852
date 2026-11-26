@@ -1,8 +1,15 @@
 # Audit report: https://zg852.pages.dev/
 
-> ## Historical snapshot — not current truth
+> ## Historical snapshot — superseded
 >
-> This is a dated record of the live site as checked on **23 November 2026**. It cites the old service-worker cache `zg852-v24` and **148** catalogue keys; neither is current. Check `static/sw.js`, `static/i18n/en.json`, `DESIGN.md` and the test suite for present-day facts. Nothing below should be read as a current pass/fail result.
+> This is a dated record of the live site as checked on **23 November 2026**, kept for history only. Every number in the body below is from that date and is not a current pass/fail result. For present-day facts, read `static/sw.js`, `static/i18n/en.json`, `src/js/`, and the Playwright suite in `tests/` — not this report, and not the subjective critique in `DESIGN.md`.
+
+## Current status
+
+- Service-worker cache: `zg852-v75` (`static/sw.js:1`).
+- English catalogue: 196 keys (`static/i18n/en.json`).
+- Current implementation lives in `src/js/`; current behaviour is verified by the Playwright suite in `tests/`.
+- Everything below this section is the historical snapshot taken on **23 November 2026**.
 
 Question: does the live 就腳 site pass the live checks on 23 November 2026?
 

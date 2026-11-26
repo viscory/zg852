@@ -91,20 +91,20 @@ function defaultTemplates(){
 export function isDefaultName(value,i){
   const name=String(value??'').trim();
   if(!name)return true;
-  const letters=Number.isInteger(i)?[LETTERS[((i%LETTERS.length)+LETTERS.length)%LETTERS.length]]:[...LETTERS];
+  const letters=Number.isInteger(i)?[LETTERS[Math.max(0,i)%LETTERS.length]]:[...LETTERS];
   return defaultTemplates().some(template=>letters.some(letter=>template.replaceAll('{letter}',letter)===name));
 }
 function cleanName(value,i){return isDefaultName(value,i)?'':String(value??'').trim();}
 
 export function defaultName(i){return t('people.defaultName',{letter:LETTERS[i%LETTERS.length]});}
 export const normIncludeHeadway=value=>value===false?false:true;
-// Person ids are 'p<n>' and directory ids 'd<n>'; the digits are the sequence.
-// A missing or non-numeric id contributes zero, so numbering always starts at 1.
+// Person ids are 'p<n>' and directory ids 'd<n>'. Validate the whole shape
+// instead of stripping arbitrary non-digits, so 'p-12x' cannot become id 12.
 export function parsePersonSequence(id){
-  const digits=String(id??'').replace(/\D/g,'');
-  if(!digits)return 0;
-  const value=Number(digits);
-  return Number.isFinite(value)&&value>=0?value:0;
+  const match=/^[pd](\d+)$/.exec(String(id??''));
+  if(!match)return 0;
+  const value=Number(match[1]);
+  return Number.isSafeInteger(value)&&value>=0?value:0;
 }
 export function nextSeq(people){return Math.max(1,...people.map(p=>parsePersonSequence(p?.id)))+1;}
 function buildSettings(stored,modes){
@@ -258,12 +258,16 @@ export async function shareScenario(){
   try{await copyText(url);report(t('share.copied'));}
   catch(err){console.error(err);report(t('share.failed'));}
 }
+const SHARE_HASH_PREFIX='#s=';
 export function readHashState(){
-  if(!location.hash.startsWith('#s='))return null;
+  if(!location.hash.startsWith(SHARE_HASH_PREFIX))return null;
   try{
-    const state=JSON.parse(decodeBase64Url(location.hash.slice(3)));
+    const state=JSON.parse(decodeBase64Url(location.hash.slice(SHARE_HASH_PREFIX.length)));
     return state&&state.v===1&&Array.isArray(state.people)?state:null;
-  }catch(err){return null;}
+  }catch(err){
+    console.error('Invalid share link',err);
+    return null;
+  }
 }
 function clearShareHash(){
   try{history.replaceState(null,'',location.pathname+location.search);}

@@ -29,11 +29,13 @@ export function aelFareForNodes(fromNode,toNode){
   return store.MTR_FARES.aelFares[fareKey(from,to)]??null;
 }
 
-// Fare-certainty policy: bus/minibus fares are estimates by design even when a
-// snapshot fare matches; ferry snapshots keep their published certainty; any
-// mode without a snapshot falls back to a band estimate.
+// A fare is estimated only when an exact published value was unavailable and a
+// distance band had to stand in. An exact snapshot fare — MTR station-pair,
+// Airport Express, Light Rail chart, or Transport Department full fare — is
+// shown as exact, whatever the travel mode. This keeps the ≈ marker tied to the
+// data's provenance rather than to presentation preferences.
 export function isEstimatedFare(leg,official){
-  return leg?.mode==='bus'||official===null;
+  return official===null;
 }
 
 const warnedOnce=new Set();

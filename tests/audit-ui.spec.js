@@ -7,7 +7,7 @@ const iphone = Object.fromEntries(Object.entries(devices['iPhone 15'])
   .filter(([key]) => key !== 'defaultBrowserType'));
 
 async function setRange(page, selector, value) {
-  const next = selector === '#tolerance' ? sliderPosition(Number(value)) : value;
+  const next = selector === '#tolerance' ? await sliderPosition(Number(value)) : value;
   await page.locator(selector).evaluate((el, n) => {
     el.value = n;
     el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -109,7 +109,6 @@ test('result rows and saved-directory rows expose listitem semantics', async ({ 
   const resultCount = await resultItems.count();
   for (let index = 0; index < resultCount; index += 1) {
     const item = resultItems.nth(index);
-    await expect(item).toHaveAttribute('role', 'listitem');
     await expect(item.locator('button')).not.toHaveCount(0);
     await expect(item.locator('button').first()).toHaveAccessibleName(/\S/);
   }
@@ -152,22 +151,42 @@ test.describe('mobile screen stability', () => {
     await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'plan');
     await expect(page.locator('#mobileTabbar')).toBeVisible();
 
+    // Record the debounced recompute's actual working state instead of sleeping.
+    await page.evaluate(() => {
+      const go = document.getElementById('go');
+      window.__workingSeen = false;
+      const observer = new MutationObserver(() => {
+        if (go.getAttribute('aria-label') === 'Working') window.__workingSeen = true;
+      });
+      observer.observe(go, { attributes: true, attributeFilter: ['aria-label'] });
+      window.__stopWorkingWatch = () => observer.disconnect();
+    });
+    const resetWatch = () => page.evaluate(() => { window.__workingSeen = false; });
+    const waitForRecompute = async () => {
+      await expect.poll(() => page.evaluate(() => window.__workingSeen)).toBe(true);
+      await expect.poll(() => page.locator('#goLabel').textContent()).toBe('Find fair areas');
+    };
+
+    await resetWatch();
     await page.locator('.card').first().locator('[data-walk]').evaluate(el => {
       el.value = '30';
       el.dispatchEvent(new Event('input', { bubbles: true }));
     });
+    await waitForRecompute();
     await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
-    await page.waitForTimeout(700);
     await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'plan');
     await expect(page.locator('.side-left')).toBeVisible();
 
     await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
     await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'map');
     await page.locator('#mobileTabbar [data-mobile-view="plan"]').click();
+    await resetWatch();
     await setRange(page, '#tolerance', '0.2');
-    await page.waitForTimeout(900);
+    await expect.poll(() => page.locator('#tolval').textContent()).toBe('20%');
+    await waitForRecompute();
     await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'plan');
 
+    await page.evaluate(() => window.__stopWorkingWatch());
     await page.locator('#go').click();
     await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'results');
   });

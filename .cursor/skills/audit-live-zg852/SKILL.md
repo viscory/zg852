@@ -18,7 +18,7 @@ Read [checks.md](checks.md) and run every area. Run `python .cursor/skills/audit
 ## Rules
 
 - Prove each issue twice. Record the URL, the input, the expected result, and the actual result.
-- Test the live origin. `TEST_BASE_URL=https://zg852.pages.dev npm test` is the only test command. It may write `public/` and `test-results/`.
+- Test the live origin, but do not claim there is only one test command. Plain `npm test` builds `public/` and serves it locally at `http://127.0.0.1:8765` (this is what CI and the README use); `TEST_BASE_URL=https://zg852.pages.dev npm test` runs the smoke spec against the deployed origin instead. Either may write `public/` and `test-results/`.
 - Do not commit, push, or deploy. Do not edit source except the report file the user named. If they name none, append `AUDIT-REPORT.md`.
 - Playwright lives in `node_modules/@playwright/test`. Drive Chromium yourself. A subagent summary is not evidence.
 - Severity and confidence are separate. A guess is a note, not an issue.

@@ -20,7 +20,7 @@ module.exports = defineConfig({
   // Tests must run against the built public/ output, never the source tree, so
   // the webServer always rebuilds before serving.
   webServer: externalBaseURL ? undefined : {
-    command: `npm run build && python3 -m http.server ${PORT} --bind 127.0.0.1 --directory public`,
+    command: `npm run build && node scripts/serve-headers.mjs`,
     url: baseURL,
     reuseExistingServer: false,
     timeout: 30000,

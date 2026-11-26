@@ -1,5 +1,5 @@
 import { cp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
@@ -65,6 +65,12 @@ const headers = `/*
 /preview-noindex.js
   Cache-Control: no-cache
 
+/preview-config.js
+  Cache-Control: no-cache
+
+/*.md
+  Cache-Control: public, max-age=3600
+
 /app.js
   Cache-Control: no-cache
 
@@ -115,9 +121,10 @@ const headers = `/*
   Cache-Control: public, max-age=3600
 `;
 
-// Human-readable legal/attribution docs are linked from the app, so the same
-// set must be copied verbatim next to the built shell. Keep this list in sync
-// with the footer links rather than copying the whole repo root.
+// Legal/attribution docs are published as plain files; the app links the built
+// HTML legal pages (privacy.html, terms.html, credits.html), not these markdown
+// sources. They are copied verbatim anyway because the markdown cross-references
+// each other, but nothing in the app depends on them being present.
 const COPIED_DOCS = ['README.md', 'LICENSE', 'PRIVACY.md', 'TERMS.md', 'CREDITS.md', 'THIRD_PARTY_NOTICES.md'];
 for (const name of COPIED_DOCS) {
   const source = join(root, name);
@@ -126,10 +133,10 @@ for (const name of COPIED_DOCS) {
 
 // Only generated datasets the app fetches at runtime may ship. Everything
 // else in static/data (raw feeds, pipeline intermediates) stays out of the
-// deployment. In particular graph.json (~7.4MB) is tracked in git solely as a
-// build input for downstream generators: it is deliberately excluded here but
-// is not deleted or untracked.
-const deployedDataFiles = new Set(['nodes.json', 'network.json', 'districts.json', 'poi-index.json', 'hkbus.json', 'mtr-fares.json', 'route-fares.json']);
+// deployment. graph.json (~7.4MB) is a generated intermediate retained in git
+// for historical/regeneration reasons; it is deliberately excluded from the
+// deploy and is not deleted or untracked here.
+const deployedDataFiles = new Set(['nodes.json', 'network.json', 'districts.json', 'poi-index.json', 'hkbus.json', 'hkbus-meta.json', 'mtr-fares.json', 'route-fares.json']);
 const dataDir = join(out, 'data');
 for (const entry of await readdir(dataDir)) {
   if (!deployedDataFiles.has(entry)) await rm(join(dataDir, entry), { recursive: true, force: true });
@@ -143,7 +150,30 @@ await cp(workerSource, join(out, 'maplibre-gl-worker.mjs'));
 
 // static/sw.js is already in its deployable form: Vite copies it verbatim from
 // static/, and its asset list no longer contains a self-reference. There is no
-// post-build patch step, so source and deployed service worker are identical.
+// post-build patch step. Assert that invariant instead of merely assuming it:
+// a divergent deployed worker would ship a different cache name / asset list.
+const swSourcePath = join(root, 'static', 'sw.js');
+const swDeployedPath = join(out, 'sw.js');
+if (!existsSync(swDeployedPath)) throw new Error('public/sw.js missing: Vite must copy static/sw.js verbatim');
+if (readFileSync(swDeployedPath, 'utf8') !== readFileSync(swSourcePath, 'utf8')) {
+  throw new Error('public/sw.js diverges from static/sw.js; fix the Vite copy step instead of patching the worker');
+}
+
+// preview-config.js is a plain static file and must execute before
+// preview-noindex.js so the production hostname global is defined. The source
+// HTML pages are outside this script's scope, so wire the ordering on the built
+// output; the hostname then lives in exactly one file (static/preview-config.js).
+const configTag = '<script src="preview-config.js"></script>';
+const noindexTag = '<script src="preview-noindex.js"></script>';
+for (const page of ['index.html', 'privacy.html', 'terms.html', 'credits.html', 'process.html']) {
+  const pagePath = join(out, page);
+  if (!existsSync(pagePath)) throw new Error(`built page missing: ${page}`);
+  const html = await readFile(pagePath, 'utf8');
+  if (html.includes(configTag)) continue;
+  if (!html.includes(noindexTag)) throw new Error(`${page} is missing the preview-noindex.js script tag`);
+  await writeFile(pagePath, html.replace(noindexTag, `${configTag}\n${noindexTag}`));
+}
+
 const strayStyles = join(out, 'styles.css');
 if (existsSync(strayStyles)) await rm(strayStyles);
 

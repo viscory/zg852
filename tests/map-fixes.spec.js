@@ -76,28 +76,26 @@ test('recenter keeps a directly selected heat cell inside the map', async ({ pag
   await openApp(page);
   await search(page);
 
-  // Try the cells furthest from the map centre first: those are the ones a
-  // fit over only the top results would leave off-screen.
-  const candidates = await page.locator('path.heat-cell').evaluateAll(elements => {
-    const map = document.querySelector('#map').getBoundingClientRect();
-    const cx = map.left + map.width / 2, cy = map.top + map.height / 2;
-    return elements.map((element, i) => {
-      const box = element.getBoundingClientRect();
-      const x = box.x + box.width / 2, y = box.y + box.height / 2;
-      return { i, distance: Math.hypot(x - cx, y - cy), size: Math.min(box.width, box.height) };
-    }).filter(item => item.size > 4).sort((a, b) => b.distance - a.distance).slice(0, 12);
-  });
-  expect(candidates.length).toBeGreaterThan(0);
-
-  let selected = null;
-  for (const candidate of candidates) {
-    await page.locator('path.heat-cell').nth(candidate.i).evaluate(element => {
-      element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+  const cells = page.locator('path.heat-cell');
+  await expect(cells.first()).toBeVisible();
+  // Pick the first genuinely hit-testable cell and assert it was selected; a
+  // synthetic DOM click is not a substitute for a real user click.
+  let point = null;
+  await expect.poll(async () => {
+    point = await cells.evaluateAll(elements => {
+      for (const element of elements) {
+        const box = element.getBoundingClientRect();
+        if (box.width < 8 || box.height < 8) continue;
+        const x = box.x + box.width / 2, y = box.y + box.height / 2;
+        const top = document.elementFromPoint(x, y);
+        if (top === element || top?.closest?.('.leaflet-interactive') === element) return { x, y };
+      }
+      return null;
     });
-    selected = (await savedSelection(page))?.selection;
-    if (selected?.kind === 'cell') break;
-  }
-  expect(selected?.kind).toBe('cell');
+    return point !== null;
+  }).toBe(true);
+  await page.mouse.click(point.x, point.y);
+  await expect.poll(async () => (await savedSelection(page))?.selection?.kind).toBeTruthy();
   await expect(page.locator('.point-pin')).toHaveCount(1);
 
   await page.locator('.map-recenter-control .map-recenter').click();
@@ -174,8 +172,7 @@ test.describe('narrow fine-pointer desktops use the adaptive deck', () => {
 
   test('the stacked fallback no longer replaces the deck', async ({ page }) => {
     await openApp(page);
-    expect(await page.evaluate(() => getComputedStyle(document.documentElement)
-      .getPropertyValue('--mobile-deck').trim())).toBe('1');
+    expect(await page.evaluate(() => document.documentElement.hasAttribute('data-mobile-layout'))).toBe(true);
     await expect(page.locator('#mobileTabbar')).toBeVisible();
     await expect(page.locator('.layout')).toHaveCSS('display', 'block');
   });

@@ -48,6 +48,11 @@ USER_AGENT = 'zg852-route-fares-builder/1.0 (build-time open-data snapshot tool)
 ENDPOINT_SUBSTRING_WEIGHT = 2   # whole endpoint name appearing in the slug
 TOKEN_OVERLAP_DIVISOR = 10      # fractional credit per shared word token
 MATCH_SCORE_THRESHOLD = 1       # minimum evidence to accept an ambiguous number
+# Every fare emitted by this script comes from the TD FULL_FARE snapshot. The
+# value is recorded on each line index in a sibling `fareSources` field so the
+# app (which reads `fares`) can later distinguish snapshots from band fallbacks
+# without a breaking schema change.
+FARE_SOURCE = 'td-full-fare'
 
 # LAST_UPDATE_DATE cells are ISO-like strings. Parsing them explicitly replaces
 # the old lexicographic max() + [:10] while yielding the same date.
@@ -172,6 +177,10 @@ def main():
     network = json.loads((ROOT / 'static' / 'data' / 'network.json').read_text())
     urls = json.loads((ROOT / 'static' / 'data' / 'hkbus.json').read_text())
     fares = {}
+    # A network line with no TD fare record at all is data drift, not a line
+    # that should silently disappear from the snapshot. Collect them and fail
+    # the build so the mismatch is reviewed rather than published as a gap.
+    unmatched = []
     for index, line in enumerate(network['lines']):
         if line['c'] not in (1, 2):
             continue
@@ -182,6 +191,7 @@ def main():
         else:
             candidates = ferry.get(label) or ferry.get(line.get('n', ''), [])
         if not candidates:
+            unmatched.append((index, label))
             continue
 
         url = urls[index] if index < len(urls) else None
@@ -204,6 +214,11 @@ def main():
         if best and (best[0] >= MATCH_SCORE_THRESHOLD or len({fare for fare, _ in candidates}) == 1):
             fares[str(index)] = best[1]
 
+    if unmatched:
+        summary = ', '.join(f'{label} (line {index})' for index, label in unmatched)
+        raise SystemExit(f'unmatched route numbers ({len(unmatched)}): {summary}')
+
+    sorted_fares = dict(sorted(fares.items(), key=lambda item: int(item[0])))
     output = {
         'source': {
             'name': 'Transport Department routes and fares of public transport',
@@ -213,7 +228,12 @@ def main():
             'lastUpdated': last_updated.isoformat() if last_updated else '',
             'unit': 'HKD',
         },
-        'fares': dict(sorted(fares.items(), key=lambda item: int(item[0]))),
+        'fares': sorted_fares,
+        # Sibling of `fares`: the app consumes `fares`, so adding a key is
+        # backward compatible. Each snapshot fare is marked as such; a future
+        # band fallback can use a different value without leaving the consumer
+        # unable to tell the two apart.
+        'fareSources': {key: FARE_SOURCE for key in sorted_fares},
     }
     OUT.write_text(json.dumps(output, separators=(',', ':'), ensure_ascii=False) + '\n')
     print(f'line fares: {len(fares)}; source last updated {output["source"]["lastUpdated"]}')

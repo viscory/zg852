@@ -9,24 +9,30 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const metroUrl = 'https://opendata.mtr.com.hk/data/mtr_lines_fares.csv';
 const aelUrl = 'https://opendata.mtr.com.hk/data/airport_express_fares.csv';
 
-// Small RFC-4180-style CSV reader with named states. Unlike splitting on
-// newlines first, this keeps a quoted newline inside its field instead of
-// shifting every following column. States:
+// Small RFC-4180-style CSV reader with named states. No dependency is added:
+// the upstream feeds are simple, but a full reader is still needed so a comma
+// or newline inside a quoted field cannot shift every following column. States:
 //   FIELD      - ordinary unquoted characters
 //   QUOTED     - inside a double-quoted field (commas/newlines are data)
 //   AFTER_QUOTE - a closing quote was just consumed; only , newline or " follows
+// Tests by construction (checked against the state table above, no test lib):
+//   'a,b\r\n1,"x,y"'  -> [{a:'1', b:'x,y'}]       (comma inside quotes is data)
+//   'a\n"say ""hi"""' -> [{a:'say "hi"'}]          (doubled quote is an escape)
+//   'a,b\r\n1,\r\n'    -> [{a:'1', b:''}]           (empty trailing field, CRLF)
+//   'a,b\n"multi\nline",2' -> [{a:'multi\nline', b:'2'}] (quoted newline)
+// A missing required header is a build error, not a row of undefined values.
 const CSV_STATE = Object.freeze({
   FIELD: 'field',
   QUOTED: 'quoted',
   AFTER_QUOTE: 'afterQuote',
 });
 
-function parseCsv(text) {
+function parseCsv(text, requiredHeaders, label = '') {
   const rows = [];
   let row = [];
   let field = '';
   let state = CSV_STATE.FIELD;
-  const source = text.trim();
+  const source = text.trim().replace(/^\uFEFF/, '');
 
   const finishRow = () => {
     row.push(field);
@@ -83,14 +89,16 @@ function parseCsv(text) {
   }
   if (field !== '' || row.length) finishRow();
 
-  const header = rows[0];
+  const header = rows[0] || [];
+  const missing = requiredHeaders.filter(key => !header.includes(key));
+  if (missing.length) throw new Error(`CSV ${label} missing required headers: ${missing.join(', ')}`);
   return rows.slice(1).map(cells => Object.fromEntries(header.map((key, i) => [key, cells[i]])));
 }
 
-async function csv(url) {
+async function csv(url, requiredHeaders) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`${url}: ${response.status}`);
-  return parseCsv(await response.text());
+  return parseCsv(await response.text(), requiredHeaders, url);
 }
 
 // MTR open data spells two station names differently from nodes.json. Each
@@ -115,8 +123,8 @@ const stripSuffix = name => {
 };
 
 const nodes = JSON.parse(await readFile(resolve(root, 'static/data/nodes.json'), 'utf8'));
-const metroRows = await csv(metroUrl);
-const aelRows = await csv(aelUrl);
+const metroRows = await csv(metroUrl, ['SRC_STATION_NAME', 'DEST_STATION_NAME', 'SRC_STATION_ID', 'DEST_STATION_ID', 'OCT_ADT_FARE']);
+const aelRows = await csv(aelUrl, ['ST_FROM', 'ST_TO', 'ST_FROM_ID', 'ST_TO_ID', 'OCT_ADT_FARE']);
 
 const metroIdByName = new Map();
 const fareByOfficialId = new Map();
@@ -182,7 +190,8 @@ const unmatched = stationIndices
     && !REVIEWED_UNMATCHED_STATIONS.has(nodes.names[index]))
   .map(index => nodes.names[index]);
 if (unmatched.length) {
-  throw new Error(`Unmatched MTR stations (review aliases/feeds before regenerating): ${unmatched.join(', ')}`);
+  console.error(`Unmatched MTR stations (review aliases/feeds before regenerating): ${unmatched.join(', ')}`);
+  process.exit(1);
 }
 
 const output = {

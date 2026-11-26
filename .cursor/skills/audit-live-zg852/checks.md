@@ -81,4 +81,4 @@ Privacy, Terms, and Credits dialogs match `src/privacy.html`, `src/terms.html`, 
 
 `python .cursor/skills/audit-live-zg852/scripts/graph_sanity.py`
 
-File an issue for each printed `ISSUE` line. A clean script does not prove the live UI. Pair it with section C.
+The script now counts every printed `ISSUE` line (including missing files, missing station nodes, and mispositioned nodes), prints `ISSUE_COUNT`, and exits non-zero when any issue exists. Treat a non-zero exit as a failed gate: it must be green in CI before an audit is considered clean. Record each `ISSUE` line in the report. A clean script still does not prove the live UI, so pair it with section C.

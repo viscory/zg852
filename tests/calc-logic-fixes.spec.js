@@ -1,11 +1,17 @@
 const { test, expect } = require('@playwright/test');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
-const { loadSourceModule } = require('./source-modules');
+const { loadSourceModule, loadSourceModules } = require('./source-modules');
 
 const root = join(__dirname, '..');
-const source = path => readFileSync(join(root, 'src', 'js', path), 'utf8');
 const json = path => JSON.parse(readFileSync(join(root, 'static', 'data', path), 'utf8'));
+
+// Browser-only modules imported but never called by the pure functions under
+// test are stubbed so the real ESM source can be imported in Node.
+const STUBS = {
+  'engine.js': 'export const rerender=()=>{};',
+  'state.js': 'export const save=()=>{};',
+};
 
 test.use({ serviceWorkers: 'block' });
 
@@ -34,23 +40,63 @@ test.beforeEach(async ({ page }) => {
 
 // Finding 2: the pin walk check and the cell walk check must use the same raw
 // tolerance value, with no rounding that lets an over-limit pin slip through.
-test('walk tolerance uses one raw comparison in cells and pins', () => {
-  const map = source('map.js');
-  const engine = source('engine.js');
-  expect(map).toMatch(/walk\s*>\s*walkLimits\[person\]\s*\+\s*1e-9/);
-  expect(map).not.toMatch(/Math\.round\(walk\)\s*>\s*walkLimits/);
-  expect(engine).toMatch(/walk<=limit\?walk:grid\[idx\]/);
+test('walk tolerance uses one raw comparison in cells and pins', async ({ page }) => {
+  const [routing] = await loadSourceModules(['routing.js', 'store.js'], STUBS);
+  const { walkBudget } = routing;
+  // walkBudget is the limit shared by the cell filter and the pin check. It
+  // snaps to 5-minute steps but never rounds a walk up to fit under the limit.
+  expect(walkBudget({ walkMinutes: 20 })).toBe(20);
+  expect(walkBudget({ walkMinutes: 20.4 })).toBe(20);
+
+  // A walk of ~20.4 minutes past a 20-minute limit must be rejected at a pin.
+  await page.goto('/');
+  const state = await page.evaluate(async () => {
+    const nodes = await (await fetch('data/nodes.json')).json();
+    const node = nodes.names.findIndex((value, i) => value === 'Lo Wu' && nodes.kind[i] === 1);
+    const origin = { kind: 'node', node, label: nodes.names[node], lat: nodes.lat[node], lon: nodes.lon[node] };
+    return {
+      v: 1,
+      people: [origin, { ...origin }].map((place, i) => ({ id: `p${i + 1}`, name: ['A', 'B'][i], origin: place, walkMinutes: 20 })),
+      settings: { modes: ['rail'], fairness: 'time', tolerance: 3.05, includeHeadway: true },
+      locale: 'en',
+      // ~1.3 km north of Lo Wu: over 20 walking minutes at the app's speed.
+      selected: { kind: 'point', lat: nodes.lat[node] + 1300 / 111320, lon: nodes.lon[node] },
+    };
+  });
+  await page.goto(await shareUrl(page, state));
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await expect(page.locator('#pointNotice')).toBeVisible();
+  await expect(page.locator('#pointNoticeText')).toContainText('walk tolerance');
+  await expect(page.locator('.point-pin')).toHaveCount(0);
 });
 
 // Finding 4: a coordinate origin must keep several distinct nearby stations,
 // not collapse to the single nearest exit before Dijkstra runs.
-test('origins pool distinct nearby stations instead of one exit', () => {
-  const routing = source('routing.js');
-  expect(routing).not.toMatch(/nearestSources\([^)]*\)\.slice\(0,1\)/);
-  expect(routing).toMatch(/function sourceGroup\(/);
-  expect(routing).toMatch(/const groups=new Map\(\)/);
-  expect(routing).toMatch(/sourceRankMinutes\(minutes\)/);
-  expect(routing).not.toMatch(/sourcePenalty/);
+test('origins pool distinct nearby stations instead of one exit', async () => {
+  const [{ sourcesFor }, { store }] = await loadSourceModules(['routing.js', 'store.js'], STUBS);
+  store.settings = { modes: ['rail', 'bus'] };
+  store.NODES = {
+    names: ['Central', 'Central · Exit (A)', 'Kowloon', 'Bus stop'],
+    kind: [1, 3, 1, 4],
+    lat: [22.280, 22.2801, 22.282, 22.279],
+    lon: [114.150, 114.1501, 114.152, 114.149],
+    st: [],
+  };
+  store.surface = [0, 1, 2, 3];
+  const result = sourcesFor({ kind: 'coords', lat: 22.280, lon: 114.150 }, 60);
+  expect(result.reason).toBe('ready');
+  const nodes = result.sources.map(source => source.node);
+  // The same station's exit collapses into its representative, while other
+  // stations and the bus stop stay in the pool.
+  expect(nodes).toContain(0);
+  expect(nodes).not.toContain(1);
+  expect(nodes).toContain(2);
+  expect(nodes).toContain(3);
+  // No station-kind bonus: the pool is ordered by the displayed walk minutes.
+  const minutes = result.sources.map(source => source.minutes);
+  expect(minutes).toEqual([...minutes].sort((a, b) => a - b));
+  const { sourceRankMinutes } = await loadSourceModule('model.js');
+  expect(result.sources.every(source => sourceRankMinutes(source.minutes) === source.minutes)).toBe(true);
 });
 
 test('a coordinate origin can still search after source pooling', async ({ page }) => {
@@ -76,78 +122,96 @@ test('a coordinate origin can still search after source pooling', async ({ page 
 });
 
 // Finding 6: long bus routes must use official Transport Department full fares,
-// not a distance band that stops at HK$17.7.
+// not a distance band that stops at the published band cap.
 test('bundled route fares replace the capped bus bands', async () => {
   const fares = json('route-fares.json');
   const network = json('network.json');
-  const routing = source('routing.js');
-  const config = source('config.js');
+  const [routing, { store }, config] = await loadSourceModules(['routing.js', 'store.js', 'config.js'], STUBS);
+  store.ROUTE_FARES = fares;
 
   expect(fares.source.field).toContain('FULL_FARE');
   expect(Object.keys(fares.fares).length).toBeGreaterThan(2000);
-  expect(Math.max(...Object.values(fares.fares))).toBeGreaterThan(40);
-
-  const lineIndex = name => network.lines.findIndex(line => line.l === name);
-  expect(lineIndex('A47X')).toBeGreaterThanOrEqual(0);
-  expect(lineIndex('NA47')).toBeGreaterThanOrEqual(0);
-  // The long bus routes must sit among the largest fares in the bundled
-  // snapshot, not at the old distance-band cap. Derive the threshold from the
-  // snapshot itself rather than pinning individual fare literals here.
-  // The published band model caps at HK$17.7; both Airport Express coach
-  // routes must be taken from the full-fare snapshot instead. Derive the cap
-  // from the bundled band table rather than pinning individual fare literals.
-  const { BUS_FARE_BANDS } = await loadSourceModule('config.js');
-  const cap = BUS_FARE_BANDS[BUS_FARE_BANDS.length - 1][1];
+  const bands = config.BUS_FARE_BANDS;
+  const cap = bands[bands.length - 1][1];
+  expect(bands[0][1]).toBeLessThan(cap);
   expect(cap).toBeGreaterThan(0);
   for (const name of ['A47X', 'NA47']) {
-    const value = fares.fares[String(lineIndex(name))];
+    const index = network.lines.findIndex(line => line.l === name);
+    expect(index).toBeGreaterThanOrEqual(0);
+    const value = routing.scheduledRouteFare({ lineIndex: index });
     expect(typeof value).toBe('number');
     expect(value).toBeGreaterThan(cap);
   }
-
-  expect(routing).toMatch(/function scheduledRouteFare\(/);
-  expect(routing).toMatch(/scheduledRouteFare\(leg\)/);
-  expect(config).toMatch(/BUS_FARE_BANDS=\[\[4,5\.5\]/);
 });
 
 // Finding 7: fare ranking uses the displayed fare spread, with visible fare
 // and time values plus the disclosed interest preference as tie-breaks.
-test('fare ranking sorts by the fare spread shown on the card', () => {
-  const engine = source('engine.js');
-  const model = source('model.js');
-  expect(engine).toMatch(/totalFare=Math\.round\(fares\.reduce\(/);
-  expect(engine).toMatch(/fareSpread=Math\.round\(\(fareGap\/Math\.max\(meanFare,1\)\)/);
-  expect(engine).toMatch(/cached\.meanFare\*fareLimit,FARE_GAP_FLOOR/);
-  expect(engine).toMatch(/compareAreaRank\(a\.cell,b\.cell,'fare'\)/);
-  expect(model).toMatch(/Number\(area\?\.fareGap\)\s*\|\|\s*0/);
-  expect(model).toMatch(/Number\(area\?\.maxFare\)\s*\|\|\s*0/);
-  expect(engine).not.toMatch(/fareEstimated\)-/);
-  expect(engine).not.toMatch(/meetingSuitability/);
+test('fare ranking sorts by the fare spread shown on the card', async () => {
+  const { compareAreaRank, areaRank, heatValue } = await loadSourceModule('model.js');
+  const { FARE_GAP_FLOOR } = await loadSourceModule('config.js');
+  const wide = { key: 'wide', fareGap: 20, maxFare: 25, slowest: 40, gap: 10 };
+  const tight = { key: 'tight', fareGap: 2, maxFare: 14, slowest: 40, gap: 10 };
+  // Ascending order puts the smallest displayed spread first ("fairest first").
+  expect(compareAreaRank(tight, wide, 'fare')).toBeLessThan(0);
+  expect(compareAreaRank(wide, tight, 'fare')).toBeGreaterThan(0);
+  expect(heatValue(wide, 'fare')).toBe(25);
+  expect(areaRank(wide, 'fare')).toEqual([20, 25, 40, 10, 'wide']);
+  // Undisclosed presentation data cannot reorder two equally fair areas.
+  expect(compareAreaRank(wide, { ...wide, totalFare: 99, meetingSuitability: 9 }, 'fare')).toBe(0);
+  expect(FARE_GAP_FLOOR).toBeGreaterThan(0);
 });
 
 // Finding 10: stale AEL fallbacks are gone, AEL uses the bundled matrix, light
 // rail has its own fare chart, and missing fares are visibly flagged.
-test('fares come from current bundled tables and unknown values are flagged', () => {
-  const config = source('config.js');
-  const routing = source('routing.js');
-  const fares = source('fares.js');
+test('fares come from current bundled tables and unknown values are flagged', async () => {
+  const [faresApi, routing, { store }] = await loadSourceModules(['fares.js', 'routing.js', 'store.js'], STUBS);
+  const config = await loadSourceModule('config.js');
   const mtr = json('mtr-fares.json');
-  const stations = json('nodes.json');
-  const index = name => stations.names.findIndex((value, i) => value === name && stations.kind[i] === 1);
+  const nodes = json('nodes.json');
+  const network = json('network.json');
+  const index = name => nodes.names.findIndex((value, i) => value === name && nodes.kind[i] === 1);
+  store.MTR_FARES = mtr;
+  store.ROUTE_FARES = json('route-fares.json');
 
-  expect(config).not.toMatch(/AEL_FARES/);
-  expect(config).toMatch(/LIGHT_RAIL_FARES=\[\[3,5\.1\]/);
-  expect(fares).toMatch(/export function lightRailFare\(/);
-  expect(routing).toMatch(/lrStops\+lrLegs\.length\+1/);
-  expect(routing).not.toMatch(/return 64\.5/);
-  expect(routing).toMatch(/aelFareForNodes\(leg\.fromNode,leg\.toNode\)/);
-  expect(routing).toMatch(/mark\(\[leg\],official===null\)/);
-  expect(routing).toMatch(/export function fareMarkup/);
+  expect('AEL_FARES' in config).toBe(false);
+  // Airport Express values come from the bundled matrix, in both directions.
+  for (const [from, to] of [['Airport', 'Hong Kong'], ['Airport', 'Kowloon'], ['Airport', 'Tsing Yi']]) {
+    const expected = mtr.aelFares[faresApi.fareKey(mtr.nodeStation[String(index(from))], mtr.nodeStation[String(index(to))])];
+    expect(expected).toBeGreaterThan(0);
+    expect(faresApi.aelFareForNodes(index(from), index(to))).toBe(expected);
+    expect(faresApi.aelFareForNodes(index(to), index(from))).toBe(expected);
+  }
+  // Light rail uses the published stop-count chart.
+  for (const stops of [3, 6, 9]) {
+    const expected = config.LIGHT_RAIL_FARES.find(([limit]) => stops <= limit)[1];
+    expect(faresApi.lightRailFare(stops)).toBe(expected);
+  }
+  // Certainty follows provenance, not the travel mode.
+  expect(faresApi.isEstimatedFare({ mode: 'bus' }, null)).toBe(true);
+  expect(faresApi.isEstimatedFare({ mode: 'bus' }, 12.3)).toBe(false);
+  expect(faresApi.isEstimatedFare({ mode: 'rail' }, null)).toBe(true);
+  expect(faresApi.isEstimatedFare({ mode: 'rail' }, 7.4)).toBe(false);
 
-  const pair = (a, b) => mtr.aelFares[`${index(a)}|${index(b)}`] ?? mtr.aelFares[`${index(b)}|${index(a)}`];
-  expect(pair('Airport', 'Hong Kong')).toBe(120);
-  expect(pair('Airport', 'Kowloon')).toBe(105);
-  expect(pair('Airport', 'Tsing Yi')).toBe(73);
+  const route = {
+    legs: [
+      {
+        mode: 'rail', fromNode: index('Central'), toNode: index('Kowloon Tong'),
+        coords: [[22.28, 114.15], [22.31, 114.17]], stopCount: 0,
+      },
+      {
+        mode: 'bus', lineIndex: network.lines.findIndex(line => line.l === 'A47X'),
+        coords: [[22.28, 114.15], [22.32, 114.19]], stopCount: 0,
+      },
+    ],
+  };
+  routing.routeFares(route);
+  for (const leg of route.legs) {
+    expect(['mtr-matrix', 'band', 'td-snapshot']).toContain(leg.fareSource);
+    expect(leg.fareEstimated).toBe(leg.fareSource === 'band');
+  }
+  expect(route.legs[1].fareSource).toBe('td-snapshot');
+  expect(route.legs[1].fare).toBe(routing.scheduledRouteFare(route.legs[1]));
+  expect(route.legs[1].fareEstimated).toBe(false);
 });
 
 test('Airport Express result uses the official bundled fare', async ({ page }) => {

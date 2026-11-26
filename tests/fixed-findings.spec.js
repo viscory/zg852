@@ -1,6 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
+const { loadSourceModule } = require('./source-modules');
 
 test.use({ serviceWorkers: 'block' });
 
@@ -81,11 +82,21 @@ test('fare heat scale covers every published fare, including Airport Express', a
     fare: Number(element.getAttribute('data-max-fare') || 'NaN'),
     fill: element.getAttribute('fill'),
   })));
-  const mid = cells.find(cell => cell.fare >= 60 && cell.fare <= 75);
-  const high = cells.find(cell => cell.fare >= 100);
-  expect(mid, 'expected a HK$60–75 cell').toBeTruthy();
-  expect(high, 'expected a HK$100+ cell').toBeTruthy();
-  expect(high.fill, 'fares above the old HK$25 cap must not share one colour').not.toBe(mid.fill);
+  // Every cell must use the colour its fare earns on the published scale;
+  // checking all cells proves the old HK$25 cap cannot flatten a high fare.
+  const { HEAT_COLORS } = await loadSourceModule('config.js');
+  const fills = new Set();
+  let sawAboveOldCap = false;
+  expect(cells.length).toBeGreaterThan(0);
+  for (const cell of cells) {
+    expect(Number.isFinite(cell.fare) && cell.fare >= 0).toBe(true);
+    const ratio = Math.max(0, Math.min(1, cell.fare / expectedTop));
+    expect(cell.fill).toBe(HEAT_COLORS[Math.round(ratio * (HEAT_COLORS.length - 1))]);
+    fills.add(cell.fill);
+    if (cell.fare > 25) sawAboveOldCap = true;
+  }
+  expect(fills.size).toBeGreaterThan(1);
+  expect(sawAboveOldCap).toBe(true);
 });
 
 test('non-bus ride legs never claim to open a bus route', async ({ page }) => {
@@ -97,14 +108,16 @@ test('non-bus ride legs never claim to open a bus route', async ({ page }) => {
       { id: 'p1', name: 'A', origin: siuHong, walkMinutes: 20 },
       { id: 'p2', name: 'B', origin: tinShuiWai, walkMinutes: 20 },
     ],
-    settings: { modes: ['rail'], fairness: 'time', tolerance: 0.1, includeHeadway: true },
+    settings: { modes: ['lightRail'], fairness: 'time', tolerance: 0.1, includeHeadway: true },
     locale: 'en',
     selected: { kind: 'result', index: 0 },
   };
   await page.goto(await shareUrl(page, state));
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
-  await expect.poll(() => page.locator('#steps .ride-leg.route-lightRail').count()).toBeGreaterThan(0);
-  expect(await page.locator('#steps .ride-leg.route-lightRail .bus-link').count()).toBe(0);
+  await expect.poll(() => page.locator('#steps .step').count()).toBe(2);
+  for (const mode of ['rail', 'ferry', 'lightRail']) {
+    expect(await page.locator(`#steps .ride-leg.route-${mode} .bus-link`).count()).toBe(0);
+  }
   const links = await page.locator('#steps .bus-link').evaluateAll(elements => elements.map(element => element.href));
   for (const href of links) expect(href).toMatch(/^https:\/\/hkbus\.app\/en\/route\//);
 });

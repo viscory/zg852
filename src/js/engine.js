@@ -1,4 +1,4 @@
-import { MAX_CLOUD_CELLS,MAX_COST_CELLS,RECOMPUTE_DELAY,TRAVEL_BUDGET_MINUTES,FARE_GAP_FLOOR,activeFairnessMetric,travelTolerance,fareTolerance,isUnboundedTolerance,modesMask } from './config.js';
+import { MAX_CLOUD_CELLS,RECOMPUTE_DELAY,TRAVEL_BUDGET_MINUTES,FARE_GAP_FLOOR,activeFairnessMetric,travelTolerance,fareTolerance,isUnboundedTolerance,modesMask } from './config.js';
 import { store } from './store.js';
 import { compareAreaRank,fairnessTolerance,noFitErrorKey,noReachErrorKey } from './model.js';
 
@@ -87,7 +87,7 @@ export function compute(reveal=false){
     // orders the surviving cells by the worst fare anyone pays.
     const timeTolerance=fairnessTolerance('time',store.settings);
     const timeCells=buildCells(effectiveGrids,timeTolerance,TRAVEL_BUDGET_MINUTES);
-    const ordered=rankCells(timeCells).slice(0,MAX_COST_CELLS);
+    const ordered=rankCells(timeCells);
     const cacheKey=`${solveKey}|${store.activePeople.map(p=>walkBudget(p)).join(',')}`;
     if(store.costCacheKey!==cacheKey){store.costCacheKey=cacheKey;store.costCache=new Map();}
     const fareUnbounded=isUnboundedTolerance(fareLimit);
@@ -119,8 +119,9 @@ export function compute(reveal=false){
       passing.push({cell,fitScore});
     }
     // One shared fare ordering: the displayed fare spread first, then the
-    // largest fare chip, the displayed time numbers and the disclosed interest
-    // preference. The heat legend separately explains its largest-fare colour.
+    // largest fare chip and the displayed time numbers. Interest ratings are
+    // informational only. The heat legend separately explains its
+    // largest-fare colour.
     passing.sort((a,b)=>compareAreaRank(a.cell,b.cell,'fare'));
     store.cloudCells=passing.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
     store.results=passing.slice(0,7).map(({cell})=>{

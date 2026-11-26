@@ -38,8 +38,8 @@ export function scheduledRouteFare(leg){
 }
 export function routeFares(route){
   let rail=0,bus=0,lightRail=0,railKm=0,railStart=null,railEnd=null,railLegs=[],lrStops=0,lrLegs=[],estimated=false;
-  const mark=(legs,value)=>{
-    for(const leg of legs)leg.fareEstimated=value;
+  const mark=(legs,value,source)=>{
+    for(const leg of legs){leg.fareEstimated=value;leg.fareSource=source;}
     if(value)estimated=true;
   };
   const flushRail=()=>{
@@ -49,7 +49,7 @@ export function routeFares(route){
       const fare=round1(looked??bandFare(railKm,RAIL_FARE_BANDS));
       rail+=fare;
       for(const leg of railLegs)leg.fare=fare;
-      mark(railLegs,looked===null);
+      mark(railLegs,looked===null,looked===null?'band':'mtr-matrix');
       railKm=0;railStart=null;railEnd=null;railLegs=[];
     }
   };
@@ -62,13 +62,13 @@ export function routeFares(route){
       const fare=round1(lightRailFare(stops));
       lightRail+=fare;
       for(const leg of lrLegs)leg.fare=fare;
-      mark(lrLegs,false);
+      mark(lrLegs,false,'lr-chart');
       lrStops=0;lrLegs=[];
     }
   };
   for(const leg of route.legs){
     if(leg.mode==='walk'){
-      leg.fare=0;leg.fareEstimated=false;
+      leg.fare=0;leg.fareEstimated=false;leg.fareSource=null;
       if(leg.minutes>FARE_INTERCHANGE_WALK_MINUTES){flushRail();flushLightRail();}
       continue;
     }
@@ -78,7 +78,7 @@ export function routeFares(route){
       // City-to-city AEL pairs are not published in the bundled matrix. Keep
       // the ride usable, but never present the band estimate as an official fare.
       const fare=round1(official??bandFare(legDistanceKm(leg),RAIL_FARE_BANDS));
-      rail+=fare;leg.fare=fare;mark([leg],official===null);
+      rail+=fare;leg.fare=fare;mark([leg],official===null,official===null?'band':'ael-matrix');
       continue;
     }
     const km=legDistanceKm(leg);
@@ -93,10 +93,11 @@ export function routeFares(route){
       flushRail();flushLightRail();
       const official=scheduledRouteFare(leg);
       const fare=round1(official??bandFare(km,BUS_FARE_BANDS));
-      // Fare certainty follows the shared policy: buses are always estimates,
-      // ferry snapshots are not, and a missing snapshot is an estimate.
+      // Certainty follows the snapshot: a published Transport Department full
+      // fare is exact for buses and ferries alike; only the band fallback is an
+      // estimate.
       const estimated=isEstimatedFare(leg,official);
-      bus+=fare;leg.fare=fare;mark([leg],estimated);
+      bus+=fare;leg.fare=fare;mark([leg],estimated,official===null?'band':'td-snapshot');
     }
   }
   flushRail();flushLightRail();
@@ -106,6 +107,11 @@ export const walkBudget=person=>snapWalkMinutes(person?.walkMinutes);
 export function prepareRoutes(result,active=store.activePeople){
   result.routes=store.sols.map((solution,j)=>reconcileDisplayMinutes(
     describe(solution,active[j].origin,result.node,walkBudget(active[j]),result.point||null),result.times[j]));
+  // The card's per-person times are the totals the route steps actually show.
+  result.times=result.routes.map(route=>route.shownTotal);
+  result.fastest=Math.min(...result.times);result.slowest=Math.max(...result.times);
+  result.gap=result.slowest-result.fastest;
+  result.shownSlowest=result.slowest;result.shownGap=result.gap;
   result.paths=result.routes.map(route=>route.path);
   return result;
 }
@@ -186,16 +192,23 @@ export function walkTimes(sol){
   for(const[k,d]of sol.dist)if(isFreshState(decodeLine(k,sol.stride))){const node=decodeNode(k,sol.stride);if(d<best[node])best[node]=d;}
   return best;
 }
+// Each mode now has its own chip, so a single-mode selection maps to exactly
+// that mode's node kinds. No companion mode is smuggled in behind the label.
+const MODE_NODE_KINDS={rail:[1,3],lightRail:[1,2,3],bus:[4],ferry:[1,3,4]};
+function singleMode(){
+  const modes=store.settings.modes||[];
+  return modes.length===1?modes[0]:null;
+}
 export function sourceNodeIndices(){
-  const modes=store.settings.modes||[],rail=modes.includes('rail'),bus=modes.includes('bus');
-  if(rail&&!bus){const out=[];for(let i=0;i<store.NODES.names.length;i++)if(store.NODES.kind[i]===1||store.NODES.kind[i]===2||store.NODES.kind[i]===3)out.push(i);return out;}
-  if(bus&&!rail){const out=[];for(let i=0;i<store.NODES.names.length;i++)if(store.NODES.kind[i]===4)out.push(i);return out;}
-  return store.surface;
+  const mode=singleMode(),kinds=mode&&MODE_NODE_KINDS[mode];
+  if(!kinds)return store.surface;
+  const out=[];
+  for(let i=0;i<store.NODES.names.length;i++)if(kinds.includes(store.NODES.kind[i]))out.push(i);
+  return out;
 }
 export function nodeCompatible(kind){
-  const modes=store.settings.modes||[];
-  if(modes.length!==1)return true;
-  return modes[0]==='rail'?(kind===1||kind===2||kind===3):kind===4;
+  const mode=singleMode(),kinds=mode&&MODE_NODE_KINDS[mode];
+  return !kinds||kinds.includes(kind);
 }
 export const SOURCE_READY='ready';
 export const SOURCE_NO_STOP='no-stop';
@@ -256,8 +269,9 @@ export function stopName(name){
   if(exit>=0)return value.slice(0,exit);
   return value;
 }
-// Raw leg minutes and the raw total are rounded independently at display time.
-// Keep a per-leg displayed value so the shown legs add up to the shown total.
+// Each leg is rounded on its own. The displayed total is then the sum of the
+// displayed legs (plus separately noted interchange waits), so nothing is
+// redistributed between legs to force an independently rounded total to agree.
 export function shownMinutes(leg){return Number.isFinite(leg.shownMinutes)?leg.shownMinutes:leg.minutes;}
 export function walkLegText(leg){return t('route.walkLeg',{time:minuteText(shownMinutes(leg))}).replace(/\s+/g,' ').trim();}
 export function interchangeWaitText(leg){return leg.interchangeWait>0?t('route.interchangeWait',{value:minuteText(leg.interchangeWait)}):'';}
@@ -268,28 +282,21 @@ export function rideLegText(leg){
   return (text+' '+interchangeWaitText(leg)).replace(/\s+/g,' ').trim();
 }
 export function legLabel(leg){return leg.mode==='walk'?walkLegText(leg):rideLegText(leg);}
-// Flooring raw minutes with a small epsilon avoids losing a whole minute to
-// binary drift (e.g. 2.9999999999999996). Only displayed minutes change: leg
-// rates, raw minutes and interchange-wait notes are left untouched.
-const MINUTE_FLOOR_EPSILON=1e-9;
+// Each leg is rounded independently. The displayed total is the sum of those
+// rounded legs plus the separately noted interchange waits, so the numbers on
+// screen add up without silently moving minutes from one leg to another.
 export function reconcileDisplayMinutes(route,total){
   const legs=route.legs;
-  if(!legs.length||!isNum(total))return route;
-  // Interchange waits are shown as their own notes, so reserve their rounded
-  // minutes before distributing the remaining whole minutes across the legs.
+  if(!legs.length||!isNum(total)){route.shownTotal=Math.max(0,Math.round(total||0));return route;}
   const waitTotal=legs.reduce((a,l)=>a+(l.interchangeWait>0?Math.round(l.interchangeWait):0),0);
-  const target=Math.round(total)-waitTotal;
-  const raw=legs.map(l=>l.minutes),floors=raw.map(v=>Math.floor(v+MINUTE_FLOOR_EPSILON)),shown=floors.slice();
-  let delta=target-floors.reduce((a,b)=>a+b,0);
-  const largestFirst=raw.map((v,i)=>({i,frac:v-Math.floor(v)})).sort((a,b)=>b.frac-a.frac);
-  for(let k=0;delta>0&&k<largestFirst.length;k++,delta--)shown[largestFirst[k].i]++;
-  if(delta<0)for(let k=largestFirst.length-1;delta<0&&k>=0;k--,delta++)shown[largestFirst[k].i]=Math.max(0,shown[largestFirst[k].i]-1);
+  const shown=legs.map(l=>Math.max(0,Math.round(l.minutes)));
   legs.forEach((leg,i)=>{
     leg.shownMinutes=shown[i];
     leg.text=leg.mode==='walk'&&leg.to===t('map.pinnedPoint')
       ?t('route.walkTo',{time:minuteText(shown[i]),to:leg.to}).replace(/\s+/g,' ').trim()
       :legLabel(leg);
   });
+  route.shownTotal=shown.reduce((a,b)=>a+b,0)+waitTotal;
   route.text=legs.map(leg=>leg.text).join(' -> ')||t('route.already');
   return route;
 }
@@ -419,12 +426,16 @@ export function buildCells(grids,tolerance,budget){
     const kind=store.NODES.kind[idx];
     if(overFairnessBand({fastest,slowest,gap,kind},tolerance))continue;
     const cy=Math.floor(store.NODES.lat[idx]/CELL_SIZE),cx=Math.floor(store.NODES.lon[idx]/CELL_SIZE),cellKey=`${cy},${cx}`;
-    const score=slowest+gap,priority=nodePriority(kind);
+    // Rank on the numbers the card actually shows, so the visible spread and
+    // longest explain the order. Raw times still drive the tolerance filter.
+    const whole=times.map(Math.round);
+    const shownSlowest=Math.max(...whole),shownGap=shownSlowest-Math.min(...whole);
+    const score=shownSlowest+shownGap,priority=nodePriority(kind);
     let cell=cells.get(cellKey);
-    if(!cell){cells.set(cellKey,{key:cellKey,cy,cx,node:idx,label:store.NODES.names[idx],priority,keyCat:catKey(priority),kind,times,fastest,slowest,gap,score});continue;}
-    if(score<cell.score||score===cell.score&&gap<cell.gap){
+    if(!cell){cells.set(cellKey,{key:cellKey,cy,cx,node:idx,label:store.NODES.names[idx],priority,keyCat:catKey(priority),kind,times,fastest,slowest,gap,shownSlowest,shownGap,score});continue;}
+    if(score<cell.score||score===cell.score&&shownGap<cell.shownGap){
       cell.node=idx;cell.label=store.NODES.names[idx];cell.priority=priority;cell.keyCat=catKey(priority);cell.kind=kind;
-      cell.times=times;cell.fastest=fastest;cell.slowest=slowest;cell.gap=gap;cell.score=score;
+      cell.times=times;cell.fastest=fastest;cell.slowest=slowest;cell.gap=gap;cell.shownSlowest=shownSlowest;cell.shownGap=shownGap;cell.score=score;
     }
   }
   return [...cells.values()].map(cell=>{
@@ -442,7 +453,8 @@ export function cellToResult(cell){
     key:cell.key,node:cell.node,kind:cell.kind,label:cell.label,catKey:cell.keyCat,district:districtFor(lat,lon),lat,lon,
     cellLat:cell.cy*CELL_SIZE+CELL_SIZE/2,cellLon:cell.cx*CELL_SIZE+CELL_SIZE/2,
     times:whole,
-    fastest:Math.min(...whole),slowest:Math.max(...whole),gap:Math.max(...whole)-Math.min(...whole),score:round(cell.score),
+    fastest:Math.min(...whole),slowest:Math.max(...whole),gap:Math.max(...whole)-Math.min(...whole),
+    shownSlowest:Math.max(...whole),shownGap:Math.max(...whole)-Math.min(...whole),score:round(cell.score),
     fitScore:cell.fitScore??round(cell.score-preference),vectorAdjustment:preference,
     fares:cell.fares,maxFare:cell.maxFare,totalFare:cell.totalFare,fareGap:cell.fareGap,
     fareSpread:cell.fareSpread,fareScore:cell.fareScore,fareEstimated:cell.fareEstimated,

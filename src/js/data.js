@@ -16,10 +16,12 @@ export const HKBUS_URL_MISSING=null;
 export function hkbusUrl(lineIndex){return store.HKBUS_URLS?.[lineIndex]??HKBUS_URL_MISSING;}
 // One resolver for every route chip: a link is only offered when the bundled
 // catalogue has a real route page. A generic search is not a route link.
+export const GENERIC_BUS_SEARCH_URL='https://hkbus.app/en/search';
 export function routeLink(leg){
   if(!leg||leg.mode!=='bus'||!Number.isInteger(leg.lineIndex))return null;
   const uri=hkbusUrl(leg.lineIndex);
-  return uri?{uri,titleKey:'route.busLink'}:null;
+  if(!uri||uri===GENERIC_BUS_SEARCH_URL)return null;
+  return {uri,titleKey:'route.busLink'};
 }
 export function mtrLineCode(line){
   const match=/^MTR\s+([A-Z]{3})$/.exec(String(line||''));

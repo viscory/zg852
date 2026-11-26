@@ -11,7 +11,7 @@ Compare travel time and cost from each person's start place to find a meeting po
 ## Features
 
 - MTR, bus and walking routes
-- Per-person time and cost focus
+- One global Time/Fare metric and per-person walk tolerance
 - Runs in the browser: no account, no backend, no API keys
 
 ## Links

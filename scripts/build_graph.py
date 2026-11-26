@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Build a compact HK graph with MTR platforms, exits, transfers and bus stops.
 
-The modelling numbers collected in the CONSTANTS section below are deliberate
-*assumptions*, not field measurements: they fill gaps in the GTFS feed (walk
-detours, interchange friction, implied speeds and layover detection). They are
-kept at their historical values so regenerating the graph produces identical
-JSON; re-tune them only after validating routes against the live network.
+The modelling numbers in CONSTANTS are deliberate *assumptions*, not field
+measurements: they fill gaps in the GTFS feed (walk detours, interchange
+friction, implied speeds and layover detection) and stay at historical values
+for reproducibility. The only deliberate time repair is adjust_edges(): it
+re-times rail hops detected at a flat ASSUMED_RAIL_KMH and very short hops
+stored as layovers. Regenerating therefore changes exactly those detected hops
+rather than reproducing the committed graph.json byte-for-byte.
 """
 
 import csv
@@ -31,8 +33,9 @@ OUT = os.path.join(DATA, "graph.json")
 # Provenance: these values were hand-tuned when the graph exporter was written
 # to compensate for gaps in the GTFS feed (no walk links, no interchange
 # timings, and rail clocks stored at a flat speed). They are *not* surveyed
-# distances or observed timings. Every literal below is preserved exactly so
-# the committed JSON stays byte-for-byte reproducible.
+# distances or observed timings. Every literal below is preserved at its
+# historical value; the only intentional departure from the committed JSON is
+# the narrow detected-hop repair in adjust_edges().
 # ---------------------------------------------------------------------------
 
 # Walking model: pace and detour are assumptions; radius/neighbours bound the
@@ -518,9 +521,14 @@ def station_name(node):
 
 
 def adjust_edges(lines, nodes):
-    """Correct feed clocks at a flat speed and layovers stored as rides.
+    """Repair only rail hops detected as flat 45 km/h, plus short-hop layovers.
 
-    Thresholds and speeds come from the CONSTANTS assumptions section above.
+    A rail hop longer than LONG_HOP_M is flagged when its feed time matches
+    dist / ASSUMED_RAIL_KMH within FLAT_SPEED_TOLERANCE_MIN; only that hop is
+    re-timed at CORRECTED_RAIL_KMH. A hop under SHORT_HOP_M whose feed time is at
+    least LAYOVER_MIN_MINUTES is re-timed at SHORT_HOP_KMH. The station-pair pass
+    collapses only flagged flat-speed hops when a duplicate exceeds LAYOVER_RATIO
+    times the shortest one; unrelated rail/lightRail hops are never rewritten.
     """
     pair = defaultdict(list)
     for line in lines.values():
@@ -529,19 +537,21 @@ def adjust_edges(lines, nodes):
             continue
         for i, dt in enumerate(edges):
             dist = haversine(nodes[stops[i]], nodes[stops[i + 1]])
+            flat_speed = False
             if line["cat"] == "rail" and dist > LONG_HOP_M:
                 synthetic = dist / 1000 / ASSUMED_RAIL_KMH * 60
                 if abs(dt - synthetic) < FLAT_SPEED_TOLERANCE_MIN:
+                    flat_speed = True
                     dt = dist / 1000 / CORRECTED_RAIL_KMH * 60
             if dist < SHORT_HOP_M and dt >= LAYOVER_MIN_MINUTES:
                 dt = max(MIN_HOP_MINUTES, dist / 1000 / SHORT_HOP_KMH * 60)
             edges[i] = round(dt, 2)
-            if line["cat"] in ("rail", "lightRail"):
+            if flat_speed:
                 pair[tuple(sorted((station_name(nodes[stops[i]]), station_name(nodes[stops[i + 1]]))))].append((edges, i))
     for items in pair.values():
         times = [bucket[index] for bucket, index in items]
         short, long = min(times), max(times)
-        if short > 0 and long > short * LAYOVER_RATIO:
+        if len(items) > 1 and short > 0 and long > short * LAYOVER_RATIO:
             for bucket, index in items:
                 bucket[index] = round(short, 2)
 

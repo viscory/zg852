@@ -5,14 +5,14 @@ test.use({ ...devices['iPhone 15'], browserName: 'chromium' });
 
 async function openSettings(page) {
   await page.locator('#jumpSettings').click();
-  await page.waitForTimeout(300);
+  await expect(page.locator('#optionsHeading')).toBeFocused();
 }
 
 async function setTolerance(page, value) {
   await page.locator('#tolerance').evaluate((el, position) => {
     el.value = String(position);
     el.dispatchEvent(new Event('input', { bubbles: true }));
-  }, sliderPosition(value));
+  }, await sliderPosition(value));
 }
 
 test.beforeEach(async ({ page }) => {
@@ -108,7 +108,7 @@ test('fare Unlimited keeps the heat map as reference and allows a map point', as
 test('fare fairness and its tolerance persist across reloads', async ({ page }) => {
   await page.locator('#fairnessToggle [data-fairness="fare"]').click();
   await setTolerance(page, 0.5);
-  await page.waitForTimeout(700);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('hkfair.v2.settings'))).toContain('"fareTolerance":0.5');
   const stored = await page.evaluate(() => localStorage.getItem('hkfair.v2.settings'));
   expect(stored).toContain('"fairness":"fare"');
   expect(stored).toContain('"fareTolerance":0.5');

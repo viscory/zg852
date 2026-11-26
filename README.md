@@ -8,15 +8,15 @@ Site: https://zg852.pages.dev/
 
 Each person card has a walk tolerance slider: 0–60 minutes in 5-minute steps, 20 minutes by default. It stays per person and is saved with the person, in saved profiles, and in share links.
 
-The right sidebar's **Parameters** panel holds the transport modes, a **Time / Fare** fairness toggle, the percentage tolerance for the active metric, and an `Include average headway` checkbox. Time mode filters and ranks by travel-time disparity. Fare mode keeps the 90-minute trip budget, drops the time-disparity filter, and ranks the time-feasible pool by fare spread; MTR fares are looked up from MTR's published Adult Octopus station-pair matrix, while bus fares remain estimates. The slider starts at 5%, runs linear in 1% steps to 100%, logarithmic to 300%, then Unlimited, and each metric keeps its own tolerance. The headway checkbox is on by default and travels with settings and share links; with it on, half the average wait is charged only when you change between transit legs and appears as an `Interchange wait N min` note in the steps and tooltip. The first departure assumes you time yourself. Turn the checkbox off and no headway wait is charged or displayed.
+The right sidebar's **Parameters** panel holds the transport modes, a **Time / Fare** fairness toggle, the percentage tolerance for the active metric, and an `Include average headway` checkbox. Time mode filters and ranks by travel-time disparity. Fare mode keeps the 90-minute trip budget, drops the time-disparity filter, and ranks the time-feasible pool by fare spread. MTR fares come from the MTR station-pair snapshot, bus and ferry fares come from the Transport Department full-fare snapshot, and distance-band estimates are used only when a snapshot lookup is missing. The slider starts at 5%, runs linear in 1% steps to 100%, logarithmic to 300%, then Unlimited, and each metric keeps its own tolerance. The headway checkbox is on by default and travels with settings and share links; with it on, half the average wait is charged only when you change between transit legs and appears as an `Interchange wait N min` note in the steps and tooltip. The first departure assumes you time yourself. Turn the checkbox off and no headway wait is charged or displayed.
 
-Minute values are whole numbers, and MTR legs use full line names such as `Tuen Ma Line` or `Tsuen Wan Line`, never three-letter codes. Each ride chip shows its boarding and alighting stops as `Start → End` with a Unicode arrow. Pressing Find fair areas — from the parameters panel or the empty state — shows the selected route's steps in the left detail face straight away; you can still swap between the people list and route detail with the swap button. There is no saved-people count line. The right sidebar keeps its parameters panel sticky while fair-area results scroll directly beneath it.
+Minute values are whole numbers, and MTR legs use full line names such as `Tuen Ma Line` or `Tsuen Wan Line`, never three-letter codes. Each ride chip shows its boarding and alighting stops as `Start → End` with a Unicode arrow. Pressing Find fair areas in the parameters panel, or Plan a meet (`#goPlan`) in the empty state, shows the selected route's steps in the left detail face straight away; you can still swap between the people list and route detail with the swap button. There is no saved-people count line. The right sidebar keeps its parameters panel sticky while fair-area results scroll directly beneath it.
 
 ## Repository layout
 
 - `src/` — application source. `src/index.html` is the entry page; `src/js/` holds focused modules (`config`, `store`, `util`, `i18n`, `data`, `vectors`, `routing`, `search`, `state`, `map`, `ui`, `engine`); `src/styles.css` and `src/legal.css` are the stylesheets.
 - `static/` — files served exactly as written: `data/` (generated transit graph and POI index), `i18n/` (all 15 locale catalogs), `sw.js`, SEO files, and icons. Raw feeds stay in `static/data/raw/` and are never committed or deployed.
-- `scripts/` — the data pipeline (`build_graph.py`, `build_poi_index.py`) and the post-build step (`finalize.mjs`) that writes `_headers` and patches `sw.js` for the deployed origin.
+- `scripts/` — the data pipeline (`build_graph.py`, `build_poi_index.py`) and the post-build step (`finalize.mjs`) that writes `_headers`, copies the service worker verbatim, prunes non-deploy data, and writes `.gz` siblings.
 - `tests/` — Playwright specs that always run against the built `public/` artifact.
 
 ## Dependencies
@@ -61,7 +61,7 @@ npm run build
 npm run pages:deploy
 ```
 
-Vite bundles and minifies `src/` into `public/` and copies `static/` alongside it. `scripts/finalize.mjs` then writes the `_headers` security and caching rules and patches `sw.js` for the deployed origin. When you change a cached asset, bump the cache version in `static/sw.js`, add any new asset to its precache list, and keep the patch strings in `scripts/finalize.mjs` in sync.
+Vite bundles and minifies `src/` into `public/` and copies `static/` alongside it. `scripts/finalize.mjs` then writes the `_headers` security and caching rules, copies `static/sw.js` verbatim to the deploy root, prunes non-deploy data files, and writes `.gz` siblings for compressible assets. There is no post-build patch step: `static/sw.js` is the deployed worker. When you change a cached asset, bump the cache version in `static/sw.js` and add any new bundle file to its precache list.
 
 ## Data and services
 

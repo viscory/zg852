@@ -8,7 +8,10 @@ hk-bus-crawling ``routeList`` keys, which are available as a public JSON feed.
 
 This is a maintenance tool, not part of the normal Vite build: the generated
 ``static/data/hkbus.json`` is committed so the app never needs a network call
-at build or run time. Re-run it whenever the GTFS feed is refreshed.
+at build or run time. A parallel ``static/data/hkbus-meta.json`` records an
+explicit status/reason for every line index, so a fallback to in-app search is
+never confused with a real deep link. Re-run both whenever the GTFS feed is
+refreshed.
 
 Usage: python3 scripts/build_hkbus_urls.py
 """
@@ -24,6 +27,9 @@ BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(BASE, "static", "data")
 ROUTE_LIST_URL = "https://hkbus.github.io/hk-bus-crawling/routeFareList.min.json"
 SEARCH_URL = "https://hkbus.app/en/search"
+# Identify this one-off build tool honestly instead of pretending to be a
+# browser; the upstream feed does not require a UA spoof to serve its JSON.
+USER_AGENT = "zg852-hkbus-url-builder/1.0 (+https://github.com/viscory/zg852)"
 
 # Route matching: origin and destination similarity carry equal weight. The
 # integer weights keep the arithmetic bit-for-bit identical to the original
@@ -32,9 +38,11 @@ ORIGIN_MATCH_WEIGHT = 1
 DESTINATION_MATCH_WEIGHT = 1
 ROUTE_SCORE_DIVISOR = ORIGIN_MATCH_WEIGHT + DESTINATION_MATCH_WEIGHT
 
-# hkbus.app has sitemap entries for keys containing a fullwidth slash but the
-# pre-rendered pages 404. Such a key has no usable deep link (None).
-FULLWIDTH_SLASH = "／"
+# hkbus.app publishes sitemap entries for keys containing a fullwidth slash but
+# the pre-rendered pages 404. This is only a detection character; *why* a line
+# has no deep link is an explicit status/reason in hkbus-meta.json, not a
+# one-codepoint feature flag hidden here.
+FULLWIDTH_SLASH_CHAR = "／"
 
 
 def normalise(text):
@@ -77,19 +85,19 @@ def match_route(line, index, route_list):
 def route_url(key):
     """Return the deep link for a route key, or None when no page exists.
 
-    A None key means no candidate matched; a key containing FULLWIDTH_SLASH is
-    published in the sitemap but its page 404s. Both cases are represented
+    A None key means no candidate matched; a key containing FULLWIDTH_SLASH_CHAR
+    is published in the sitemap but its page 404s. Both cases are represented
     explicitly as "no deep link" here rather than being silently redirected.
     The caller maps None to the in-app search URL so the generated list keeps
-    its historical values.
+    its historical values, and records the specific reason in hkbus-meta.json.
     """
-    if not key or FULLWIDTH_SLASH in key:
+    if not key or FULLWIDTH_SLASH_CHAR in key:
         return None
     return f"https://hkbus.app/en/route/{hkbus_slug(key)}"
 
 
 def main():
-    request = urllib.request.Request(ROUTE_LIST_URL, headers={"User-Agent": "Mozilla/5.0"})
+    request = urllib.request.Request(ROUTE_LIST_URL, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=60) as response:
         route_list = json.load(response)["routeList"]
 
@@ -101,30 +109,43 @@ def main():
         lines = json.load(fh)["lines"]
 
     urls = []
+    # Parallel per-index metadata: the app keeps the historical hkbus.json array
+    # shape, but a reader can tell a real deep link from a deliberate fallback.
+    meta = []
     matched = 0
     skipped_fullwidth = 0
+    unmatched = 0
     for line in lines:
         if line["c"] != 1:
             urls.append(None)
+            meta.append({"status": "not-a-bus-line"})
             continue
         key = match_route(line, index, route_list)
         url = route_url(key)
         if url is None:
-            if key:
+            if not key:
+                unmatched += 1
+                meta.append({"status": "fallback", "reason": "unmatched-route"})
+            else:
                 skipped_fullwidth += 1
+                meta.append({"status": "fallback", "reason": "fullwidth-slash-404", "key": key})
                 print(f"SKIP {line['l']}: hkbus.app page 404s for fullwidth-slash key {key!r}; using in-app search")
             urls.append(SEARCH_URL)
         else:
             matched += 1
             urls.append(url)
+            meta.append({"status": "ok"})
 
     path = os.path.join(DATA, "hkbus.json")
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(urls, fh, separators=(",", ":"))
+    meta_path = os.path.join(DATA, "hkbus-meta.json")
+    with open(meta_path, "w", encoding="utf-8") as fh:
+        json.dump(meta, fh, separators=(",", ":"))
 
     print(f"bus lines matched={matched}/{sum(1 for line in lines if line['c'] == 1)} "
-          f"skipped_fullwidth={skipped_fullwidth} "
-          f"file={os.path.getsize(path)/1e3:.0f}KB")
+          f"skipped_fullwidth={skipped_fullwidth} unmatched={unmatched} "
+          f"file={os.path.getsize(path)/1e3:.0f}KB meta={os.path.getsize(meta_path)/1e3:.0f}KB")
 
 
 if __name__ == "__main__":

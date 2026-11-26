@@ -14,16 +14,15 @@ export function normLabel(value){return value.toLowerCase().normalize('NFKD').re
 export function dedupePlaces(entries,limit=8){
   const out=[];
   for(const entry of entries){
-    const key=normLabel(entry.label),tokens=new Set(key.split(' ').filter(Boolean));
-    const duplicate=out.find(existing=>{
-      const other=new Set(existing.key.split(' ').filter(Boolean));
-      const shared=[...tokens].filter(v=>other.has(v)).length;
-      const overlap=shared/Math.max(1,Math.min(tokens.size,other.size));
-      const distance=haversine(entry.lat,entry.lon,existing.lat,existing.lon);
-      return key===existing.key||distance<160&&overlap>=0.5;
-    });
+    // Identity is a stable OSM id where one exists; otherwise an exact
+    // normalized label. Fuzzy token overlap must never merge two real places.
+    const key=normLabel(entry.label);
+    const identity=entry.osm?.type&&entry.osm?.id
+      ?`osm:${entry.osm.type}:${entry.osm.id}`:`label:${key}`;
+    const duplicate=out.find(existing=>existing.identity===identity||
+      (key===existing.key&&haversine(entry.lat,entry.lon,existing.lat,existing.lon)<160));
     if(duplicate){duplicate.count++;continue;}
-    out.push({...entry,key,count:1});
+    out.push({...entry,key,identity,count:1});
     if(out.length>=limit)break;
   }
   return out;

@@ -30,6 +30,7 @@ function legFacts(leg,person){
     interchangeWait:leg.interchangeWait||0,
     fare:leg.fare||0,
     fareEstimated:!!leg.fareEstimated,
+    fareSource:leg.fareSource||null,
     person,
   };
 }
