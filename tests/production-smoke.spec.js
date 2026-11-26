@@ -108,22 +108,41 @@ test('production headway parameter and fare output are visible', async ({ page }
   await expect(page.locator('#steps')).not.toContainText('Get off:');
 });
 
-test('stale cached catalogs cannot resurrect raw i18n keys', async ({ page }) => {
-  await setup(page, { serviceWorker: true });
-  await page.evaluate(async name => {
-    await navigator.serviceWorker.ready;
-    const cache = await caches.open(name);
-    await cache.put('/i18n/en.json', new Response(JSON.stringify({ 'app.title': 'Stale title' }), {
-      headers: { 'content-type': 'application/json' },
+test('stale cached catalogs cannot resurrect raw i18n keys', async ({ browser }) => {
+  // Poisoning a cache is confined to a fresh context; the shared cache used by
+  // the other tests must never see the stale catalogue.
+  const context = await browser.newContext({
+    baseURL: process.env.TEST_BASE_URL || 'http://127.0.0.1:8765',
+  });
+  const page = await context.newPage();
+  try {
+    await context.route('**/tiles.openfreemap.org/**', route => route.abort());
+    await context.route('**/photon.komoot.io/api/**', route => route.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify({ features: [] }),
     }));
-  }, SW_CACHE_NAME);
-  await page.reload();
-  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
-  await expect(page.locator('h1')).toHaveText('就腳 zau6 goek3');
-  await expect(page.locator('.options-title').first()).toHaveText('Parameters');
-  await expect(page.locator('label[for="includeHeadway"]')).toHaveText('Include average headway');
-  await expect(page.locator('[data-legal="privacy"]')).toHaveText('Privacy');
-  expect(await page.locator('body').innerText()).not.toMatch(RAW_KEY);
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+    await page.evaluate(async name => {
+      await navigator.serviceWorker.ready;
+      const cache = await caches.open(name);
+      await cache.put('/i18n/en.json', new Response(JSON.stringify({ 'app.title': 'Stale title' }), {
+        headers: { 'content-type': 'application/json' },
+      }));
+    }, SW_CACHE_NAME);
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+    await expect(page.locator('h1')).toHaveText('就腳 zau6 goek3');
+    await expect(page.locator('.options-title').first()).toHaveText('Parameters');
+    await expect(page.locator('label[for="includeHeadway"]')).toHaveText('Include average headway');
+    await expect(page.locator('[data-legal="privacy"]')).toHaveText('Privacy');
+    expect(await page.locator('body').innerText()).not.toMatch(RAW_KEY);
+  } finally {
+    await page.evaluate(async name => {
+      const cache = await caches.open(name);
+      await cache.delete('/i18n/en.json');
+    }, SW_CACHE_NAME).catch(() => {});
+    await context.close();
+  }
 });
 
 test('recenter control sits on the map beside the zoom control', async ({ page }) => {

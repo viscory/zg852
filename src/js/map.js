@@ -15,6 +15,16 @@ import { displayName,saveSelection } from './state.js';
 import { isMobileLayout,showMobileRoute } from './mobile.js';
 import { markSelectedResult,setPinOrigin,setLabel,setSidebarFace,showError,showPointNotice,clearPointNotice,applyUnboundedUi } from './ui.js';
 
+// Leaflet accepts infinite LatLngBounds, but Web Mercator only covers these
+// finite corners. They keep the old one-world pan restriction (viscosity 1)
+// without relying on ±Infinity coordinates.
+const WEB_MERCATOR_BOUNDS=[[85.05,-180],[-85.05,180]];
+// A tap only snaps to a heat cell within this many layer pixels of its centre.
+const TAP_SNAP_RADIUS=56;
+// Widths used only until the tooltip has been laid out and measured.
+const TOOLTIP_FALLBACK_WIDTH=240;
+const TOOLTIP_FALLBACK_HEIGHT=140;
+
 export const CLEAN_STYLE={
   version:8,
   name:'zg852 clean',
@@ -56,8 +66,21 @@ export function applyMapLabels(){
   for(const id of LABEL_LAYERS)if(gl.getLayer(id))gl.setLayoutProperty(id,'text-field',placeNameField());
 }
 
+// The plugin's public getMaplibreMap() accessor tells us whether its Maplibre
+// instance was created. addTo() can throw before that happens, yet the layer is
+// already registered with Leaflet, whose removeLayer() calls onRemove() and
+// dereferences the missing instance. This is the only case where we seed the
+// private field with a no-op so the supported teardown can complete; the
+// original error is still thrown by the caller.
+function safeRemoveGlLayer(mapToClean,glLayer){
+  try{
+    if(!glLayer.getMaplibreMap?.())glLayer._glMap={remove(){}};
+    mapToClean.removeLayer(glLayer);
+  }catch(removeErr){console.error(removeErr);}
+}
+
 export function createMap(){
-  map=L.map('map',{zoomControl:false,keyboard:true,minZoom:1,maxBounds:[[180,-Infinity],[-180,Infinity]],maxBoundsViscosity:1,attributionControl:true}).setView([22.31,114.17],12);
+  map=L.map('map',{zoomControl:false,keyboard:true,minZoom:1,maxBounds:WEB_MERCATOR_BOUNDS,maxBoundsViscosity:1,attributionControl:true}).setView([22.31,114.17],12);
   map.attributionControl.setPrefix('');
   map.attributionControl.addAttribution('© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>, <a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>, © OpenMapTiles · <a id="mapIssue" href="https://github.com/viscory/zg852/issues" target="_blank" rel="noopener noreferrer">Report a map issue</a>');
   const RecenterControl=L.Control.extend({
@@ -107,11 +130,16 @@ export function createMap(){
     vectorLayer=glLayer;
     vectorLayer.on?.('load',applyMapLabels);
   }catch(err){
-    glLayer._glMap||={remove(){}};
-    try{map.removeLayer(glLayer);}catch(removeErr){console.error(removeErr);}
+    safeRemoveGlLayer(map,glLayer);
     vectorLayer=null;
     throw err;
   }
+}
+// Mobile state changes re-show a previously zero-size map; callers ask this
+// module (the owner of the Leaflet instance) to remeasure it instead of
+// faking a window resize event.
+export function invalidateMapSize(){
+  map?.invalidateSize();
 }
 export function clearMapOutput(){
   store.results=[];
@@ -183,7 +211,7 @@ export function recenterMap(){
 }
 function magneticCell(latlng){
   const point=map.latLngToLayerPoint(latlng);
-  let best=null,bestDistance=56;
+  let best=null,bestDistance=TAP_SNAP_RADIUS;
   store.cloudCells.forEach(cell=>{
     const centre=map.latLngToLayerPoint([(cell.cy+.5)*CELL_SIZE,(cell.cx+.5)*CELL_SIZE]);
     const distance=Math.hypot(centre.x-point.x,centre.y-point.y);
@@ -272,15 +300,27 @@ export function drawCloud(budget){
 export function positionTooltip(event){
   if(!event)return;
   const tooltip=$('mapTooltip');
-  const width=tooltip.offsetWidth||240;
-  const height=tooltip.offsetHeight||140;
+  const width=tooltip.offsetWidth||TOOLTIP_FALLBACK_WIDTH;
+  const height=tooltip.offsetHeight||TOOLTIP_FALLBACK_HEIGHT;
   tooltip.style.left=`${Math.max(8,Math.min(event.clientX+12,window.innerWidth-width-8))}px`;
   tooltip.style.top=`${Math.max(8,Math.min(event.clientY+12,window.innerHeight-height-8))}px`;
+}
+// Widths travel as a data attribute and are applied with the style property
+// after insertion. This keeps one transfer mechanism and no inline-style
+// strings in the bundle (the production-bundle CSP test requires that).
+function barMarkup(className,rating){
+  return `<i class="${className}" data-width="${esc(rating)}"></i>`;
+}
+function applyBarWidths(root){
+  root.querySelectorAll('[data-width]').forEach(fill=>{
+    fill.style.width=`${fill.dataset.width}%`;
+    fill.removeAttribute('data-width');
+  });
 }
 function ratingTooltipMarkup(title,subtitle,ratings){
   return `<b>${esc(title)}</b>${subtitle?`<span class="tooltip-sub">${esc(subtitle)}</span>`:''}${ratings.map(({key,rating})=>{
     const value=Math.round(Number(rating)||0),label=t('vector.'+key);
-    return `<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}" aria-label="${esc(label)}: ${value}%"><span>${esc(label)}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${rating}"></i></span></span>`;
+    return `<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}" aria-label="${esc(label)}: ${value}%"><span>${esc(label)}</span><span class="tooltip-track">${barMarkup('tooltip-fill',rating)}</span></span>`;
   }).join('')}`;
 }
 function showRatingTooltip(target,event,delay,title,subtitle,ratings){
@@ -291,7 +331,7 @@ function showRatingTooltip(target,event,delay,title,subtitle,ratings){
     if(store.hoverCell!==target)return;
     const tooltip=$('mapTooltip');
     tooltip.innerHTML=ratingTooltipMarkup(title,subtitle,ratings);
-    tooltip.querySelectorAll('.tooltip-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
+    applyBarWidths(tooltip);
     tooltip.hidden=false;
     positionTooltip(event);
   },delay);
@@ -376,7 +416,7 @@ function interestRatingMarkup(result){
     const value=Math.round(Number(rating)||0),label=t('vector.'+key);
     return `<div class="fit-row" data-category="${esc(key)}" data-rating="${rating}" role="meter" aria-label="${esc(label)}: ${value}%" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${value}">
       <span class="fit-label">${esc(label)}</span>
-      <span class="fit-track"><i class="fit-fill" data-width="${rating}"></i></span>
+      <span class="fit-track">${barMarkup('fit-fill',rating)}</span>
     </div>`;
   }).join('');
 }
@@ -395,6 +435,13 @@ function legChip(leg){
   const wait=interchangeWaitText(leg);
   const waitNote=wait?`<span class="interchange-wait">${esc(wait)}</span>`:'';
   return `<span class="ride-leg route-${leg.mode}"><span class="leg-mode"><span class="icon icon-${rail?'rail':'bus'}" aria-hidden="true"></span>${modeLabel}</span>${stops}<span class="leg-meta"><span class="leg-time">${esc(minuteText(shownMinutes(leg)))}</span>${fare}${waitNote}</span></span>`;
+}
+// Which points a selection should fit: unlimited taps keep the current view,
+// a reveal fits the whole route plus every start, and a plain bounded
+// selection just centres the chosen area.
+function fitTargetsForSelection(r,active,fit,unbounded){
+  if(unbounded)return null;
+  return fit?r.paths.flat().concat(active.map(p=>[p.origin.lat,p.origin.lon])):[[r.lat,r.lon]];
 }
 export function renderSelection(r,active=store.activePeople,fit=false){
   if(!r)return;
@@ -426,7 +473,7 @@ export function renderSelection(r,active=store.activePeople,fit=false){
   $('detailTitle').textContent=r.label;
   $('detailDistrict').textContent=r.district;
   $('fitGrid').innerHTML=interestRatingMarkup(r);
-  $('fitGrid').querySelectorAll('.fit-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
+  applyBarWidths($('fitGrid'));
   const spread=store.settings.fairness==='fare'?t('results.fareSpread',{value:money(r.fareGap)}):t('results.spread',{value:intNum(r.gap)});
   $('detailSub').textContent=`${spread} ${t('results.longest',{value:intNum(r.slowest)})}`;
   const already=r.times.every(value=>value<=0.5);
@@ -439,7 +486,7 @@ export function renderSelection(r,active=store.activePeople,fit=false){
   // inside the map area left visible by the mobile sheet.
   // Unlimited taps keep the current view; fitting here would snap or recentre
   // the map under the point the user just chose.
-  const pts=store.unbounded?null:(fit?r.paths.flat().concat(active.map(p=>[p.origin.lat,p.origin.lon])):[[r.lat,r.lon]]);
+  const pts=fitTargetsForSelection(r,active,fit,store.unbounded);
   if(pts)fitMapTo(pts);
 }
 export function selectResult(i,active=store.activePeople,reveal=false){

@@ -59,7 +59,24 @@ test('routes show looked-up MTR fares instead of distance-band estimates', async
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await expect(page.locator('#error')).toBeHidden();
   await expect(page.locator('#detailTitle')).toContainText('Lok Ma Chau');
-  await expect(page.locator('#steps')).toContainText('HK$46.6');
-  await expect(page.locator('#steps')).toContainText('HK$54.4');
-  await expect(page.locator('#steps')).not.toContainText('HK$20.5');
+
+  // Derive the expected chips from the bundled station-pair table rather than
+  // pinning literal fares or an obsolete distance-band number in the test.
+  const fares = JSON.parse(readFileSync('static/data/mtr-fares.json', 'utf8'));
+  const nodes = JSON.parse(readFileSync('static/data/nodes.json', 'utf8'));
+  const station = name => nodes.names.findIndex((value, i) => value === name && nodes.kind[i] === 1);
+  const destination = station('Lok Ma Chau');
+  const official = name => {
+    const from = station(name);
+    return fares.fares[`${from}|${destination}`] ?? fares.fares[`${destination}|${from}`];
+  };
+  const expected = ['Kowloon Bay', 'Chai Wan'].map(official);
+  expect(expected.every(value => typeof value === 'number' && value > 0)).toBe(true);
+  for (const value of expected) await expect(page.locator('#steps')).toContainText(`HK$${value}`);
+
+  // Every rail fare chip must be a table lookup, never a band estimate.
+  const shown = (await page.locator('#steps .ride-leg.route-rail .fare').allInnerTexts())
+    .map(text => Number(text.replace(/[^0-9.]/g, '')));
+  expect(shown.length).toBeGreaterThan(0);
+  for (const value of shown) expect(expected).toContain(value);
 });

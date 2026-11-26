@@ -1,6 +1,10 @@
 const { test, expect, devices } = require('@playwright/test');
 const { sliderPosition } = require('./helpers');
 
+// No physical keyboard is attached; the app reserves this much viewport space
+// when the body gets .keyboard-open, and the test only simulates that state.
+const KEYBOARD_ZONE_PX = 300;
+
 test.use({ ...devices['iPhone 15'], browserName: 'chromium' });
 
 async function setRange(page, id, value) {
@@ -292,7 +296,7 @@ test('an expanded route card scrolls to the fare disclaimer instead of clipping 
   await expect(page.locator('.fare-note')).toBeInViewport();
 });
 
-test('focusing a start hides the bars and keeps suggestions above the keyboard', async ({ page }) => {
+test('focusing a start hides the bars and keeps suggestions above the simulated keyboard', async ({ page }) => {
   await page.setViewportSize({ width: 393, height: 664 });
   const input = page.locator('#start-p1');
   await input.focus();
@@ -302,5 +306,5 @@ test('focusing a start hides the bars and keeps suggestions above the keyboard',
   await input.fill('Central');
   await expect(page.locator('#suggest-p1')).toBeVisible();
   const box = await input.boundingBox();
-  expect(box.y).toBeLessThan(664 - 300);
+  expect(box.y).toBeLessThan(664 - KEYBOARD_ZONE_PX);
 });

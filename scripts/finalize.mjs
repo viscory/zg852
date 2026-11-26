@@ -115,20 +115,20 @@ const headers = `/*
   Cache-Control: public, max-age=3600
 `;
 
-function patchServiceWorker(source) {
-  const token = "'./sw.js',";
-  if (!source.includes(token)) throw new Error(`Expected service worker asset entry not found: ${token}`);
-  return source.replace(token, '');
-}
-
-for (const name of ['README.md', 'LICENSE', 'PRIVACY.md', 'TERMS.md', 'CREDITS.md', 'THIRD_PARTY_NOTICES.md']) {
+// Human-readable legal/attribution docs are linked from the app, so the same
+// set must be copied verbatim next to the built shell. Keep this list in sync
+// with the footer links rather than copying the whole repo root.
+const COPIED_DOCS = ['README.md', 'LICENSE', 'PRIVACY.md', 'TERMS.md', 'CREDITS.md', 'THIRD_PARTY_NOTICES.md'];
+for (const name of COPIED_DOCS) {
   const source = join(root, name);
   if (existsSync(source)) await cp(source, join(out, name));
 }
 
 // Only generated datasets the app fetches at runtime may ship. Everything
 // else in static/data (raw feeds, pipeline intermediates) stays out of the
-// deployment.
+// deployment. In particular graph.json (~7.4MB) is tracked in git solely as a
+// build input for downstream generators: it is deliberately excluded here but
+// is not deleted or untracked.
 const deployedDataFiles = new Set(['nodes.json', 'network.json', 'districts.json', 'poi-index.json', 'hkbus.json', 'mtr-fares.json', 'route-fares.json']);
 const dataDir = join(out, 'data');
 for (const entry of await readdir(dataDir)) {
@@ -141,8 +141,9 @@ const workerSource = join(root, 'node_modules', 'maplibre-gl', 'dist', 'maplibre
 if (!existsSync(workerSource)) throw new Error('maplibre-gl worker not found in node_modules');
 await cp(workerSource, join(out, 'maplibre-gl-worker.mjs'));
 
-const swPath = join(out, 'sw.js');
-await writeFile(swPath, patchServiceWorker(await readFile(swPath, 'utf8')));
+// static/sw.js is already in its deployable form: Vite copies it verbatim from
+// static/, and its asset list no longer contains a self-reference. There is no
+// post-build patch step, so source and deployed service worker are identical.
 const strayStyles = join(out, 'styles.css');
 if (existsSync(strayStyles)) await rm(strayStyles);
 

@@ -152,6 +152,10 @@ test('travel time wins even when a bus stop beats an MTR exit', async ({ page })
     'hkbus.json': [],
     'districts.json': [],
     'poi-index.json': { cells: {} },
+    // Fare tables belong to the same four-node graph; one fixture serves every
+    // data file so none of them can fall through to the real bundle's data.
+    'mtr-fares.json': { fares: {}, aelFares: {}, nodeStation: {}, stationIds: [] },
+    'route-fares.json': { fares: {} },
   };
   await page.route('**/data/*.json', route => {
     const name = new URL(route.request().url()).pathname.split('/').pop();

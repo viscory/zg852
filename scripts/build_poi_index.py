@@ -10,6 +10,12 @@ import re
 import requests
 
 CELL_SIZE = 0.005
+# Pagination page size for the PostgREST feeds. Also the threshold that marks
+# a short (final) page when the server does not report a total count.
+PAGE_SIZE = 100
+# Matches the "lat N, lon E" text used by the tourism feed. Named once so the
+# sign handling below stays in sync with the format actually published.
+TOURISM_COORDINATE_RE = re.compile(r'(\d+\.\d+)\s*([NS])\s*,\s*(\d+\.\d+)\s*([EW])', re.I)
 BBOX = (113.83, 22.15, 114.45, 22.58)
 CATEGORIES = ('food', 'drinks', 'activities', 'culture', 'outdoors', 'shopping')
 PGRST = 'https://pgrst.open-data.hk'
@@ -30,6 +36,9 @@ GOV_SOURCES = (
     ('lcsd_rcd_1634540558875_77434', 'sp', 'activities', 'latitude', 'longitude', ('nameen', 'addressen')),
     ('lcsd_rcd_1629267205214_78787', 'museum', 'culture', 'latitude', 'longitude', ('nameen', 'addressen')),
 )
+# Keyword taxonomies: reviewed mappings from feed vocabulary to our six app
+# categories. These are classification rules, not user-facing copy; changing a
+# term changes generated POI counts, so keep them together here.
 BASIC_CATEGORY = {
     'restaurant': 'food',
     'cafe': 'food',
@@ -61,6 +70,7 @@ HIERARCHY_CATEGORY = {
     'cultural_and_historic': 'culture',
     'geographic_entities': 'outdoors',
 }
+# Free-text keyword taxonomy for the tourism feed, checked in insertion order.
 ATTRACTION_TERMS = {
     'shopping': ('market', 'shopping', 'bazaar', 'ladies', 'shop'),
     'outdoors': ('park', 'beach', 'harbour', 'waterfront', 'promenade', 'hiking', 'country', 'island', 'peak', 'garden', 'wetland', 'geopark'),
@@ -99,7 +109,7 @@ def fetch_pgrst(dataset, table, fields):
     while total is None or offset < total:
         response = requests.get(
             f'{PGRST}/{table}',
-            params={'select': ','.join(fields), 'limit': 100, 'offset': offset},
+            params={'select': ','.join(fields), 'limit': PAGE_SIZE, 'offset': offset},
             headers={'Accept-Profile': f'csdi_{dataset}', 'Prefer': 'count=exact'},
             timeout=90,
         )
@@ -110,7 +120,9 @@ def fetch_pgrst(dataset, table, fields):
         if '/' in content_range:
             total = int(content_range.rsplit('/', 1)[1])
         offset += len(page)
-        if not page or total is None and len(page) < 100:
+        # `and` binds tighter than `or`; make the short-page guard explicit so
+        # pagination only stops early when the server gave no total count.
+        if not page or (total is None and len(page) < PAGE_SIZE):
             break
     return rows
 
@@ -139,7 +151,7 @@ def attraction_category(row):
 
 
 def parse_tourism_coordinates(value):
-    match = re.search(r'(\d+\.\d+)\s*([NS])\s*,\s*(\d+\.\d+)\s*([EW])', value or '', re.I)
+    match = TOURISM_COORDINATE_RE.search(value or '')
     if not match:
         return None, None
     lat = float(match.group(1)) * (1 if match.group(2).upper() == 'N' else -1)
@@ -184,9 +196,16 @@ class Index:
                 if not category:
                     continue
                 geometry = feature.get('geometry') or {}
+                # Only Point features carry a [lon, lat] pair we can swap.
+                # Skipping other geometry types explicitly avoids treating a
+                # line/polygon coordinate as a place location.
+                if geometry.get('type') != 'Point':
+                    continue
                 coordinates = geometry.get('coordinates') or []
                 if len(coordinates) < 2:
                     continue
+                # Overture GeoJSON Point coordinates are [lon, lat]; the index
+                # stores (lat, lon), hence the swap below.
                 self.add(coordinates[1], coordinates[0], category, overture_name(properties), 'overture')
 
     def add_tourism(self, rows):
@@ -220,12 +239,17 @@ def main():
     parser.add_argument('--output', default=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'data', 'poi-index.json'))
     args = parser.parse_args()
     index = Index()
+    # Keep a small in-memory report of unavailable feeds so a partial build is
+    # visible at a glance instead of only as scattered SKIP lines. It is logged
+    # to stdout only: the generated JSON schema/ordering is left untouched.
+    missing_feeds_report = []
     for dataset, table, category, lat_key, lon_key, name_keys in GOV_SOURCES:
         try:
             fields = [lat_key, lon_key, *name_keys]
             rows = fetch_pgrst(dataset, table, fields)
         except requests.RequestException as error:
             print(f'SKIP {table}: {error}')
+            missing_feeds_report.append({'feed': table, 'reason': str(error)})
             continue
         index.add_rows(rows, category, lat_key, lon_key, name_keys, table)
         print(f'{table}: {len(rows)}')
@@ -236,6 +260,7 @@ def main():
         print(f'afcd visitor centres: {len(visitor_rows)}')
     except requests.RequestException as error:
         print(f'SKIP afcd: {error}')
+        missing_feeds_report.append({'feed': 'afcd', 'reason': str(error)})
     tourism_url = 'https://www.tourism.gov.hk/datagovhk/major_attractions/major_attractions_info_en.csv'
     try:
         tourism_rows = list(csv.DictReader(io.StringIO(requests.get(tourism_url, timeout=60).text)))
@@ -243,6 +268,12 @@ def main():
         print(f'major attractions: {len(tourism_rows)}')
     except requests.RequestException as error:
         print(f'SKIP tourism: {error}')
+        missing_feeds_report.append({'feed': 'tourism', 'reason': str(error)})
+    if missing_feeds_report:
+        summary = ', '.join(f"{item['feed']} ({item['reason']})" for item in missing_feeds_report)
+        print(f'missing feeds report: {len(missing_feeds_report)} unavailable -> {summary}')
+    else:
+        print('missing feeds report: none')
     if args.overture:
         index.add_overture(args.overture)
         print('overture: loaded')

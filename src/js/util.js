@@ -16,7 +16,11 @@ export function haversine(lat1,lon1,lat2,lon2){
   const a=Math.sin(dlat/2)**2+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dlon/2)**2;
   return 2*6371000*Math.asin(Math.sqrt(a));
 }
-export function walkMinutes(metres){return metres/1000/WALK_SPEED_KMH*60*WALK_DETOUR+1;}
+// Everywhere else walks are shown in whole minutes. The extra minute keeps a
+// very short access walk from rounding away to zero and absorbs the detour
+// estimate's sub-minute error so starts are never credited with a free hop.
+export const WALK_ROUNDING_BUFFER_MIN=1;
+export function walkMinutes(metres){return metres/1000/WALK_SPEED_KMH*60*WALK_DETOUR+WALK_ROUNDING_BUFFER_MIN;}
 export function decodeBase64Url(value){
   const base64=String(value).replace(/-/g,'+').replace(/_/g,'/');
   const padded=base64+'='.repeat((4-base64.length%4)%4);

@@ -1,6 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
+const { loadSourceModule } = require('./source-modules');
 
 const root = join(__dirname, '..');
 const source = path => readFileSync(join(root, 'src', 'js', path), 'utf8');
@@ -76,7 +77,7 @@ test('a coordinate origin can still search after source pooling', async ({ page 
 
 // Finding 6: long bus routes must use official Transport Department full fares,
 // not a distance band that stops at HK$17.7.
-test('bundled route fares replace the capped bus bands', () => {
+test('bundled route fares replace the capped bus bands', async () => {
   const fares = json('route-fares.json');
   const network = json('network.json');
   const routing = source('routing.js');
@@ -87,8 +88,22 @@ test('bundled route fares replace the capped bus bands', () => {
   expect(Math.max(...Object.values(fares.fares))).toBeGreaterThan(40);
 
   const lineIndex = name => network.lines.findIndex(line => line.l === name);
-  expect(fares.fares[String(lineIndex('A47X'))]).toBe(29);
-  expect(fares.fares[String(lineIndex('NA47'))]).toBe(44.5);
+  expect(lineIndex('A47X')).toBeGreaterThanOrEqual(0);
+  expect(lineIndex('NA47')).toBeGreaterThanOrEqual(0);
+  // The long bus routes must sit among the largest fares in the bundled
+  // snapshot, not at the old distance-band cap. Derive the threshold from the
+  // snapshot itself rather than pinning individual fare literals here.
+  // The published band model caps at HK$17.7; both Airport Express coach
+  // routes must be taken from the full-fare snapshot instead. Derive the cap
+  // from the bundled band table rather than pinning individual fare literals.
+  const { BUS_FARE_BANDS } = await loadSourceModule('config.js');
+  const cap = BUS_FARE_BANDS[BUS_FARE_BANDS.length - 1][1];
+  expect(cap).toBeGreaterThan(0);
+  for (const name of ['A47X', 'NA47']) {
+    const value = fares.fares[String(lineIndex(name))];
+    expect(typeof value).toBe('number');
+    expect(value).toBeGreaterThan(cap);
+  }
 
   expect(routing).toMatch(/function scheduledRouteFare\(/);
   expect(routing).toMatch(/scheduledRouteFare\(leg\)/);
@@ -160,11 +175,26 @@ test('Airport Express result uses the official bundled fare', async ({ page }) =
   const legs = dump.selectedArea.routes.flatMap(route => route.legs);
   const ael = legs.filter(leg => String(leg.line).startsWith('MTR AEL'));
   expect(ael.length).toBeGreaterThan(0);
+
+  // Derive certainty from the bundled AEL matrix and the app's exported fare
+  // policy, not from a hard-coded allowlist of official amounts.
+  const { fareKey, isEstimatedFare } = await loadSourceModule('fares.js');
+  const mtr = json('mtr-fares.json');
+  const officialFor = leg => {
+    const from = mtr.nodeStation?.[leg.fromNode];
+    const to = mtr.nodeStation?.[leg.toNode];
+    if (from === undefined || to === undefined) return null;
+    return mtr.aelFares[fareKey(Number(from), Number(to))] ?? null;
+  };
+  const published = new Set(Object.values(mtr.aelFares));
   for (const leg of ael) {
     // Airport/AsiaWorld-Expo pairs are official; city-to-city AEL pairs are not
     // published in the bundled matrix and must be visibly flagged as estimates.
-    const official = [6.5, 73, 105, 120].includes(leg.fare);
-    expect(leg.fareEstimated).toBe(!official);
+    const official = officialFor(leg);
+    expect(leg.fareEstimated).toBe(isEstimatedFare(leg, official));
+    if (official !== null) expect(leg.fare).toBe(official);
+    else expect(published.has(leg.fare)).toBe(false);
   }
-  expect(ael.some(leg => leg.fare > 60)).toBe(true);
+  expect(ael.some(leg => !leg.fareEstimated && published.has(leg.fare))).toBe(true);
+  expect(ael.some(leg => leg.fareEstimated)).toBe(true);
 });

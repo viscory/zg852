@@ -2,14 +2,24 @@ import { store } from './store.js';
 import { $ } from './util.js';
 import { t } from './i18n.js';
 import { syncScrollShadows } from './scroll.js';
+import { invalidateMapSize } from './map.js';
+import { playMotion,SCREEN_IN_FRAMES } from './ui.js';
 
 const VIEWS=['plan','results','map'];
-let viewAnimTimer=null;
+// The breakpoint is owned here; CSS consumes the html attribute set from it.
+// Keeping one matchMedia query means JS and CSS cannot drift apart.
+const MOBILE_QUERY='(max-width:1024px)';
+const mobileQuery=typeof matchMedia==='function'?matchMedia(MOBILE_QUERY):null;
 let closeRouteTimer=null;
+let routeCardHeightFrame=0;
 
-// styles.css owns the mobile deck query and exposes the result as --mobile-deck.
+function syncMobileLayoutAttribute(){
+  document.documentElement.toggleAttribute('data-mobile-layout',Boolean(mobileQuery?.matches));
+}
+syncMobileLayoutAttribute();
+
 export function isMobileLayout(){
-  return getComputedStyle(document.documentElement).getPropertyValue('--mobile-deck').trim()==='1';
+  return Boolean(mobileQuery?.matches);
 }
 
 export function mobileView(){
@@ -56,10 +66,12 @@ function syncFace(view){
 function playViewAnimation(){
   if(!isMobileLayout())return;
   document.body.classList.remove('mobile-view-anim');
-  void document.body.offsetWidth;
   document.body.classList.add('mobile-view-anim');
-  clearTimeout(viewAnimTimer);
-  viewAnimTimer=setTimeout(()=>document.body.classList.remove('mobile-view-anim'),260);
+  const panels=['.side-left','.side-right','.main'].map(selector=>document.querySelector(selector)).filter(Boolean);
+  if(!panels.length){document.body.classList.remove('mobile-view-anim');return;}
+  let settled=0;
+  const settle=()=>{if(++settled===panels.length)document.body.classList.remove('mobile-view-anim');};
+  panels.forEach(panel=>playMotion(panel,SCREEN_IN_FRAMES,{duration:180,easing:'ease-out',fill:'both'},settle));
 }
 
 function syncResultsFallback(){
@@ -70,11 +82,19 @@ function syncResultsFallback(){
   else{empty.hidden=false;if(row)row.hidden=true;}
 }
 
+// The measured route-card height is handed to CSS as --route-card-h so the
+// Leaflet controls can be placed above the card. The ResizeObserver and every
+// explicit state change funnel through here; batching keeps one measurement
+// per frame and therefore one control position per frame.
 function syncRouteCardHeight(){
-  const card=document.querySelector('.side-left');
-  const shown=card&&getComputedStyle(card).display!=='none';
-  const height=shown?Math.round(card.getBoundingClientRect().height):0;
-  document.documentElement.style.setProperty('--route-card-h',`${height}px`);
+  if(routeCardHeightFrame)return;
+  routeCardHeightFrame=requestAnimationFrame(()=>{
+    routeCardHeightFrame=0;
+    const card=document.querySelector('.side-left');
+    const shown=card&&getComputedStyle(card).display!=='none';
+    const height=shown?Math.round(card.getBoundingClientRect().height):0;
+    document.documentElement.style.setProperty('--route-card-h',`${height}px`);
+  });
 }
 
 function setRouteExpanded(expanded){
@@ -82,7 +102,7 @@ function setRouteExpanded(expanded){
   const button=$('toggleRoute');
   if(button)button.setAttribute('aria-expanded',String(!!expanded));
   syncRouteCardHeight();
-  requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+  requestAnimationFrame(invalidateMapSize);
 }
 
 function syncLegend(){
@@ -109,7 +129,7 @@ export function setMobileView(view,{focus=false}={}){
   if(next==='map'){
     // Leaflet measured a zero-size container while the map screen was hidden.
     requestAnimationFrame(()=>{
-      window.dispatchEvent(new Event('resize'));
+      invalidateMapSize();
       window.dispatchEvent(new CustomEvent('mobile:map-shown'));
     });
   }
@@ -146,7 +166,7 @@ export function closeMobileRoute(){
     const button=$('toggleRoute');
     if(button)button.setAttribute('aria-expanded','false');
     syncRouteCardHeight();
-    requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+    requestAnimationFrame(invalidateMapSize);
   },170);
 }
 export function showMobileRoute(){openMobileRoute();}
@@ -188,7 +208,10 @@ export function initMobile(){
     const card=document.querySelector('.side-left');
     if(card)new ResizeObserver(syncRouteCardHeight).observe(card);
   }
-  window.matchMedia?.('(max-width:1024px)').addEventListener?.('change',syncViewState);
+  mobileQuery?.addEventListener?.('change',()=>{
+    syncMobileLayoutAttribute();
+    syncViewState();
+  });
   // The keyboard owns the lower half of the screen; get the persistent bars
   // out of its way while someone is editing a start place.
   document.addEventListener('focusin',event=>{

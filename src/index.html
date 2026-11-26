@@ -36,6 +36,9 @@
   </div>
   <div class="header-end">
     <div class="header-actions">
+      <!-- Sync constraint: the beta tooltip English fallback appears five times
+           across the header badge and mobile row (aria-label, title, data-tooltip
+           and their i18n keys). Update every copy together with beta.badgeTip. -->
       <button class="beta-badge" id="betaBadge" type="button" aria-pressed="false" data-i18n-tooltip="beta.badgeTip" data-i18n-aria-label="beta.badgeTip" aria-label="Turns on experiments and a data export." title="Turns on experiments and a data export." data-tooltip="Turns on experiments and a data export.">
         <span data-i18n="beta.badge">Beta</span><span class="beta-state" id="betaBadgeState" data-i18n="beta.off">Off</span>
       </button>
@@ -193,6 +196,9 @@
         <label for="tolerance" id="toleranceLabel" data-i18n="options.tolerance">Target time difference</label>
         <span class="value" id="tolval">10%</span>
       </div>
+      <!-- 201 is the Unlimited sentinel. config.js is the single source of
+           truth for the slider-position → tolerance mapping; keep these
+           attributes in sync with it. -->
       <input type="range" id="tolerance" min="1" max="201" step="1" value="6" aria-valuetext="10%">
       <div class="slider-row ends"><span data-i18n="options.toleranceNear">Near equal</span><span data-i18n="options.unbounded">Unlimited</span></div>
       <p class="note tolerance-help" id="toleranceHelp" data-i18n="options.toleranceHelp">A target has a floor: 8 min at stations, 5 min at other stops, HK$1 for fares.</p>

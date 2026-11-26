@@ -11,8 +11,12 @@ export function normalizeVectors(raw){
   for(const key of VECTOR_KEYS)fallback[key]=Math.round(clamp(Number(raw[key]),-3,3,0));
   return fallback;
 }
+// Saved preference schema. Versioned records are always current-format; the
+// all-ones legacy sentinel is only meaningful before a version was stored.
+export const VECTOR_SCHEMA_VERSION_KEY='v';
+export const VECTOR_SCHEMA_VERSION=1;
 export function migrateVectors(raw){
-  if(raw&&typeof raw==='object'&&VECTOR_KEYS.every(key=>Number(raw[key])===1))return defaultVectors();
+  if(raw&&typeof raw==='object'&&raw[VECTOR_SCHEMA_VERSION_KEY]===undefined&&VECTOR_KEYS.every(key=>Number(raw[key])===1))return defaultVectors();
   return normalizeVectors(raw);
 }
 export function vectorLabel(value){

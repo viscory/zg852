@@ -8,6 +8,18 @@ export const KEY={people:'hkfair.v2.people',settings:'hkfair.v2.settings',geocac
 export const HK_BBOX=[113.83,22.15,114.45,22.58];
 export const HK_BBOX_STR=HK_BBOX.join(',');
 export const HK_CENTER={lat:22.31,lon:114.17};
+// Line categories in network.json map directly onto mode bits. Selecting the
+// rail/bus mode picker also enables its companion category (light rail/ferry),
+// so one mask is enough for both Dijkstra and the route narrator.
+export const MODE_BITS={rail:1,bus:2,ferry:4,lightRail:8};
+export function lineCategoryBit(category){return 1<<category;}
+export function modesMask(modes){
+  return (modes||[]).reduce((mask,mode)=>{
+    if(mode==='rail')return mask|MODE_BITS.rail|MODE_BITS.lightRail;
+    if(mode==='bus')return mask|MODE_BITS.bus|MODE_BITS.ferry;
+    return mask;
+  },0);
+}
 export const ACCESS_RADIUS_M=1200;
 export const MAX_ACCESS_NODES=12;
 export const CELL_SIZE=0.005;
@@ -30,6 +42,15 @@ export const FARE_TOLERANCE_DEFAULT=0.25;
 export const FARE_GAP_FLOOR=1.0;
 export const TOLERANCE_SLIDER_MAX=201;
 export const TOLERANCE_LINEAR_END=96;
+// Slider positions are one piecewise map: 1 starts at 5%, 96 is 100%, 97..200
+// continue logarithmically to 300%, and 201 is the unbounded stop. The inverse
+// derives its log base from TRAVEL_TOLERANCE_MAX so the two directions cannot
+// drift when the published maximum changes.
+export const TOLERANCE_SLIDER_MIN=1;
+export const TOLERANCE_LINEAR_OFFSET=4;
+export const TOLERANCE_PERCENT_SCALE=100;
+export const TOLERANCE_LINEAR_END_PERCENT=100;
+export const TOLERANCE_LOG_STEPS=TOLERANCE_SLIDER_MAX-TOLERANCE_SLIDER_MIN-TOLERANCE_LINEAR_END;
 export function travelTolerance(value){
   const n=Number(value);
   if(!Number.isFinite(n))return TRAVEL_TOLERANCE_DEFAULT;
@@ -46,18 +67,18 @@ export function fareTolerance(value){
 }
 export function isUnboundedTolerance(value){return travelTolerance(value)>=TRAVEL_TOLERANCE_UNBOUNDED;}
 export function toleranceFromSlider(position){
-  const p=Math.max(1,Math.min(TOLERANCE_SLIDER_MAX,Math.round(Number(position)||1)));
+  const p=Math.max(TOLERANCE_SLIDER_MIN,Math.min(TOLERANCE_SLIDER_MAX,Math.round(Number(position)||TOLERANCE_SLIDER_MIN)));
   if(p>=TOLERANCE_SLIDER_MAX)return TRAVEL_TOLERANCE_UNBOUNDED;
-  if(p<=TOLERANCE_LINEAR_END)return travelTolerance((4+p)/100);
-  return travelTolerance(Math.pow(TRAVEL_TOLERANCE_MAX,(p-TOLERANCE_LINEAR_END)/(TOLERANCE_SLIDER_MAX-1-TOLERANCE_LINEAR_END)));
+  if(p<=TOLERANCE_LINEAR_END)return travelTolerance((TOLERANCE_LINEAR_OFFSET+p)/TOLERANCE_PERCENT_SCALE);
+  return travelTolerance(Math.pow(TRAVEL_TOLERANCE_MAX,(p-TOLERANCE_LINEAR_END)/TOLERANCE_LOG_STEPS));
 }
 export function sliderPositionForTolerance(value){
   const tolerance=travelTolerance(value);
   if(tolerance>=TRAVEL_TOLERANCE_UNBOUNDED)return TOLERANCE_SLIDER_MAX;
-  const pct=tolerance*100;
-  if(pct<=100)return Math.max(1,Math.min(TOLERANCE_LINEAR_END,Math.round(pct-4)));
-  const position=TOLERANCE_LINEAR_END+Math.round(Math.log(pct/100)/Math.log(3)*(TOLERANCE_SLIDER_MAX-1-TOLERANCE_LINEAR_END));
-  return Math.max(TOLERANCE_LINEAR_END+1,Math.min(TOLERANCE_SLIDER_MAX-1,position));
+  const pct=tolerance*TOLERANCE_PERCENT_SCALE;
+  if(pct<=TOLERANCE_LINEAR_END_PERCENT)return Math.max(TOLERANCE_SLIDER_MIN,Math.min(TOLERANCE_LINEAR_END,Math.round(pct-TOLERANCE_LINEAR_OFFSET)));
+  const position=TOLERANCE_LINEAR_END+Math.round(Math.log(pct/TOLERANCE_PERCENT_SCALE)/Math.log(TRAVEL_TOLERANCE_MAX)*TOLERANCE_LOG_STEPS);
+  return Math.max(TOLERANCE_LINEAR_END+TOLERANCE_SLIDER_MIN,Math.min(TOLERANCE_SLIDER_MAX-TOLERANCE_SLIDER_MIN,position));
 }
 // Cost ranking keeps the top time-feasible cells and ranks those by fare.
 export const MAX_COST_CELLS=300;

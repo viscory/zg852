@@ -9,6 +9,14 @@ const catalogDir = path.join(root, 'static/i18n');
 const sourceDir = path.join(root, 'src');
 const i18nFile = path.join(root, 'src/js/i18n.js');
 
+// This package is CommonJS and i18n.js imports browser-only modules, so import
+// the exported FALLBACK from an import-free copy of its source. The object is
+// literal data; loading it this way avoids both a source-text regex parser and
+// a fragile literal-string search.
+const i18nSource = fs.readFileSync(i18nFile, 'utf8');
+const standalone = i18nSource.replace(/^import [^\n]*\n/gm, '');
+const { FALLBACK } = await import(`data:text/javascript;base64,${Buffer.from(standalone).toString('base64')}`);
+
 // Plural families use a base key in tp() and _one/_other forms in catalogues.
 const pluralBases = new Set(['route.stopCount', 'unit.min', 'place.stops']);
 // These prefixes are assembled at runtime (e.g. t('cat.'+key)), not literal keys.
@@ -49,17 +57,9 @@ if (!en) {
   }
 
   // 2. Every en.json key must exist in the built-in FALLBACK object.
-  const i18nSource = fs.readFileSync(i18nFile, 'utf8');
-  const start = i18nSource.indexOf('const FALLBACK={');
-  const end = start < 0 ? -1 : i18nSource.indexOf('\n};', start);
-  if (start < 0 || end < 0) {
-    errors.push('Could not locate the FALLBACK object in src/js/i18n.js');
-  } else {
-    const body = i18nSource.slice(start, end);
-    const fallbackKeys = new Set(
-      [...body.matchAll(/(?:^|[{,])\s*'([A-Za-z][A-Za-z0-9_-]*\.[A-Za-z0-9_-]+)'\s*:/g)].map(m => m[1])
-    );
-    if (!fallbackKeys.size) errors.push('Could not extract any FALLBACK keys from src/js/i18n.js');
+  {
+    const fallbackKeys = new Set(Object.keys(FALLBACK));
+    if (!fallbackKeys.size) errors.push('Could not import FALLBACK from src/js/i18n.js');
     const missingFromFallback = enKeys.filter(key => !fallbackKeys.has(key));
     if (missingFromFallback.length) {
       errors.push(`en.json keys missing from FALLBACK: ${list(missingFromFallback)}`);
@@ -102,7 +102,7 @@ if (!en) {
     }
 
     if (!errors.length) {
-      console.log(`i18n check passed: ${catalogFiles.length} catalogues, ${enKeys.length} keys each, ${used.size} literal keys verified.`);
+      console.log(`i18n check passed: ${catalogFiles.length} catalogues, ${enKeys.length} keys each, ${Object.keys(FALLBACK).length} fallback keys, ${used.size} literal keys verified.`);
     }
   }
 }

@@ -3,9 +3,17 @@ import { store } from './store.js';
 import { isNum,haversine } from './util.js';
 import { t } from './i18n.js';
 
-export function nodePriority(kind){return kind===1?0:kind===3?1:kind===4?2:3;}
-export function catKey(priority){return priority===0?'station':priority===1?'exit':'bus';}
-export function hkbusUrl(lineIndex){return store.HKBUS_URLS?.[lineIndex]??null;}
+// Node kinds come from nodes.json. The mapping below is the single source of
+// truth for both exact-name tie-breaks and the visible place-category tag.
+export const NODE_KIND=Object.freeze({STATION:1,EXIT:3,BUS_STOP:4});
+const KIND_PRIORITY=new Map([[NODE_KIND.STATION,0],[NODE_KIND.EXIT,1],[NODE_KIND.BUS_STOP,2]]);
+const PRIORITY_LABEL=new Map([[0,'station'],[1,'exit'],[2,'bus']]);
+export function nodePriority(kind){return KIND_PRIORITY.get(kind)??3;}
+export function catKey(priority){return PRIORITY_LABEL.get(priority)??'bus';}
+// hkbus.json has one positional slot per network line; nulls are alignment for
+// lines without a published route page, so the line index maps straight there.
+export const HKBUS_URL_MISSING=null;
+export function hkbusUrl(lineIndex){return store.HKBUS_URLS?.[lineIndex]??HKBUS_URL_MISSING;}
 // One resolver for every route chip: a link is only offered when the bundled
 // catalogue has a real route page. A generic search is not a route link.
 export function routeLink(leg){
@@ -32,7 +40,7 @@ export async function loadNodes(){
   if(!nodes||!Array.isArray(nodes.names)||!Array.isArray(nodes.kind)||!Array.isArray(nodes.lat)||!Array.isArray(nodes.lon))throw new Error('Nodes data is invalid');
   store.NODES=nodes;
   store.surface=[];
-  for(let i=0;i<store.NODES.names.length;i++)if(store.NODES.kind[i]===1||store.NODES.kind[i]===3||store.NODES.kind[i]===4)store.surface.push(i);
+  for(let i=0;i<store.NODES.names.length;i++)if(store.NODES.kind[i]===NODE_KIND.STATION||store.NODES.kind[i]===NODE_KIND.EXIT||store.NODES.kind[i]===NODE_KIND.BUS_STOP)store.surface.push(i);
   store.lowerNames=store.NODES.names.map(name=>String(name).toLowerCase());
 }
 export async function loadNetwork(){
@@ -96,7 +104,7 @@ export function districtFor(lat,lon){
   return best.name[store.locale]||best.name.en||t('district.unknown');
 }
 export function findExact(name){
-  for(let i=0;i<store.NODES.names.length;i++)if(store.lowerNames[i]===String(name).toLowerCase()&&store.NODES.kind[i]===1)return i;
+  for(let i=0;i<store.NODES.names.length;i++)if(store.lowerNames[i]===String(name).toLowerCase()&&store.NODES.kind[i]===NODE_KIND.STATION)return i;
   return null;
 }
 export function searchPlaces(q,limit=8){
@@ -109,7 +117,7 @@ export function searchPlaces(q,limit=8){
   exact.sort((a,b)=>nodePriority(store.NODES.kind[a])-nodePriority(store.NODES.kind[b]));
   partial.sort((a,b)=>nodePriority(store.NODES.kind[a])-nodePriority(store.NODES.kind[b])||store.NODES.names[a].length-store.NODES.names[b].length);
   return exact.concat(partial).slice(0,limit).map(idx=>({
-    kind:'local',node:idx,label:store.NODES.names[idx],tagKey:store.NODES.kind[idx]===1?'station':store.NODES.kind[idx]===3?'exit':'bus',
+    kind:'local',node:idx,label:store.NODES.names[idx],tagKey:catKey(nodePriority(store.NODES.kind[idx])),
     lat:store.NODES.lat[idx],lon:store.NODES.lon[idx],district:districtFor(store.NODES.lat[idx],store.NODES.lon[idx]),count:1,
   }));
 }

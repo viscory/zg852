@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Build a compact HK graph with MTR platforms, exits, transfers and bus stops."""
+"""Build a compact HK graph with MTR platforms, exits, transfers and bus stops.
+
+The modelling numbers collected in the CONSTANTS section below are deliberate
+*assumptions*, not field measurements: they fill gaps in the GTFS feed (walk
+detours, interchange friction, implied speeds and layover detection). They are
+kept at their historical values so regenerating the graph produces identical
+JSON; re-tune them only after validating routes against the live network.
+"""
 
 import csv
 import json
@@ -18,17 +25,65 @@ FEED = os.path.join(RAW, "hk-community-gtfs.zip")
 OUT = os.path.join(DATA, "graph.json")
 
 
+# ---------------------------------------------------------------------------
+# CONSTANTS - modelling assumptions, NOT measurements.
+#
+# Provenance: these values were hand-tuned when the graph exporter was written
+# to compensate for gaps in the GTFS feed (no walk links, no interchange
+# timings, and rail clocks stored at a flat speed). They are *not* surveyed
+# distances or observed timings. Every literal below is preserved exactly so
+# the committed JSON stays byte-for-byte reproducible.
+# ---------------------------------------------------------------------------
+
+# Walking model: pace and detour are assumptions; radius/neighbours bound the
+# generated walk graph.
 WALK_SPEED_KMH = 4.5
 WALK_DETOUR = 1.3
 WALK_RADIUS_M = 400
 WALK_NEIGHBOURS = 6
+
+# Riding/waiting model: headway cap and the fallback used when a trip publishes
+# no frequency row. Boarding penalties are mode weights, not measured waits.
 MAX_WAIT_MIN = 20.0
+DEFAULT_HALF_HEADWAY_MIN = 7.5
 BOARD_PENALTY = {"rail": 1.0, "bus": 2.0, "ferry": 2.0, "lightRail": 1.0}
 CAT_CODE = {"rail": 0, "bus": 1, "ferry": 2, "lightRail": 3}
+
+# Geometry: tolerances for shape simplification and for snapping a stop onto
+# its trip shape, plus the spatial-hash cell used to find walk neighbours.
 SHAPE_TOLERANCE_M = 30.0
 SHAPE_SNAP_M = 400.0
+CELL_SIZE_DEG = 0.005
 
+# Interchange friction: heuristic extra minutes credited to the busiest MTR
+# interchanges and to platform/exit transfers. Not measured dwell times.
 BIG_INTERCHANGES = {"ADM": 2.0, "CEN": 1.5, "MOK": 1.0, "KOT": 1.0, "TSY": 0.5, "TAW": 0.5}
+PLATFORM_EXIT_BASE_MIN = 1.2
+PLATFORM_STATION_BASE_MIN = 1.5
+PLATFORM_PLATFORM_BASE_MIN = 1.5
+PLATFORM_COUNT_OFFSET = 2
+PLATFORM_PENALTY_CAP = 2.0
+PLATFORM_PENALTY_RATE = 0.25
+PLATFORM_PLATFORM_PENALTY_CAP = 2.5
+PLATFORM_PLATFORM_PENALTY_RATE = 0.35
+LINE_COUNT_RATE = 0.4
+LINE_COUNT_OFFSET = 1
+INTERCHANGE_EXIT_WEIGHT = 0.5
+INTERCHANGE_STATION_WEIGHT = 0.5
+INTERCHANGE_PLATFORM_WEIGHT = 0.5
+
+# Feed-clock repair: some rail hops are encoded at a flat 45 km/h and layovers
+# appear as rides. These thresholds/speeds are assumptions used to spot and
+# correct those cases; 1000 (m per km) and 60 (s per min) are unit conversions.
+LONG_HOP_M = 3000
+ASSUMED_RAIL_KMH = 45
+CORRECTED_RAIL_KMH = 80
+FLAT_SPEED_TOLERANCE_MIN = 0.4
+SHORT_HOP_M = 800
+LAYOVER_MIN_MINUTES = 15
+SHORT_HOP_KMH = 12
+MIN_HOP_MINUTES = 1
+LAYOVER_RATIO = 2
 
 
 def to_minutes(text):
@@ -327,7 +382,7 @@ def main():
                 average_headway = weighted[0] / weighted[1]
                 half_headway = min(average_headway, MAX_WAIT_MIN) / 2
             else:
-                half_headway = 7.5
+                half_headway = DEFAULT_HALF_HEADWAY_MIN
             pattern_waits[route].append((pattern, half_headway))
             for i in range(len(node_seq) - 1):
                 dt = times[i + 1] - times[i]
@@ -344,7 +399,7 @@ def main():
     line_geometry = {}
     for (route, pattern), edge_map in pattern_edges.items():
         half_headways = [h for p, h in pattern_waits[route] if p == pattern]
-        half_headway = statistics.median(half_headways) if half_headways else 7.5
+        half_headway = statistics.median(half_headways) if half_headways else DEFAULT_HALF_HEADWAY_MIN
         cat = route_cat.get(route, "bus")
         line_id = f"{route}#{len(lines)}"
         lines[line_id] = {
@@ -390,7 +445,7 @@ def main():
     walk = []
     surface = [nid for nid, n in nodes.items() if n["type"] in ("station", "exit", "bus")]
     cells = defaultdict(list)
-    cell_size = 0.005
+    cell_size = CELL_SIZE_DEG
     for nid in surface:
         n = nodes[nid]
         cells[(int(n["lat"] / cell_size), int(n["lon"] / cell_size))].append(nid)
@@ -420,18 +475,25 @@ def main():
         line_count = len(station_lines[station])
         for pid in platforms:
             for eid in exits:
-                base = 1.2 + min(2.0, 0.25 * (count - 2)) + 0.5 * interchange_bonus(station)
+                base = (PLATFORM_EXIT_BASE_MIN
+                        + min(PLATFORM_PENALTY_CAP, PLATFORM_PENALTY_RATE * (count - PLATFORM_COUNT_OFFSET))
+                        + INTERCHANGE_EXIT_WEIGHT * interchange_bonus(station))
                 cost = walk_minutes(nodes[pid], nodes[eid], base)
                 walk.append([pid, eid, cost])
                 walk.append([eid, pid, cost])
             if station in nodes:
-                base = 1.5 + min(2.0, 0.25 * (count - 2)) + 0.5 * interchange_bonus(station)
+                base = (PLATFORM_STATION_BASE_MIN
+                        + min(PLATFORM_PENALTY_CAP, PLATFORM_PENALTY_RATE * (count - PLATFORM_COUNT_OFFSET))
+                        + INTERCHANGE_STATION_WEIGHT * interchange_bonus(station))
                 cost = walk_minutes(nodes[pid], nodes[station], base)
                 walk.append([pid, station, cost])
                 walk.append([station, pid, cost])
         for i, p1 in enumerate(platforms):
             for p2 in platforms[i + 1:]:
-                base = 1.5 + min(2.5, 0.35 * (count - 2)) + 0.4 * max(0, line_count - 1) + 0.5 * interchange_bonus(station)
+                base = (PLATFORM_PLATFORM_BASE_MIN
+                        + min(PLATFORM_PLATFORM_PENALTY_CAP, PLATFORM_PLATFORM_PENALTY_RATE * (count - PLATFORM_COUNT_OFFSET))
+                        + LINE_COUNT_RATE * max(0, line_count - LINE_COUNT_OFFSET)
+                        + INTERCHANGE_PLATFORM_WEIGHT * interchange_bonus(station))
                 cost = walk_minutes(nodes[p1], nodes[p2], base)
                 walk.append([p1, p2, cost])
                 walk.append([p2, p1, cost])
@@ -456,7 +518,10 @@ def station_name(node):
 
 
 def adjust_edges(lines, nodes):
-    """Correct feed clocks that are a flat 45 km/h, and layovers stored as rides."""
+    """Correct feed clocks at a flat speed and layovers stored as rides.
+
+    Thresholds and speeds come from the CONSTANTS assumptions section above.
+    """
     pair = defaultdict(list)
     for line in lines.values():
         stops, edges = line["stops"], line["edges"]
@@ -464,19 +529,19 @@ def adjust_edges(lines, nodes):
             continue
         for i, dt in enumerate(edges):
             dist = haversine(nodes[stops[i]], nodes[stops[i + 1]])
-            if line["cat"] == "rail" and dist > 3000:
-                synthetic = dist / 1000 / 45 * 60
-                if abs(dt - synthetic) < 0.4:
-                    dt = dist / 1000 / 80 * 60
-            if dist < 800 and dt >= 15:
-                dt = max(1, dist / 1000 / 12 * 60)
+            if line["cat"] == "rail" and dist > LONG_HOP_M:
+                synthetic = dist / 1000 / ASSUMED_RAIL_KMH * 60
+                if abs(dt - synthetic) < FLAT_SPEED_TOLERANCE_MIN:
+                    dt = dist / 1000 / CORRECTED_RAIL_KMH * 60
+            if dist < SHORT_HOP_M and dt >= LAYOVER_MIN_MINUTES:
+                dt = max(MIN_HOP_MINUTES, dist / 1000 / SHORT_HOP_KMH * 60)
             edges[i] = round(dt, 2)
             if line["cat"] in ("rail", "lightRail"):
                 pair[tuple(sorted((station_name(nodes[stops[i]]), station_name(nodes[stops[i + 1]]))))].append((edges, i))
     for items in pair.values():
         times = [bucket[index] for bucket, index in items]
         short, long = min(times), max(times)
-        if short > 0 and long > short * 2:
+        if short > 0 and long > short * LAYOVER_RATIO:
             for bucket, index in items:
                 bucket[index] = round(short, 2)
 

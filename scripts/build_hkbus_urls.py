@@ -25,6 +25,17 @@ DATA = os.path.join(BASE, "static", "data")
 ROUTE_LIST_URL = "https://hkbus.github.io/hk-bus-crawling/routeFareList.min.json"
 SEARCH_URL = "https://hkbus.app/en/search"
 
+# Route matching: origin and destination similarity carry equal weight. The
+# integer weights keep the arithmetic bit-for-bit identical to the original
+# (origin_ratio + destination_ratio) / 2 expression.
+ORIGIN_MATCH_WEIGHT = 1
+DESTINATION_MATCH_WEIGHT = 1
+ROUTE_SCORE_DIVISOR = ORIGIN_MATCH_WEIGHT + DESTINATION_MATCH_WEIGHT
+
+# hkbus.app has sitemap entries for keys containing a fullwidth slash but the
+# pre-rendered pages 404. Such a key has no usable deep link (None).
+FULLWIDTH_SLASH = "／"
+
 
 def normalise(text):
     return re.sub(r"[^a-z0-9]", "", str(text).lower())
@@ -54,11 +65,27 @@ def match_route(line, index, route_list):
         src = entry.get("orig", {}).get("en", "")
         dst = entry.get("dest", {}).get("en", "")
         for a, b in ((src, dst), (dst, src)):
-            score = (difflib.SequenceMatcher(None, normalise(origin), normalise(a)).ratio()
-                     + difflib.SequenceMatcher(None, normalise(destination), normalise(b)).ratio()) / 2
+            origin_ratio = difflib.SequenceMatcher(None, normalise(origin), normalise(a)).ratio()
+            destination_ratio = difflib.SequenceMatcher(None, normalise(destination), normalise(b)).ratio()
+            score = (ORIGIN_MATCH_WEIGHT * origin_ratio
+                     + DESTINATION_MATCH_WEIGHT * destination_ratio) / ROUTE_SCORE_DIVISOR
             if score > best_score:
                 best, best_score = key, score
     return best
+
+
+def route_url(key):
+    """Return the deep link for a route key, or None when no page exists.
+
+    A None key means no candidate matched; a key containing FULLWIDTH_SLASH is
+    published in the sitemap but its page 404s. Both cases are represented
+    explicitly as "no deep link" here rather than being silently redirected.
+    The caller maps None to the in-app search URL so the generated list keeps
+    its historical values.
+    """
+    if not key or FULLWIDTH_SLASH in key:
+        return None
+    return f"https://hkbus.app/en/route/{hkbus_slug(key)}"
 
 
 def main():
@@ -75,25 +102,28 @@ def main():
 
     urls = []
     matched = 0
+    skipped_fullwidth = 0
     for line in lines:
         if line["c"] != 1:
             urls.append(None)
             continue
         key = match_route(line, index, route_list)
-        # hkbus.app publishes sitemap entries for names containing a fullwidth
-        # slash, but the pre-rendered pages themselves 404. Send those to the
-        # in-app search instead of handing the user a dead link.
-        if key and "／" not in key:
-            matched += 1
-            urls.append(f"https://hkbus.app/en/route/{hkbus_slug(key)}")
-        else:
+        url = route_url(key)
+        if url is None:
+            if key:
+                skipped_fullwidth += 1
+                print(f"SKIP {line['l']}: hkbus.app page 404s for fullwidth-slash key {key!r}; using in-app search")
             urls.append(SEARCH_URL)
+        else:
+            matched += 1
+            urls.append(url)
 
     path = os.path.join(DATA, "hkbus.json")
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(urls, fh, separators=(",", ":"))
 
     print(f"bus lines matched={matched}/{sum(1 for line in lines if line['c'] == 1)} "
+          f"skipped_fullwidth={skipped_fullwidth} "
           f"file={os.path.getsize(path)/1e3:.0f}KB")
 
 

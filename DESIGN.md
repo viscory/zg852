@@ -1,12 +1,12 @@
 # Design critique
 
-This file records visual critiques of 就腳. The newest critique is first. Change `src/styles.css` so the page matches the newest sizes. Keep one size scale on `:root`.
+This file records visual critiques of 就腳. Sections run newest first: a note dated later supersedes any older note below it. Change `src/styles.css` so the page matches the newest sizes. Keep one size scale on `:root`.
 
-## 2026-11-25 Honest wording and disclosures
+## 2026-11-25 (latest) Honest wording and disclosures
 
 The header subtitle now says "Find a fair meeting point in Hong Kong"; "most convenient for everyone" was dropped because the solver minimises a speed-and-spread score, not group convenience. The results count reads "Top {count} areas" because only seven rows are listed while up to 600 cells are drawn. The tolerance labels say "Target time difference" and "Target fare difference", and a note under the slider states the floors that the percentage does not override: 8 minutes at stations, 5 minutes at other stops, HK$1 for fares. The dormant preference strings and their unused formatter are gone; the hidden preference scoring is unchanged. Turning Beta on now shows a note that Diagnostics downloads and copies names, start places and routes, and the Privacy page documents the export. A selected area's title now comes from the same stop used for its marker and routes instead of a higher-priority neighbour in the same grid cell.
 
-## 2026-11-25 Fairness metric toggle and tolerance slider
+## 2026-11-25 Fairness metric toggle and tolerance slider (earlier note; wording superseded by the latest note above)
 
 The Parameters panel now starts with a two-state **Time / Fare** toggle. Time is the default; Fare keeps the 90-minute travel budget, drops the time-disparity filter, and ranks the time-feasible pool by fare spread. The active metric owns the tolerance slider and the map heat colour; the legend text changes from "darker means shorter travel time" to "darker means cheaper fares". Time heat uses the slowest trip; fare heat uses the highest fare, while the result order still uses the fare-disparity score. Each metric keeps its own percentage tolerance in settings and share links.
 
@@ -22,7 +22,9 @@ The map key and Interest ratings are proper disclosure panels with a +/− mark 
 
 The desktop three-column shell, header, parameters sticky behaviour, results/footer, and people/detail flip are unchanged.
 
-## 2026-11-23 Parameters, time-only ranking and headway control
+## 2026-11-23 Parameters, time-only ranking and headway control (superseded)
+
+> Historical note kept for context. Both 2026-11-25 notes above supersede this one: the Time/Fare metric is back and the current wording is set by the latest note.
 
 The right sidebar's options panel is now the **Parameters** panel, and the sidebar itself is labelled "Parameters and results". The global Time/Fare fairness metric is gone: there is no fairness toggle, no `fairnessMetric` in settings or share links, no fare-based spread or longest value, and no fare-based ranking. Areas are ranked by travel time only; the spread and longest values stay whole minutes. Fares are still estimated and shown for comparison in results and route steps, but they never affect which area appears first.
 
@@ -36,7 +38,7 @@ The saved-people summary line is removed: `#saveSummary` and the `people.summary
 
 The sticky parameters panel in the right sidebar no longer leaves a scroll gap above the results: the results scroll directly beneath the solid sticky panel.
 
-Unchanged from earlier critiques: per-person walk tolerance, whole-minute times everywhere, full MTR line names, the sticky rightbar two-column layout with the people/detail swap, and the interchange-note format and timing whenever the headway parameter is on. This section supersedes the older time-versus-fare fairness and save-summary notes below.
+Unchanged from earlier critiques: per-person walk tolerance, whole-minute times everywhere, full MTR line names, the sticky rightbar two-column layout with the people/detail swap, and the interchange-note format and timing whenever the headway parameter is on. This section supersedes the older time-versus-fare fairness and save-summary notes below. It is in turn superseded by the two newer notes above, which restore the fairness toggle and set the current copy.
 
 ## 2026-11-23 Interchange-only headway waits
 

@@ -17,8 +17,7 @@ if git diff --cached --name-status --diff-filter=D -- "$file" | grep -q '^D'; th
   exit 1
 fi
 
-if git diff --cached --unified=0 -- "$file" | grep -E '^-' | grep -vE '^--- ' | grep -q .; then
-  echo "pre-commit: observations.md is prepend-only; existing lines must not be mutated" >&2
+if ! node scripts/check-observations.mjs; then
   exit 1
 fi
 

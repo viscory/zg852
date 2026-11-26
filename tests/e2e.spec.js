@@ -3,9 +3,34 @@ const { sliderPosition } = require('./helpers');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 
-function deployedPolicy(response) {
-  return response.headers()['content-security-policy']
-    || readFileSync(join(__dirname, '..', 'public', '_headers'), 'utf8');
+// The browser has no physical keyboard attached; this is the viewport zone the
+// app reserves when .keyboard-open is set, exercised by focusing the field.
+const KEYBOARD_ZONE_PX = 300;
+
+// en.json is the canonical key set; the expected count is derived from it.
+const EN_CATALOGUE = JSON.parse(readFileSync(join(__dirname, '..', 'static', 'i18n', 'en.json'), 'utf8'));
+
+function assertUsefulPolicy(policy) {
+  expect(policy).toContain("script-src 'self'");
+  expect(policy).not.toContain('unsafe-inline');
+}
+
+// A deployed origin must actually send its CSP. The local static server cannot
+// apply _headers, so locally we assert the deployment config declares the same
+// useful policy instead of pretending the file is a live response header.
+function assertPolicy(response) {
+  const header = response.headers()['content-security-policy'];
+  if (process.env.TEST_BASE_URL) {
+    expect(header, 'deployed content-security-policy header').toBeTruthy();
+    assertUsefulPolicy(header);
+    return header;
+  }
+  const config = readFileSync(join(__dirname, '..', 'public', '_headers'), 'utf8');
+  const line = config.split('\n').find(text => /^\s*Content-Security-Policy:/i.test(text));
+  expect(line, '_headers must declare a Content-Security-Policy').toBeTruthy();
+  const policy = line.replace(/^\s*Content-Security-Policy:\s*/i, '');
+  assertUsefulPolicy(policy);
+  return policy;
 }
 
 const PHOTON_FEATURES = [
@@ -56,16 +81,75 @@ async function catalog(page, code) {
 }
 
 async function clickableHeatCell(page) {
-  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
-  await page.waitForTimeout(500);
-  const point = await page.locator('path.heat-cell').evaluateAll(elements => {
-    const candidates = elements.map(el => el.getBoundingClientRect())
-      .filter(rect => rect.width > 8 && rect.height > 8 && rect.x > 300 && rect.y > 150 && rect.x < 900 && rect.y < 550)
-      .map(rect => ({ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }));
-    return candidates.find(candidate => document.elementFromPoint(candidate.x, candidate.y)?.classList.contains('heat-cell')) || null;
-  });
-  expect(point).not.toBeNull();
+  let point = null;
+  // Poll until a rendered cell is actually hit-testable; no fixed paint delay.
+  await expect.poll(async () => {
+    point = await page.locator('path.heat-cell').evaluateAll(elements => {
+      const candidates = elements.map(el => el.getBoundingClientRect())
+        .filter(rect => rect.width > 8 && rect.height > 8 && rect.x > 300 && rect.y > 150 && rect.x < 900 && rect.y < 550)
+        .map(rect => ({ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }));
+      return candidates.find(candidate => document.elementFromPoint(candidate.x, candidate.y)?.classList.contains('heat-cell')) || null;
+    });
+    return point;
+  }, { timeout: 5000 }).not.toBeNull();
   return point;
+}
+
+// A synthetic four-station rail graph that makes an interchange unavoidable:
+// two origins start on separate lines and both must change at the hub onto the
+// shared line to reach the far cell. Real station ids keep labels and stops
+// realistic; only the timetable is replaced, so the outcome is deterministic.
+async function installInterchangeFixture(page) {
+  const network = await page.evaluate(async () => {
+    const nodes = await (await fetch('data/nodes.json')).json();
+    const index = name => nodes.names.findIndex((value, i) => value === name && nodes.kind[i] === 1);
+    const [first, second, hub, far] = ['Lo Wu', 'Tai Wai', 'Kowloon Tong', 'Tsim Sha Tsui'].map(index);
+    if ([first, second, hub, far].some(value => value < 0)) throw new Error('fixture stations missing');
+    const line = (name, stops, headway) => ({
+      l: name, n: name, c: 0, w: 1, h: headway,
+      s: stops, e: stops.slice(0, -1).map(() => 10), g: [],
+    });
+    return {
+      walk: [],
+      lines: [
+        line('Fixture first', [first, hub], 0),
+        line('Fixture second', [second, hub], 0),
+        line('Fixture shared', [hub, far], 4),
+      ],
+    };
+  });
+  await page.route('**/data/network.json', route => route.fulfill({ json: network }));
+}
+
+async function openInterchangeScenario(page) {
+  await installInterchangeFixture(page);
+  const state = await page.evaluate(async () => {
+    const nodes = await (await fetch('data/nodes.json')).json();
+    const origin = name => {
+      const node = nodes.names.findIndex((value, i) => value === name && nodes.kind[i] === 1);
+      return { kind: 'node', node, label: nodes.names[node], lat: nodes.lat[node], lon: nodes.lon[node] };
+    };
+    return {
+      v: 1,
+      people: ['Lo Wu', 'Tai Wai'].map((name, i) => ({
+        id: `p${i + 1}`, name: ['A', 'B'][i], origin: origin(name), walkMinutes: 20,
+      })),
+      settings: { modes: ['rail', 'bus'], fairness: 'time', tolerance: 3.05, includeHeadway: true },
+      locale: 'en',
+      selected: { kind: 'result', index: 0 },
+    };
+  });
+  const origin = await page.evaluate(() => location.origin);
+  await page.goto(`${origin}/#s=${Buffer.from(JSON.stringify(state)).toString('base64url')}`);
+  // Reload so the synthetic timetable, not the one cached by the first page
+  // load, is the one the search uses.
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  // The hash is consumed on arrival, so a reload restores the scenario but
+  // does not auto-run Search; click explicitly so this helper never depends
+  // on timing between the hash import and the synthetic timetable load.
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
 }
 
 async function sharedState(page, url) {
@@ -179,25 +263,28 @@ test('robots, llms, sitemap and build headers expose the llms.txt endpoint', asy
   expect(await sitemap.text()).toContain('/llms.txt');
 
   const home = await page.request.get('/');
-  const policy = deployedPolicy(home);
-  expect(policy).toContain("script-src 'self'");
-  expect(policy).not.toContain('unsafe-inline');
+  assertPolicy(home);
   const llmsHeaders = await page.request.get('/llms.txt');
-  const cache = llmsHeaders.headers()['cache-control'] || policy;
-  expect(cache).toContain('max-age=3600');
+  const cache = llmsHeaders.headers()['cache-control'];
+  if (process.env.TEST_BASE_URL) {
+    expect(cache, 'deployed cache-control header').toBeTruthy();
+    expect(cache).toContain('max-age=3600');
+  } else {
+    // The local static server does not apply _headers either.
+    const config = readFileSync(join(__dirname, '..', 'public', '_headers'), 'utf8');
+    expect(config).toMatch(/\/llms\.txt\n\s+Cache-Control: public, max-age=3600/);
+  }
 });
 
 test('production bundle avoids importmaps and CSP exceptions', async ({ page }) => {
   const index = await page.evaluate(async () => (await (await fetch('index.html')).text()));
   const app = await page.evaluate(async () => (await (await fetch('app.js')).text()));
-  const policy = deployedPolicy(await page.request.get('/'));
+  assertPolicy(await page.request.get('/'));
   expect(index).not.toContain('importmap');
   expect(index).toMatch(/<script type="module"[^>]*src="\/app\.js">/);
   expect(app).toContain('tiles.openfreemap.org/planet');
   expect(app).not.toContain('style="');
   expect(app).not.toContain('.style.cssText');
-  expect(policy).toContain("script-src 'self'");
-  expect(policy).not.toContain('unsafe-inline');
 });
 
 test('clean basemap adds keyless place labels without raster tiles', async ({ page }) => {
@@ -265,12 +352,9 @@ test('defaults load and a two-person search draws fair map areas', async ({ page
     expect(text).toMatch(/\b\d+\s+min\b/);
     expect(text).not.toMatch(/\d+\.\d+\s+min/);
   }
-  // The default scenario can favour buses now that first boardings no longer
-  // carry headway wait. Full MTR names are asserted in the dedicated rail tests.
-  const railChips = await page.locator('.ride-leg.route-rail .leg-mode').allInnerTexts();
-  for (const chip of railChips) {
-    expect(chip).not.toMatch(/MTR\s+[A-Z]{3}\b/);
-  }
+  // The default mixed-mode scenario can favour buses now that first boardings
+  // no longer carry headway wait. The positive full-line-name assertion lives
+  // in the MTR-only test below, where the fixture guarantees rail legs.
   await expect(page.locator('#steps .dot').first()).toHaveText('PA');
   await expect(page.locator('#steps .dot').nth(1)).toHaveText('PB');
   await expect.poll(() => page.locator('path.route-line.route-person-0').count()).toBeGreaterThan(0);
@@ -292,7 +376,9 @@ test('empty-state search also reveals the route detail face', async ({ page }) =
 
 test('interchange waits are charged only after the first transit leg', async ({ page }) => {
   // The wait note is a headway feature, so this scenario needs the default on.
+  await openInterchangeScenario(page);
   await expect(page.locator('#includeHeadway')).toBeChecked();
+
   // One `.step` is one person's route; ride legs inside it are in travel order.
   // Return the interchange notes attached to each ride leg of each route.
   const routeWaits = () => page.locator('#steps .step').evaluateAll(steps => steps.map(step => {
@@ -303,32 +389,16 @@ test('interchange waits are charged only after the first transit leg', async ({ 
     && route[0].length === 0
     && route.slice(1).every(notes => notes.length === 1));
 
-  // The default pair can meet on a single line, so fall back to origins on
-  // lines that have no direct interchange before giving up.
-  const pairs = [
-    null,
-    ['Tsim Sha Tsui', 'Airport'],
-    ['Lo Wu', 'Airport'],
-    ['Lo Wu', 'Tsim Sha Tsui'],
-  ];
   let found = false;
-  for (const pair of pairs) {
-    if (pair) {
-      // Selecting a result reveals the detail face; bring the people face back
-      // so the start fields can be edited.
-      if (!await page.locator('.face[data-face="people"]').isVisible()) {
-        await page.locator('#swapFace').click();
-      }
-      await expect(page.locator('.face[data-face="people"]')).toBeVisible();
-      await pickStation(page, 0, pair[0]);
-      await pickStation(page, 1, pair[1]);
-    }
-    await page.locator('#go').click();
-    try {
-      await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
-    } catch {
-      continue;
-    }
+  // The fixture's far cell is only reachable by two lines, so both routes must
+  // show an interchange wait there. The row scan below is only a documented
+  // fallback in case a future grouping changes that cell's label.
+  const far = page.locator('.result-row').filter({ hasText: 'Tsim Sha Tsui' }).first();
+  if (await far.count()) {
+    await far.click();
+    found = hasInterchange(await routeWaits());
+  }
+  if (!found) {
     const rows = page.locator('.result-row');
     const rowCount = Math.min(await rows.count(), 24);
     for (let i = 0; i < rowCount; i++) {
@@ -338,7 +408,6 @@ test('interchange waits are charged only after the first transit leg', async ({ 
         break;
       }
     }
-    if (found) break;
   }
   // Never let the test pass without actually seeing an interchange.
   expect(found).toBe(true);
@@ -813,7 +882,7 @@ test('settings, people, library and locale persist, and clearing storage restore
   await page.locator('.card').first().locator('.save-person').click();
   await page.locator('#locale').selectOption('zh-Hant');
   await expect.poll(() => page.locator('html').getAttribute('lang')).toBe('zh-Hant');
-  await page.waitForTimeout(700);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('hkfair.v2.locale'))).toBe('zh-Hant');
 
   const stored = await page.evaluate(() => ({
     people: localStorage.getItem('hkfair.v2.people'),
@@ -876,8 +945,9 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
-  const expected = Object.keys(catalogues[0]).sort();
-  expect(expected).toHaveLength(204);
+  const expected = Object.keys(EN_CATALOGUE).sort();
+  expect(expected.length).toBeGreaterThan(0);
+  expect(Object.keys(catalogues[0]).sort()).toEqual(expected);
   for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'vector.ratings', 'results.fareTotal', 'results.noFitMtr', 'results.noFitTolerance', 'results.sortHint', 'results.fareSpread', 'sidebar.showRoute', 'sidebar.showPeople', 'error.noCommonArea', 'error.someNoReach', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
@@ -935,6 +1005,17 @@ test('MTR-only search still finds fair areas with default settings', async ({ pa
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await expect(page.locator('#error')).toBeHidden();
   await expect(page.locator('.result-row').first().locator('.fare.total').first()).toContainText('Fare HK$');
+  // Rail-only mode guarantees rail legs, so this is a positive assertion that
+  // the chip carries the operator's full line name rather than a three-letter code.
+  await page.locator('.result-row').first().click();
+  await expect.poll(() => page.locator('#steps .ride-leg.route-rail').count()).toBeGreaterThan(0);
+  const railChips = await page.locator('#steps .ride-leg.route-rail .leg-mode').allInnerTexts();
+  expect(railChips.length).toBeGreaterThan(0);
+  for (const chip of railChips) {
+    // The chip shows the operator's full line name, never a three-letter code.
+    expect(chip).not.toMatch(/MTR\s+[A-Z]{3}\b/);
+    expect(chip).toMatch(/Line|Express|Railway/);
+  }
 });
 
 test('MTR-only no-fit message names the disabled mode', async ({ page }) => {
@@ -1087,18 +1168,19 @@ test('beta interest vectors default off and recompute the map with labelled pref
   expect(rightbarWidths.every(width => /^\d+%$/.test(width))).toBe(true);
   await expect(page.locator('#detailSub')).not.toContainText('preference');
 
+  // The recompute is debounced and can finish between polls, so record the
+  // button's live working state with a MutationObserver and poll the recording.
   await page.evaluate(() => {
-    window.__searchStates = [];
-    const label = document.getElementById('goLabel');
-    new MutationObserver(() => window.__searchStates.push(label.textContent)).observe(label, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-    });
+    const go = document.getElementById('go');
+    window.__workingLabels = [];
+    const observer = new MutationObserver(() => window.__workingLabels.push(go.getAttribute('aria-label')));
+    observer.observe(go, { attributes: true, attributeFilter: ['aria-label'] });
+    window.__stopWorkingWatch = () => observer.disconnect();
   });
   await setRange(page, '#vec-food', '3');
+  await expect.poll(() => page.evaluate(() => window.__workingLabels.includes('Working'))).toBe(true);
+  await page.evaluate(() => window.__stopWorkingWatch());
   await expect(page.locator('#vec-food-val')).toHaveText('Prefer 3');
-  await expect.poll(() => page.evaluate(() => window.__searchStates)).toContain('Working');
   await expect.poll(() => page.locator('#goLabel').textContent()).toBe('Find fair areas');
   const settings = await page.evaluate(() => localStorage.getItem('hkfair.v2.settings'));
   expect(settings).toContain('"food":3');
@@ -1150,33 +1232,19 @@ test('interest tooltip shows normalized category ratings when beta is on', async
 // Leaves the page on a result whose route really has an interchange, so tests
 // about the wait note cannot pass on a single-leg route by accident.
 async function selectAnInterchange(page) {
-  const pairs = [
-    null,
-    ['Tsim Sha Tsui', 'Airport'],
-    ['Lo Wu', 'Airport'],
-    ['Lo Wu', 'Tsim Sha Tsui'],
-  ];
-  for (const pair of pairs) {
-    if (pair) {
-      if (!await page.locator('.face[data-face="people"]').isVisible()) {
-        await page.locator('#swapFace').click();
-      }
-      await expect(page.locator('.face[data-face="people"]')).toBeVisible();
-      await pickStation(page, 0, pair[0]);
-      await pickStation(page, 1, pair[1]);
-    }
-    await page.locator('#go').click();
-    try {
-      await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
-    } catch {
-      continue;
-    }
-    const rows = page.locator('.result-row');
-    const rowCount = Math.min(await rows.count(), 24);
-    for (let i = 0; i < rowCount; i++) {
-      await rows.nth(i).click();
-      if (await page.locator('#steps .ride-leg .interchange-wait').count() > 0) return true;
-    }
+  await openInterchangeScenario(page);
+  // The fixture's far cell requires a line change for both people. Row scanning
+  // is kept only as a documented fallback if that cell's label changes.
+  const far = page.locator('.result-row').filter({ hasText: 'Tsim Sha Tsui' }).first();
+  if (await far.count()) {
+    await far.click();
+    if (await page.locator('#steps .ride-leg .interchange-wait').count() > 0) return true;
+  }
+  const rows = page.locator('.result-row');
+  const rowCount = Math.min(await rows.count(), 24);
+  for (let i = 0; i < rowCount; i++) {
+    await rows.nth(i).click();
+    if (await page.locator('#steps .ride-leg .interchange-wait').count() > 0) return true;
   }
   return false;
 }
@@ -1429,7 +1497,6 @@ test('a Photon outage falls back to local stops with an inline notice', async ({
   const third = page.locator('.card').nth(2);
   await page.locator('#add').click();
   await third.locator('.start-input').fill('3 Canton Road');
-  await page.waitForTimeout(600);
   await expect(third.locator('.suggestion-error')).toBeVisible();
   await expect(third.locator('.suggestion')).toHaveCount(0);
   await expect(third.locator('.suggestion-error')).toContainText('Place search is unavailable');
@@ -1541,31 +1608,43 @@ test('shipped graph keeps plausible hop times', async ({ page }) => {
 });
 
 test('a late place search does not reopen a chosen stop', async ({ page }) => {
-  let release;
+  // Wait for the debounced remote lookup to be in flight, then choose the
+  // local stop and let the stale response land. The response is gated so the
+  // test never depends on a fixed sleep.
+  let release, remoteDone, requests = 0;
   const gate = new Promise(resolve => { release = resolve; });
+  const finished = new Promise(resolve => { remoteDone = resolve; });
   await page.route('**/photon.komoot.io/api/**', async route => {
+    requests++;
     await gate;
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ features: [{
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [114.173, 22.278] },
-        properties: { name: 'Central Plaza', city: 'Hong Kong', country: 'Hong Kong', osm_type: 'way', osm_id: '9' },
-      }] }),
-    });
+    try {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ features: [{
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [114.173, 22.278] },
+          properties: { name: 'Central Plaza', city: 'Hong Kong', country: 'Hong Kong', osm_type: 'way', osm_id: '9' },
+        }] }),
+      });
+    } catch {
+      // The app may abort the superseded lookup; the late arrival is the point.
+    } finally {
+      remoteDone();
+    }
   });
   const card = page.locator('.card').first();
   const input = card.locator('.start-input');
   await input.fill('Central');
+  await expect.poll(() => requests).toBeGreaterThan(0);
   const row = card.locator('.suggestion').filter({ has: page.locator('.place-main', { hasText: /^Central$/ }) }).first();
   await row.click();
   await expect(input).toHaveValue('Central');
   await expect(card.locator('.suggestions')).toBeHidden();
   release();
-  await page.waitForTimeout(700);
-  await expect(card.locator('.suggestions')).toBeHidden();
+  await finished;
   await expect(input).toHaveValue('Central');
+  await expect(card.locator('.suggestions')).toBeHidden();
 });
 
 test('a two-character Chinese query returns places', async ({ page }) => {
@@ -1592,17 +1671,18 @@ test('legal pages include social preview tags', async ({ page }) => {
   }
 });
 
-test('the first start field rises above the bottom keyboard zone when focused', async ({ page }) => {
+test('the first start field rises above the simulated keyboard zone when focused', async ({ page }) => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 640 }]) {
     await page.setViewportSize(viewport);
     await page.evaluate(() => document.activeElement?.blur?.());
-    await page.waitForTimeout(100);
-    await page.locator('#mobileTabbar [data-mobile-view="plan"]').click();
+    const planTab = page.locator('#mobileTabbar [data-mobile-view="plan"]');
+    await expect(planTab).toBeVisible();
+    await planTab.click();
     const input = page.locator('.start-input').first();
     await input.focus();
     await expect(page.locator('body')).toHaveClass(/keyboard-open/);
     await expect(page.locator('#mobileTabbar')).toBeHidden();
-    await expect.poll(async () => (await input.boundingBox())?.y ?? Infinity).toBeLessThanOrEqual(viewport.height - 300);
+    await expect.poll(async () => (await input.boundingBox())?.y ?? Infinity).toBeLessThanOrEqual(viewport.height - KEYBOARD_ZONE_PX);
   }
 });
 

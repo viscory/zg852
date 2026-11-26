@@ -1,10 +1,10 @@
 const { test, expect, devices } = require('@playwright/test');
 const { sliderPosition } = require('./helpers');
 
-// Match mobile.spec.js: Chromium with iPhone emulation (the project config
-// already pins the browser). defaultBrowserType cannot be set inside describe.
-const iphone = { ...devices['iPhone 15'] };
-delete iphone.defaultBrowserType;
+// Chromium is already pinned by the project config; drop the device's
+// defaultBrowserType instead of overriding it inside a describe block.
+const iphone = Object.fromEntries(Object.entries(devices['iPhone 15'])
+  .filter(([key]) => key !== 'defaultBrowserType'));
 
 async function setRange(page, selector, value) {
   const next = selector === '#tolerance' ? sliderPosition(Number(value)) : value;

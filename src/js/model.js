@@ -46,12 +46,25 @@ export function areaRank(area,metric='time'){
   ];
   return [Number(area?.fitScore ?? area?.score ?? 0), String(area?.key ?? '')];
 }
+// Rank tuples are positionally typed: numbers first, the string area key last.
+// Compare each position within its own type rather than coercing through one
+// default. A mixed-type slot (only possible with a ragged tuple) stays equal,
+// matching the old numeric coercion, which produced NaN for such a pair.
+function compareRankValue(left,right){
+  if(typeof left === 'number' && typeof right === 'number'){
+    return left < right ? -1 : left > right ? 1 : 0;
+  }
+  if(typeof left === 'string' && typeof right === 'string'){
+    return left < right ? -1 : left > right ? 1 : 0;
+  }
+  return 0;
+}
 export function compareAreaRank(a,b,metric='time'){
   const left = areaRank(a,metric), right = areaRank(b,metric);
   for(let i = 0; i < Math.max(left.length, right.length); i++){
-    const l = left[i] ?? 0, r = right[i] ?? 0;
-    if(l < r)return -1;
-    if(l > r)return 1;
+    const l = i < left.length ? left[i] : 0, r = i < right.length ? right[i] : 0;
+    const order = compareRankValue(l,r);
+    if(order)return order;
   }
   return 0;
 }

@@ -1,4 +1,4 @@
-import { MAX_CLOUD_CELLS,MAX_COST_CELLS,RECOMPUTE_DELAY,TRAVEL_BUDGET_MINUTES,FARE_GAP_FLOOR,activeFairnessMetric,travelTolerance,fareTolerance,isUnboundedTolerance } from './config.js';
+import { MAX_CLOUD_CELLS,MAX_COST_CELLS,RECOMPUTE_DELAY,TRAVEL_BUDGET_MINUTES,FARE_GAP_FLOOR,activeFairnessMetric,travelTolerance,fareTolerance,isUnboundedTolerance,modesMask } from './config.js';
 import { store } from './store.js';
 import { compareAreaRank,fairnessTolerance,noFitErrorKey,noReachErrorKey } from './model.js';
 
@@ -29,7 +29,7 @@ export function compute(reveal=false){
   if(store.people.some(p=>!p.origin)){renderEmpty();showError(t('error.missingOrigins'));return;}
   store.activePeople=store.people.filter(p=>p.origin);
   if(store.activePeople.length<2){renderEmpty();showError(t('error.needTwo'));return;}
-  const mask=store.settings.modes.reduce((m,mode)=>m|(mode==='rail'?1|(1<<3):mode==='bus'?2|(1<<2):0),0);
+  const mask=modesMask(store.settings.modes);
   if(!mask){renderEmpty();showError(t('error.noMode'));return;}
   const metric=activeFairnessMetric(store.settings.fairness);
   const tolerance=travelTolerance(store.settings.tolerance);

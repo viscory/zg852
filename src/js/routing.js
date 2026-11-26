@@ -1,5 +1,5 @@
-import { RAIL_FARE_BANDS,BUS_FARE_BANDS,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE,WALK_SPEED_KMH,WALK_DETOUR } from './config.js';
-import { railFare,aelFareForNodes,lightRailFare } from './fares.js';
+import { RAIL_FARE_BANDS,BUS_FARE_BANDS,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE,WALK_SPEED_KMH,WALK_DETOUR,lineCategoryBit } from './config.js';
+import { railFare,aelFareForNodes,lightRailFare,isEstimatedFare,warnOnce } from './fares.js';
 import { store } from './store.js';
 import { isNum,haversine,walkMinutes,round1,esc } from './util.js';
 import { t,tp,num,minuteText } from './i18n.js';
@@ -22,6 +22,16 @@ export function legDistanceKm(leg){
 }
 const RIDE_MODES=['rail','bus','ferry','lightRail'];
 export function rideMode(code){return RIDE_MODES[code]||'bus';}
+// The AEL label is the metadata marker for Airport Express. When a leg carries
+// a resolvable line index the bundled metadata is authoritative; the legacy
+// label prefix stays as the fallback for legs built without that index, so the
+// special-case set is unchanged.
+const AIRPORT_EXPRESS_LINE_LABEL='MTR AEL';
+export function isAirportExpressLeg(leg){
+  if(!leg)return false;
+  const info=Number.isInteger(leg.lineIndex)?store.NET?.lines?.[leg.lineIndex]:null;
+  return info?.l===AIRPORT_EXPRESS_LINE_LABEL||String(leg.line??'').startsWith(AIRPORT_EXPRESS_LINE_LABEL);
+}
 export function scheduledRouteFare(leg){
   const fares=store.ROUTE_FARES?.fares,fare=fares?.[leg.lineIndex];
   return isNum(fare)&&fare>0?fare:null;
@@ -35,7 +45,7 @@ export function routeFares(route){
   const flushRail=()=>{
     if(railKm>0){
       const looked=railFare(railStart,railEnd);
-      if(looked===null)console.warn('MTR fare not in lookup table',railStart,railEnd);
+      if(looked===null)warnOnce('MTR fare not in lookup table',railStart,railEnd);
       const fare=round1(looked??bandFare(railKm,RAIL_FARE_BANDS));
       rail+=fare;
       for(const leg of railLegs)leg.fare=fare;
@@ -62,7 +72,7 @@ export function routeFares(route){
       if(leg.minutes>FARE_INTERCHANGE_WALK_MINUTES){flushRail();flushLightRail();}
       continue;
     }
-    if(leg.mode==='rail'&&String(leg.line).startsWith('MTR AEL')){
+    if(leg.mode==='rail'&&isAirportExpressLeg(leg)){
       flushRail();flushLightRail();
       const official=aelFareForNodes(leg.fromNode,leg.toNode);
       // City-to-city AEL pairs are not published in the bundled matrix. Keep
@@ -83,11 +93,9 @@ export function routeFares(route){
       flushRail();flushLightRail();
       const official=scheduledRouteFare(leg);
       const fare=round1(official??bandFare(km,BUS_FARE_BANDS));
-      // The Process page states that bus/minibus fares are distance-band
-      // estimates. Mark every bus leg as an estimate, even when a matching
-      // snapshot fare was found, so identical fare sources never render with
-      // different certainty markers. Ferry snapshots remain unmarked.
-      const estimated=leg.mode==='bus'||official===null;
+      // Fare certainty follows the shared policy: buses are always estimates,
+      // ferry snapshots are not, and a missing snapshot is an estimate.
+      const estimated=isEstimatedFare(leg,official);
       bus+=fare;leg.fare=fare;mark([leg],estimated);
     }
   }
@@ -96,7 +104,7 @@ export function routeFares(route){
 }
 export const walkBudget=person=>snapWalkMinutes(person?.walkMinutes);
 export function prepareRoutes(result,active=store.activePeople){
-  result.routes=store.sols.map((solution,j)=>reconcileMinutes(
+  result.routes=store.sols.map((solution,j)=>reconcileDisplayMinutes(
     describe(solution,active[j].origin,result.node,walkBudget(active[j]),result.point||null),result.times[j]));
   result.paths=result.routes.map(route=>route.path);
   return result;
@@ -123,12 +131,21 @@ export class MinHeap{
     return[d,k];}
 }
 
+// Solver state codec. A key packs (node, line) into one integer; the line digit
+// is offset by two so FRESH and BOARDED remain non-negative inside the key.
+export const FRESH=-2,BOARDED=-1,STATE_OFFSET=2;
+export function encodeState(node,line,stride){return node*stride+line+STATE_OFFSET;}
+export function decodeNode(state,stride){return Math.floor(state/stride);}
+export function decodeLine(state,stride){return state%stride-STATE_OFFSET;}
+export function isWalkState(line){return line<0;}
+export function isFreshState(line){return line===FRESH;}
+export function isBoardedState(line){return line===BOARDED;}
+
 export function solve(sources,mask,maxTime=180){
-  // State offsets: FRESH (-2) is on foot before any boarding, BOARDED (-1) is
-  // on foot after alighting, and >=0 is riding the corresponding line.
-  const FRESH=-2,BOARDED=-1;
+  // FRESH is on foot before any boarding, BOARDED is on foot after alighting,
+  // and a non-negative line code means riding that line.
   const include=store.settings.includeHeadway!==false;
-  const stride=store.NET.lines.length+2,key=(node,line)=>node*stride+(line+2),start=-1;
+  const stride=store.NET.lines.length+STATE_OFFSET,key=(node,line)=>encodeState(node,line,stride),start=-1;
   const dist=new Map(),prev=new Map(),heap=new MinHeap();
   sources.forEach(({node,minutes})=>{
     const k=key(node,FRESH);
@@ -142,14 +159,14 @@ export function solve(sources,mask,maxTime=180){
   while(heap.size){
     const[d,k]=heap.pop();
     if(d>(dist.get(k)??Infinity)||d>maxTime)continue;
-    const node=Math.floor(k/stride),line=(k%stride)-2;
-    if(line<0){
+    const node=decodeNode(k,stride),line=decodeLine(k,stride);
+    if(isWalkState(line)){
       for(const[to,step]of store.walkAdj[node])relax(key(to,line),d+step,k);
-      for(const li of store.nodeLines[node])if(mask&(1<<store.NET.lines[li].c)){
+      for(const li of store.nodeLines[node])if(mask&lineCategoryBit(store.NET.lines[li].c)){
         const info=store.NET.lines[li],wait=isNum(info.w)?info.w:0;
         // w is the fixed boarding penalty; the capped half-headway h applies
         // only when boarding after alighting a transit leg (BOARDED foot state).
-        const extra=include&&line===BOARDED&&isNum(info.h)?info.h:0;
+        const extra=include&&isBoardedState(line)&&isNum(info.h)?info.h:0;
         relax(key(node,li),d+wait+extra,k);
       }
     }else{
@@ -161,12 +178,12 @@ export function solve(sources,mask,maxTime=180){
 }
 export function bestTimes(sol){
   const best=new Float64Array(store.NODES.names.length).fill(Infinity);
-  for(const[k,d]of sol.dist){const node=Math.floor(k/sol.stride);if(d<best[node])best[node]=d;}
+  for(const[k,d]of sol.dist){const node=decodeNode(k,sol.stride);if(d<best[node])best[node]=d;}
   return best;
 }
 export function walkTimes(sol){
   const best=new Float64Array(store.NODES.names.length).fill(Infinity);
-  for(const[k,d]of sol.dist)if(k%sol.stride===0){const node=Math.floor(k/sol.stride);if(d<best[node])best[node]=d;}
+  for(const[k,d]of sol.dist)if(isFreshState(decodeLine(k,sol.stride))){const node=decodeNode(k,sol.stride);if(d<best[node])best[node]=d;}
   return best;
 }
 export function sourceNodeIndices(){
@@ -251,14 +268,18 @@ export function rideLegText(leg){
   return (text+' '+interchangeWaitText(leg)).replace(/\s+/g,' ').trim();
 }
 export function legLabel(leg){return leg.mode==='walk'?walkLegText(leg):rideLegText(leg);}
-function reconcileMinutes(route,total){
+// Flooring raw minutes with a small epsilon avoids losing a whole minute to
+// binary drift (e.g. 2.9999999999999996). Only displayed minutes change: leg
+// rates, raw minutes and interchange-wait notes are left untouched.
+const MINUTE_FLOOR_EPSILON=1e-9;
+export function reconcileDisplayMinutes(route,total){
   const legs=route.legs;
   if(!legs.length||!isNum(total))return route;
   // Interchange waits are shown as their own notes, so reserve their rounded
   // minutes before distributing the remaining whole minutes across the legs.
   const waitTotal=legs.reduce((a,l)=>a+(l.interchangeWait>0?Math.round(l.interchangeWait):0),0);
   const target=Math.round(total)-waitTotal;
-  const raw=legs.map(l=>l.minutes),floors=raw.map(v=>Math.floor(v+1e-9)),shown=floors.slice();
+  const raw=legs.map(l=>l.minutes),floors=raw.map(v=>Math.floor(v+MINUTE_FLOOR_EPSILON)),shown=floors.slice();
   let delta=target-floors.reduce((a,b)=>a+b,0);
   const largestFirst=raw.map((v,i)=>({i,frac:v-Math.floor(v)})).sort((a,b)=>b.frac-a.frac);
   for(let k=0;delta>0&&k<largestFirst.length;k++,delta--)shown[largestFirst[k].i]++;
@@ -272,9 +293,17 @@ function reconcileMinutes(route,total){
   route.text=legs.map(leg=>leg.text).join(' -> ')||t('route.already');
   return route;
 }
+// Reused across candidate routes: describe() calls reconstructChain thousands
+// of times, so the cycle guard must not allocate a fresh Set for each chain.
+const chainSeen=new Set();
 export function reconstructChain(sol,k){
+  // Stop on the real predecessor cycle instead of an arbitrary hop limit; a
+  // well-formed Dijkstra tree has no cycle, so ordinary chains are unchanged.
+  chainSeen.clear();
   const chain=[];let cur=k;
-  while(cur!==undefined&&cur!==sol.start&&chain.length<4000){chain.push(cur);cur=sol.prev.get(cur);}
+  while(cur!==undefined&&cur!==sol.start&&!chainSeen.has(cur)){
+    chainSeen.add(cur);chain.push(cur);cur=sol.prev.get(cur);
+  }
   return chain.reverse();
 }
 // A walk-only route to a pinned point can end with two adjacent walk legs:
@@ -290,9 +319,17 @@ function mergeWalks(legs){
   }
   return legs;
 }
+// Polyline and node coordinates are rounded to ~1e-5 degrees, so 1e-4 is a
+// generous endpoint match. Kept here instead of allocating the comparison
+// closure for every leg of every candidate route.
+const GEOMETRY_EPSILON=1e-4;
+function samePoint(point,target){
+  return Array.isArray(point)&&point.length>=2&&target&&
+    Math.abs(point[0]-target[0])<GEOMETRY_EPSILON&&Math.abs(point[1]-target[1])<GEOMETRY_EPSILON;
+}
 export function describe(sol,origin,target,walkMinutes=WALK_STEP_DEFAULT,targetPoint=null){
   const walkLimit=snapWalkMinutes(walkMinutes),includeHeadway=store.settings.includeHeadway!==false,candidates=[];
-  for(let l=-2;l<store.NET.lines.length;l++){
+  for(let l=FRESH;l<store.NET.lines.length;l++){
     const k=sol.key(target,l),d=sol.dist.get(k);
     if(d===undefined)continue;
     const legs=[],chain=reconstructChain(sol,k);
@@ -305,12 +342,12 @@ export function describe(sol,origin,target,walkMinutes=WALK_STEP_DEFAULT,targetP
       current=null;
     };
     chain.forEach((st,i)=>{
-      const node=Math.floor(st/sol.stride),line=(st%sol.stride)-2;
+      const node=decodeNode(st,sol.stride),line=decodeLine(st,sol.stride);
       const pst=i===0?sol.start:chain[i-1];
       const priorDistance=pst===sol.start?0:(sol.dist.get(pst)??0);
       const stepT=(sol.dist.get(st)??0)-priorDistance;
       const coord=[store.NODES.lat[node],store.NODES.lon[node]],rawName=store.NODES.names[node];
-      if(line<0){
+      if(isWalkState(line)){
         const name=stopName(rawName);
         if(!current||current.mode!=='walk'){
           close();
@@ -326,21 +363,19 @@ export function describe(sol,origin,target,walkMinutes=WALK_STEP_DEFAULT,targetP
           // the capped half-headway h. The wait is rendered as its own leg note,
           // so subtract it from the ride text to avoid showing it twice while
           // keeping the charged total (and ranking) unchanged.
-          const fromBoarded=pst!==sol.start&&(pst%sol.stride)===1;
+          const fromBoarded=pst!==sol.start&&isBoardedState(decodeLine(pst,sol.stride));
           const interchangeWait=includeHeadway&&fromBoarded&&isNum(info.h)?info.h:0;
           current={mode,line:label,lineName:info.n||info.l,lineIndex:line,minutes:Math.max(0,stepT-interchangeWait),coords:[coord,coord],from:name,to:name,fromNode:node,toNode:node,stopCount:0,interchangeWait};
         }else{
           current.minutes+=stepT;
-          const fromNode=pst===sol.start?null:Math.floor(pst/sol.stride);
+          const fromNode=pst===sol.start?null:decodeNode(pst,sol.stride);
           const edgeIndex=fromNode===null?undefined:store.rideAdj[fromNode].find(([id,to])=>id===line&&to===node)?.[3];
           const seg=edgeIndex===undefined?null:store.NET.lines[line].g?.[edgeIndex];
           const start=fromNode===null?null:[store.NODES.lat[fromNode],store.NODES.lon[fromNode]];
-          const same=(point,target)=>Array.isArray(point)&&point.length>=2&&target&&
-            Math.abs(point[0]-target[0])<1e-4&&Math.abs(point[1]-target[1])<1e-4;
           if(Array.isArray(seg)&&seg.length>1&&start){
             let points=seg;
-            if(!same(points[0],start)&&same(points[points.length-1],start))points=[...points].reverse();
-            if(same(points[0],start)&&same(points[points.length-1],coord))current.coords.push(...points.slice(1));
+            if(!samePoint(points[0],start)&&samePoint(points[points.length-1],start))points=[...points].reverse();
+            if(samePoint(points[0],start)&&samePoint(points[points.length-1],coord))current.coords.push(...points.slice(1));
             else current.coords.push(coord);
           }else current.coords.push(coord);
           current.to=name;current.toNode=node;current.stopCount++;
@@ -367,7 +402,7 @@ export function describe(sol,origin,target,walkMinutes=WALK_STEP_DEFAULT,targetP
     candidates.push({d,line:l,legs:merged,fares,total:fares.total});
   }
   if(!candidates.length)return{text:t('route.unreachable'),legs:[],path:[[origin.lat,origin.lon]],fares:{rail:0,lightRail:0,bus:0,total:0,estimated:false}};
-  const walk=candidates.find(c=>c.line===-2&&c.d<=walkLimit);
+  const walk=candidates.find(c=>c.line===FRESH&&c.d<=walkLimit);
   if(!walk)candidates.sort((a,b)=>a.d-b.d||a.total-b.total);
   const best=walk||candidates[0],legs=best.legs;
   const text=legs.map(leg=>leg.text).join(' -> ')||t('route.already');

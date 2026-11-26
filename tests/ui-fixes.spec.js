@@ -97,18 +97,31 @@ test('the highlighted autocomplete option exposes aria-selected', async ({ page 
   await expect(suggestions.locator('.suggestion[aria-selected="true"]')).toHaveCount(1);
 });
 
-test('a listbox error row is a disabled option', async ({ page }) => {
-  await page.unroute('**/photon.komoot.io/api/**');
-  await page.route('**/photon.komoot.io/api/**', route => route.abort());
-  await page.reload();
-  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+test('a listbox error row is a disabled option', async ({ browser }) => {
+  // Inject the failure in a fresh context so the shared beforeEach handler on
+  // the main page stays reachable and untouched.
+  const context = await browser.newContext({
+    baseURL: process.env.TEST_BASE_URL || 'http://127.0.0.1:8765',
+  });
+  const page = await context.newPage();
+  try {
+    await context.route('**/sw.js', route => route.abort());
+    await context.route('**/tiles.openfreemap.org/**', route => route.abort());
+    await context.route('**/basemaps.cartocdn.com/**', route => route.abort());
+    await context.route('**/tile.openstreetmap.org/**', route => route.abort());
+    await context.route('**/photon.komoot.io/api/**', route => route.abort());
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
 
-  const input = page.locator('.card').first().locator('.start-input');
-  await input.fill('Central');
-  const error = page.locator('.card').first().locator('.suggestions .suggestion-error');
-  await expect(error).toBeVisible();
-  await expect(error).toHaveAttribute('role', 'option');
-  await expect(error).toHaveAttribute('aria-disabled', 'true');
+    const input = page.locator('.card').first().locator('.start-input');
+    await input.fill('Central');
+    const error = page.locator('.card').first().locator('.suggestions .suggestion-error');
+    await expect(error).toBeVisible();
+    await expect(error).toHaveAttribute('role', 'option');
+    await expect(error).toHaveAttribute('aria-disabled', 'true');
+  } finally {
+    await context.close();
+  }
 });
 
 test('legal body links open inside the dialog and the body is marked English', async ({ page }) => {

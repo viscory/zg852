@@ -6,6 +6,7 @@ import { loadNodes,loadDistricts,loadFares,loadNetwork,loadPoi } from './js/data
 import { betaVectorsEnabled } from './js/vectors.js';
 import { applySharedState,restoreState,restoreDirectory,restoreSelection,readSavedSelection,shareScenario,readHashState,save } from './js/state.js';
 import { triggerSearch } from './js/engine.js';
+import { warnOnce } from './js/fares.js';
 import { createMap,drawOrigins } from './js/map.js';
 import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,applyUnboundedUi,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,showActionStatus,commitPeople,setSidebarFace,flashTooltip,setFairness,clearPointNotice } from './js/ui.js';
 import { exportDiagnostics } from './js/diagnostics.js';
@@ -17,24 +18,40 @@ function storedValue(key){
   try{return localStorage.getItem(key);}
   catch(err){console.error(err);return null;}
 }
+// Loaders and their human labels travel together, so an added or reordered
+// loader cannot leave a wrong label on the displayed failure message.
+const LOADERS=[
+  {label:'Nodes',load:loadNodes,errorKey:'error.searchFailed'},
+  {label:'Districts',load:loadDistricts,errorKey:'error.searchFailed'},
+  {label:'MTR fares',load:loadFares,errorKey:'error.searchFailed'},
+  {label:'English catalogue',load:()=>ensureCatalog('en'),errorKey:'error.searchFailed'},
+];
+const LOAD_ERROR_KEYS=Object.fromEntries(LOADERS.map(({label,errorKey})=>[label,errorKey]));
+LOAD_ERROR_KEYS.Timetable='error.timetableFailed';
+const NODES_INDEX=LOADERS.findIndex(({label})=>label==='Nodes');
+const ENGLISH_CATALOGUE_INDEX=LOADERS.findIndex(({label})=>label==='English catalogue');
+// The deferred search must settle before the mobile route face can open on a
+// shared link; keeping the existing handoff delay preserves the observed
+// timing on slow devices without touching the search pipeline.
+const MOBILE_ROUTE_OPEN_DELAY_MS=900;
 function loadFailure(label,err){
   const message=`${label}: ${err?.message||String(err)}`;
-  return t(label==='Timetable'?'error.timetableFailed':'error.searchFailed',{message});
+  return t(LOAD_ERROR_KEYS[label]||'error.searchFailed',{message});
 }
 async function init(){
   const errors=[];
   let mapError=null;
   try{createMap();}catch(err){console.error(err);mapError=err;}
-  const sources=await Promise.allSettled([loadNodes(),loadDistricts(),loadFares(),ensureCatalog('en')]);
-  ['Nodes','Districts','MTR fares','English catalogue'].forEach((label,i)=>{
+  const sources=await Promise.allSettled(LOADERS.map(({load})=>load()));
+  LOADERS.forEach(({label},i)=>{
     const result=sources[i];
     if(result.status==='rejected'){
       console.error(result.reason);
       errors.push(loadFailure(label,result.reason));
     }
   });
-  if(sources[3].status==='fulfilled')store.EN=store.I18N.en;
-  if(sources[0].status==='rejected')document.documentElement.dataset.net='error';
+  if(sources[ENGLISH_CATALOGUE_INDEX].status==='fulfilled')store.EN=store.I18N.en;
+  if(sources[NODES_INDEX].status==='rejected')document.documentElement.dataset.net='error';
   const hashLocale=readHashState()?.locale;
   const storedLocale=LOCALES.includes(hashLocale)?hashLocale:(storedValue(KEY.locale)||detectLocale());
   if(storedLocale!=='en'){
@@ -65,7 +82,7 @@ async function init(){
       if(sharedScenario&&store.people.length>=2){
         setMobileView('map');
         triggerSearch(!isMobileLayout());
-        if(isMobileLayout())setTimeout(()=>{if(store.results.length&&store.selection)openMobileRoute();},900);
+        if(isMobileLayout())setTimeout(()=>{if(store.results.length&&store.selection)openMobileRoute();},MOBILE_ROUTE_OPEN_DELAY_MS);
       }
     }).catch(err=>{
       console.error(err);
@@ -151,7 +168,7 @@ document.addEventListener('keydown',e=>{
     e.preventDefault();clearPinMode();setMobileView('plan');
   }
 });
-if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(err=>warnOnce('Service worker registration failed',err));
 
  function setDisclosure(root,open){
   if(!root)return;

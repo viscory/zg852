@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const { existsSync, readFileSync, statSync } = require('node:fs');
-const { gzipSync, gunzipSync } = require('node:zlib');
+const { gunzipSync } = require('node:zlib');
 const { join } = require('node:path');
 
 const root = join(__dirname, '..');
@@ -78,19 +78,18 @@ test('service worker does not cache non-OK responses', async ({ page, context })
   expect(cached, '404 response must not enter the cache').toBeFalsy();
 
   await context.setOffline(true);
+  // The cache fallback now resolves with a real 404 instead of an undefined
+  // response, so the missing asset surfaces as an error status online and off.
   const offline = await page.evaluate(async path => {
-    try {
-      await fetch(path);
-      return 'resolved';
-    } catch {
-      return 'rejected';
-    }
+    const response = await fetch(path);
+    return { ok: response.ok, status: response.status };
   }, missing);
-  expect(offline).toBe('rejected');
+  expect(offline.ok).toBeFalsy();
+  expect(offline.status).toBe(404);
 });
 
 test('service worker precache list still covers required offline assets', () => {
-  expect(SW_CACHE_NAME).toBe('zg852-v74');
+  expect(SW_CACHE_NAME).toBe('zg852-v75');
   const sw = readFileSync(join(publicDir, 'sw.js'), 'utf8');
   const list = sw.match(/const ASSETS=\[([^\]]*)\]/);
   expect(list).not.toBeNull();
@@ -124,5 +123,7 @@ test('build emits precompressed assets and gzip headers without dropping origina
 
   const app = readFileSync(join(publicDir, 'app.js'));
   const appGz = readFileSync(join(publicDir, 'app.js.gz'));
-  expect(gzipSync(app, { level: 9, mtime: 0 }).equals(appGz), 'gzip output should be deterministic').toBeTruthy();
+  // Compare decompressed bytes, not the compressed stream: gzip headers and
+  // deflate output vary across zlib versions even for identical input.
+  expect(gunzipSync(appGz).equals(app), 'precompressed asset must decompress to the original bytes').toBeTruthy();
 });

@@ -17,6 +17,30 @@ import { isMobileLayout,setMobileView } from './mobile.js';
 
 const LEGAL_KINDS=['privacy','terms','credits','process'];
 const originStates=new WeakMap();
+const tooltipTimers=new WeakMap();
+const runningMotions=new WeakMap();
+// The keyframes mirror the CSS ones so the visible result is unchanged while
+// the Web Animations API owns the timing, cancellation and completion signal.
+const FLIP_OUT_FRAMES=[{transform:'rotateY(0)'},{transform:'rotateY(90deg)'}];
+const FLIP_IN_FRAMES=[{transform:'rotateY(-90deg)'},{transform:'none'}];
+export const SCREEN_IN_FRAMES=[{opacity:0,transform:'translateY(6px)'},{opacity:1,transform:'none'}];
+// One driver for the sidebar flip and the mobile screen-in. A new call cancels
+// the animation already running on that element, reduced motion jumps straight
+// to the end state, and onDone runs only once the element has settled. Returns
+// false when the call was reduced or superseded, so callers can skip later steps.
+export async function playMotion(element,keyframes,options,onDone){
+  const previous=runningMotions.get(element);
+  if(previous)previous.cancel();
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){onDone?.();return false;}
+  const animation=element.animate(keyframes,options);
+  runningMotions.set(element,animation);
+  try{await animation.finished;}catch{return false;}
+  if(runningMotions.get(element)!==animation)return false;
+  runningMotions.delete(element);
+  animation.cancel();
+  onDone?.();
+  return true;
+}
 function originState(input,patch={}){
   if(!input)return null;
   let state=originStates.get(input);
@@ -137,8 +161,7 @@ export function hasPendingOrigins(){
     return Boolean(person&&typed&&typed!==(person.origin?.label||''));
   });
 }
-let flipToken=0;
-export function setSidebarFace(face){
+export async function setSidebarFace(face){
   if(face!=='people'&&face!=='detail'||store.sidebarFace===face)return;
   const stage=$('flipStage');
   const apply=()=>{
@@ -160,25 +183,24 @@ export function setSidebarFace(face){
     }
   };
   if(!stage||matchMedia('(prefers-reduced-motion: reduce)').matches){apply();return;}
-  const token=++flipToken;
   stage.classList.remove('flip-in');
   stage.classList.add('flip-out');
-  stage.addEventListener('animationend',event=>{
-    if(event.target!==stage||token!==flipToken)return;
+  const completed=await playMotion(stage,FLIP_OUT_FRAMES,{duration:280,easing:'ease-in',fill:'forwards'},()=>{
     stage.classList.remove('flip-out');
     apply();
-    stage.classList.add('flip-in');
-    const settle=()=>{if(token===flipToken)stage.classList.remove('flip-in');};
-    stage.addEventListener('animationend',event=>{if(event.target===stage)settle();},{once:true});
-    setTimeout(settle,400);
-  },{once:true});
+  });
+  if(!completed)return;
+  stage.classList.add('flip-in');
+  await playMotion(stage,FLIP_IN_FRAMES,{duration:280,easing:'ease-out'},()=>{
+    stage.classList.remove('flip-in');
+  });
 }
 export function flashTooltip(element,message){
   if(!element)return;
   const original=element.dataset.tooltip||element.getAttribute('aria-label')||'';
   setLabel(element,message);
-  clearTimeout(element.tooltipTimer);
-  element.tooltipTimer=setTimeout(()=>setLabel(element,original),1600);
+  clearTimeout(tooltipTimers.get(element));
+  tooltipTimers.set(element,setTimeout(()=>setLabel(element,original),1600));
 }
 let actionStatusTimer=null;
 export function hideActionStatus(){
@@ -327,6 +349,23 @@ export function syncMobileResults(mode='ready',active=store.activePeople,message
     if(button){button.hidden=false;}
   }
 }
+function resultPersonMarkup(route,j,active){
+  const name=esc(displayName(active[j],j));
+  return `<span class="result-person"><span class="avatar ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span><span class="person-name" title="${name}" aria-label="${name}">${name}</span>${fareMarkup(route)}</span>`;
+}
+function resultHeadMarkup(r){
+  return `<span class="result-head"><b>${esc(r.label)}</b><span class="tag">${esc(t('cat.'+r.catKey))}</span><span class="district">${esc(r.district)}</span></span>`;
+}
+function resultTimesMarkup(r){
+  return `<span class="result-times"><span>${esc(store.settings.fairness==='fare'?t('results.fareSpread',{value:money(r.fareGap)}):t('results.spread',{value:intNum(r.gap)}))}</span><span>${esc(t('results.longest',{value:intNum(r.slowest)}))}</span></span>`;
+}
+function resultRowMarkup(r,i,active){
+  return `<div role="listitem"><button class="result-row" type="button" data-index="${i}" aria-label="${esc(`${t('results.selectTitle')}: ${r.label}`)}">
+    ${resultHeadMarkup(r)}
+    ${resultTimesMarkup(r)}
+    <span class="result-people">${r.routes.map((route,j)=>resultPersonMarkup(route,j,active)).join('')}</span>
+  </button></div>`;
+}
 export function renderResults(active=store.activePeople){
   const list=$('resultsList'),state=$('resultState'),count=$('nres');
   if(!list||!state||!count)return;
@@ -345,11 +384,7 @@ export function renderResults(active=store.activePeople){
   syncMobileResults('ready',active);
   // Never switch mobile panes from a recompute: only explicit navigation or
   // selecting a result may move the user out of the pane they are editing.
-  list.innerHTML=store.results.map((r,i)=>`<div role="listitem"><button class="result-row" type="button" data-index="${i}" aria-label="${esc(`${t('results.selectTitle')}: ${r.label}`)}">
-    <span class="result-head"><b>${esc(r.label)}</b><span class="tag">${esc(t('cat.'+r.catKey))}</span><span class="district">${esc(r.district)}</span></span>
-    <span class="result-times"><span>${esc(store.settings.fairness==='fare'?t('results.fareSpread',{value:money(r.fareGap)}):t('results.spread',{value:intNum(r.gap)}))}</span><span>${esc(t('results.longest',{value:intNum(r.slowest)}))}</span></span>
-    <span class="result-people">${r.routes.map((route,j)=>{const name=esc(displayName(active[j],j));return `<span class="result-person"><span class="avatar ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span><span class="person-name" title="${name}" aria-label="${name}">${name}</span>${fareMarkup(route)}</span>`;}).join('')}</span>
-  </button></div>`).join('');
+  list.innerHTML=store.results.map((r,i)=>resultRowMarkup(r,i,active)).join('');
   list.querySelectorAll('.result-row').forEach(row=>{row.onclick=()=>selectResult(Number(row.dataset.index),active,true);});
   markSelectedResult();
   applyUnboundedUi();
@@ -421,9 +456,11 @@ export function renderSuggestions(sug,entries,person,input,failed=false,settled=
       finally{current.cancel?.();current.choosing=false;setOrigin(person,place,input,sug);}
     };
     // A pointer press blurs the input before the click lands. Mark the panel so
-    // the blur handler does not treat a suggestion pick as unresolved text.
-    d.onpointerdown=()=>{state.choosing=true;};
-    d.onmousedown=()=>{state.choosing=true;};
+    // the blur handler does not treat a suggestion pick as unresolved text;
+    // pointer and mouse press share one handler rather than two copies.
+    const markChoosing=()=>{state.choosing=true;};
+    d.onpointerdown=markChoosing;
+    d.onmousedown=markChoosing;
     d.onclick=choose;
     sug.appendChild(d);
   });
@@ -484,8 +521,12 @@ export function makeCard(person){
   <input type="range" id="walk-${id}" data-walk min="0" max="60" step="5" value="${person.walkMinutes}">
   <div class="suggestions" id="suggest-${id}" role="listbox" hidden></div>`;
   $('cards').appendChild(card);
-  const nameInput=card.querySelector('#name-'+CSS.escape(id));
-  const input=card.querySelector('#start-'+CSS.escape(id));
+  // CSS.escape() output is an identifier escape, not a string escape, so it
+  // must not be interpolated into a quoted attribute value. The card already
+  // has unique class hooks for these two inputs; the ids stay on the markup
+  // for their labels and are left untouched.
+  const nameInput=card.querySelector('.name-input');
+  const input=card.querySelector('.start-input');
   const sug=card.querySelector('.suggestions');
   let timer=null,controller=null,requestSeq=0;
   const state=originState(input,{person,sug,options:[],cancel:null});
@@ -674,7 +715,9 @@ export function savePersonToDirectory(person){
   saveDirectory();save();renderDirectoryList();flashSaved(person.id);
 }
 export function flashSaved(id){
-  const card=document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);if(!card)return;
+  // Compare the attribute value as data: CSS.escape() would be a selector
+  // identifier escape inside this quoted attribute string, not a string escape.
+  const card=[...document.querySelectorAll('.card')].find(card=>card.dataset.id===id);if(!card)return;
   const message=t('people.saved');
   flashTooltip(card.querySelector('.save-person'),message);
   showActionStatus(message);
@@ -819,14 +862,12 @@ document.addEventListener('click',event=>{
 function installUiListeners(){
   // Resolve typed text before the app's own search handler runs; unresolved
   // text is blocked here as well as by hasPendingOrigins() in the engine.
-  ['go'].forEach(id=>{
-    $(id)?.addEventListener('click',event=>{
-      if(!resolveAllPendingOrigins()){
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      }
-    },true);
-  });
+  $('go')?.addEventListener('click',event=>{
+    if(!resolveAllPendingOrigins()){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  },true);
   document.addEventListener('pointerdown',event=>{
     document.querySelectorAll('.suggestions').forEach(sug=>{
       if(sug.hidden||sug.contains(event.target))return;

@@ -1,5 +1,9 @@
 # Audit report: https://zg852.pages.dev/
 
+> ## Historical snapshot — not current truth
+>
+> This is a dated record of the live site as checked on **23 November 2026**. It cites the old service-worker cache `zg852-v24` and **148** catalogue keys; neither is current. Check `static/sw.js`, `static/i18n/en.json`, `DESIGN.md` and the test suite for present-day facts. Nothing below should be read as a current pass/fail result.
+
 Question: does the live 就腳 site pass the live checks on 23 November 2026?
 
 Date: 23 November 2026, 03:09–03:33 UTC.

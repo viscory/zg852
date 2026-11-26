@@ -9,34 +9,82 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const metroUrl = 'https://opendata.mtr.com.hk/data/mtr_lines_fares.csv';
 const aelUrl = 'https://opendata.mtr.com.hk/data/airport_express_fares.csv';
 
-function parseLine(line) {
-  const out = [];
-  let value = '';
-  let quoted = false;
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') {
-      if (quoted && line[i + 1] === '"') {
-        value += '"';
-        i++;
-      } else {
-        quoted = !quoted;
-      }
-    } else if (char === ',' && !quoted) {
-      out.push(value);
-      value = '';
-    } else {
-      value += char;
-    }
-  }
-  out.push(value);
-  return out;
-}
+// Small RFC-4180-style CSV reader with named states. Unlike splitting on
+// newlines first, this keeps a quoted newline inside its field instead of
+// shifting every following column. States:
+//   FIELD      - ordinary unquoted characters
+//   QUOTED     - inside a double-quoted field (commas/newlines are data)
+//   AFTER_QUOTE - a closing quote was just consumed; only , newline or " follows
+const CSV_STATE = Object.freeze({
+  FIELD: 'field',
+  QUOTED: 'quoted',
+  AFTER_QUOTE: 'afterQuote',
+});
 
 function parseCsv(text) {
-  const lines = text.trim().split(/\r?\n/);
-  const header = parseLine(lines[0]);
-  return lines.slice(1).map(line => Object.fromEntries(header.map((key, i) => [key, parseLine(line)[i]])));
+  const rows = [];
+  let row = [];
+  let field = '';
+  let state = CSV_STATE.FIELD;
+  const source = text.trim();
+
+  const finishRow = () => {
+    row.push(field);
+    field = '';
+    rows.push(row);
+    row = [];
+    state = CSV_STATE.FIELD;
+  };
+
+  for (let i = 0; i < source.length; i++) {
+    const char = source[i];
+    if (state === CSV_STATE.QUOTED) {
+      if (char === '"') {
+        if (source[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          state = CSV_STATE.AFTER_QUOTE;
+        }
+      } else {
+        field += char; // includes newlines inside a quoted field
+      }
+      continue;
+    }
+    if (state === CSV_STATE.AFTER_QUOTE) {
+      if (char === ',') {
+        row.push(field);
+        field = '';
+        state = CSV_STATE.FIELD;
+      } else if (char === '\r' || char === '\n') {
+        if (char === '\r' && source[i + 1] === '\n') i++;
+        finishRow();
+      } else if (char === '"') {
+        field += '"';
+        state = CSV_STATE.QUOTED;
+      } else {
+        field += char;
+        state = CSV_STATE.FIELD;
+      }
+      continue;
+    }
+    // CSV_STATE.FIELD
+    if (char === '"') {
+      state = CSV_STATE.QUOTED;
+    } else if (char === ',') {
+      row.push(field);
+      field = '';
+    } else if (char === '\r' || char === '\n') {
+      if (char === '\r' && source[i + 1] === '\n') i++;
+      finishRow();
+    } else {
+      field += char;
+    }
+  }
+  if (field !== '' || row.length) finishRow();
+
+  const header = rows[0];
+  return rows.slice(1).map(cells => Object.fromEntries(header.map((key, i) => [key, cells[i]])));
 }
 
 async function csv(url) {
@@ -45,11 +93,21 @@ async function csv(url) {
   return parseCsv(await response.text());
 }
 
+// MTR open data spells two station names differently from nodes.json. Each
+// entry is a reviewed, deliberate translation; adding one changes which fares
+// get generated, so keep this map minimal rather than guessing normalisations.
 const alias = {
   'Lohas Park': 'LOHAS Park',
   'Hong Kong': 'HongKong',
 };
 const canonical = name => alias[name] || name;
+
+// Stations reviewed as legitimately absent from BOTH MTR feeds belong here.
+// The list is empty today: every station in nodes.json matches once the alias
+// map above is applied. A *new* unmatched station is data drift and must fail
+// the build instead of silently emitting a partial fare matrix.
+const REVIEWED_UNMATCHED_STATIONS = new Set();
+
 const stripSuffix = name => {
   const value = String(name || '');
   const marker = value.indexOf(' · ');
@@ -118,7 +176,14 @@ nodes.names.forEach((name, index) => {
   if (station !== undefined) nodeStation[index] = station;
 });
 
-const unmatched = stationIndices.filter(index => stationIds[index] === undefined && !aelStations.some(s => s.index === index)).map(index => nodes.names[index]);
+const unmatched = stationIndices
+  .filter(index => stationIds[index] === undefined
+    && !aelStations.some(s => s.index === index)
+    && !REVIEWED_UNMATCHED_STATIONS.has(nodes.names[index]))
+  .map(index => nodes.names[index]);
+if (unmatched.length) {
+  throw new Error(`Unmatched MTR stations (review aliases/feeds before regenerating): ${unmatched.join(', ')}`);
+}
 
 const output = {
   source: {
@@ -135,4 +200,3 @@ const output = {
 };
 await writeFile(resolve(root, 'static/data/mtr-fares.json'), `${JSON.stringify(output, null, 0)}\n`);
 console.log(`stations ${stationIndices.length}, metro fares ${Object.keys(fares).length}, AEL stations ${aelStations.length}, AEL fares ${Object.keys(aelFares).length}, node mappings ${Object.keys(nodeStation).length}`);
-if (unmatched.length) console.log('unmatched:', unmatched.join(', '));

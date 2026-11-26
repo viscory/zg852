@@ -10,18 +10,41 @@ function stationNode(node){
   return mapped===undefined?null:mapped;
 }
 
+// Both matrices store every station pair in both directions with the same
+// value. Canonicalising the pair once removes the mirrored lookup; from===to
+// naturally needs only that single lookup too.
+export function fareKey(fromStation,toStation){
+  return fromStation<=toStation?`${fromStation}|${toStation}`:`${toStation}|${fromStation}`;
+}
+
 export function railFare(fromNode,toNode){
   const from=stationNode(fromNode),to=stationNode(toNode);
   if(from===null||to===null)return null;
-  const table=store.MTR_FARES.fares;
-  return table[`${from}|${to}`]??table[`${to}|${from}`]??null;
+  return store.MTR_FARES.fares[fareKey(from,to)]??null;
 }
 
 export function aelFareForNodes(fromNode,toNode){
   const from=stationNode(fromNode),to=stationNode(toNode);
   if(from===null||to===null)return null;
-  const table=store.MTR_FARES.aelFares;
-  return table[`${from}|${to}`]??table[`${to}|${from}`]??null;
+  return store.MTR_FARES.aelFares[fareKey(from,to)]??null;
+}
+
+// Fare-certainty policy: bus/minibus fares are estimates by design even when a
+// snapshot fare matches; ferry snapshots keep their published certainty; any
+// mode without a snapshot falls back to a band estimate.
+export function isEstimatedFare(leg,official){
+  return leg?.mode==='bus'||official===null;
+}
+
+const warnedOnce=new Set();
+// Diagnostics-only logging. Production stays silent; a repeated missing-fare
+// warning is emitted once per distinct message while beta diagnostics are on.
+export function warnOnce(...args){
+  if(!store.settings?.beta?.vectors)return;
+  const key=args.map(value=>String(value)).join('\u0000');
+  if(warnedOnce.has(key))return;
+  warnedOnce.add(key);
+  console.warn(...args);
 }
 // The chart counts the boarding and alighting stops, so a leg with N ride
 // edges covers N+1 stops. Consecutive legs are added before this lookup.

@@ -83,20 +83,30 @@ test('blocked nodes.json leaves a visible error and a usable shell', async ({ pa
 });
 
 test('a throwing localStorage.setItem does not blank the app', async ({ page, context }) => {
+  // Injected into this test's context only, never into the shared page. Keep a
+  // restorer so the prototype is put back even if an assertion fails.
   await context.addInitScript(() => {
+    const original = Storage.prototype.setItem;
     Storage.prototype.setItem = function () {
       throw new Error('storage disabled');
     };
+    Object.defineProperty(window, '__restoreSetItem', {
+      value: () => { Storage.prototype.setItem = original; },
+    });
   });
-  await page.goto('/');
+  try {
+    await page.goto('/');
 
-  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
-  await expect(page.locator('#error')).toBeHidden();
-  await expect(page.locator('.card')).toHaveCount(2);
-  await expect(page.locator('#go')).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+    await expect(page.locator('#error')).toBeHidden();
+    await expect(page.locator('.card')).toHaveCount(2);
+    await expect(page.locator('#go')).toBeVisible();
 
-  await page.locator('#go').click();
-  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+    await page.locator('#go').click();
+    await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  } finally {
+    await page.evaluate(() => window.__restoreSetItem?.()).catch(() => {});
+  }
 });
 
 test('saved people keep increasing ids across reloads', async ({ page }) => {

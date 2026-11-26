@@ -69,6 +69,21 @@ function parseStored(raw){
   try{return JSON.parse(raw);}
   catch(err){console.error(err);return null;}
 }
+// Catalogues are loaded asynchronously, so the template set is memoised once
+// and rebuilt only when the English or locale catalogue set actually changes.
+// That keeps isDefaultName() allocation-free without freezing a stale set.
+const DEFAULT_NAME_TEMPLATE='Person {letter}';
+let defaultTemplatesCache=null,defaultTemplatesKey='';
+function defaultTemplates(){
+  const catalogues=store.I18N||{},codes=Object.keys(catalogues),english=store.EN?.['people.defaultName'];
+  const key=JSON.stringify([english,codes,codes.map(code=>catalogues[code]?.['people.defaultName'])]);
+  if(key!==defaultTemplatesKey){
+    defaultTemplatesKey=key;
+    defaultTemplatesCache=[DEFAULT_NAME_TEMPLATE,english,...codes.map(code=>catalogues[code]?.['people.defaultName'])]
+      .filter(template=>typeof template==='string'&&template);
+  }
+  return defaultTemplatesCache;
+}
 // An unset name is a placeholder for the current locale. Literal defaults
 // written by older releases are also unset, but only when they match the
 // person's current slot: a saved profile genuinely called "Person B" must not
@@ -76,15 +91,22 @@ function parseStored(raw){
 export function isDefaultName(value,i){
   const name=String(value??'').trim();
   if(!name)return true;
-  const letters=Number.isInteger(i)?[LETTERS[((i%8)+8)%8]]:[...LETTERS];
-  const templates=['Person {letter}',store.EN?.['people.defaultName'],...Object.values(store.I18N||{}).map(catalog=>catalog?.['people.defaultName'])].filter(template=>typeof template==='string'&&template);
-  return templates.some(template=>letters.some(letter=>template.replaceAll('{letter}',letter)===name));
+  const letters=Number.isInteger(i)?[LETTERS[((i%LETTERS.length)+LETTERS.length)%LETTERS.length]]:[...LETTERS];
+  return defaultTemplates().some(template=>letters.some(letter=>template.replaceAll('{letter}',letter)===name));
 }
 function cleanName(value,i){return isDefaultName(value,i)?'':String(value??'').trim();}
 
-export function defaultName(i){return t('people.defaultName',{letter:LETTERS[i%8]});}
+export function defaultName(i){return t('people.defaultName',{letter:LETTERS[i%LETTERS.length]});}
 export const normIncludeHeadway=value=>value===false?false:true;
-export function nextSeq(people){return Math.max(1,...people.map(p=>Number(String(p.id).replace(/\D/g,''))||0))+1;}
+// Person ids are 'p<n>' and directory ids 'd<n>'; the digits are the sequence.
+// A missing or non-numeric id contributes zero, so numbering always starts at 1.
+export function parsePersonSequence(id){
+  const digits=String(id??'').replace(/\D/g,'');
+  if(!digits)return 0;
+  const value=Number(digits);
+  return Number.isFinite(value)&&value>=0?value:0;
+}
+export function nextSeq(people){return Math.max(1,...people.map(p=>parsePersonSequence(p?.id)))+1;}
 function buildSettings(stored,modes){
   stored=stored&&typeof stored==='object'?stored:{};
   return{modes:Array.isArray(modes)&&modes.length?modes:['rail','bus'],fairness:FAIRNESS_METRICS.includes(stored.fairness)?stored.fairness:FAIRNESS_DEFAULT,tolerance:travelTolerance(stored.tolerance),fareTolerance:fareTolerance(stored.fareTolerance),includeHeadway:normIncludeHeadway(stored.includeHeadway),vectors:migrateVectors(stored.vectors),beta:{vectors:!!stored.beta?.vectors}};
@@ -203,6 +225,10 @@ export async function copyText(text){
   const ok=document.execCommand('copy');input.remove();
   if(!ok)throw new Error('copy failed');
 }
+// The share-status timer belongs to the status element, not to an expando on
+// the DOM node. A WeakMap keeps repeated share clicks from stacking timeouts.
+const shareStatusTimers=new WeakMap();
+const SHARE_STATUS_DURATION_MS=2500;
 export async function shareScenario(){
   // Only share a selection the sender actually has. A setup copied before any
   // search must not make the recipient open an invented first result.
@@ -221,10 +247,13 @@ export async function shareScenario(){
   const report=message=>{
     flashTooltip(button,message);
     if(!status)return;
-    clearTimeout(status.shareStatusTimer);
+    const timer=shareStatusTimers.get(status);
+    if(timer!==undefined)clearTimeout(timer);
     status.textContent=message;
     status.hidden=false;
-    status.shareStatusTimer=setTimeout(()=>{status.hidden=true;status.textContent='';},2500);
+    shareStatusTimers.set(status,setTimeout(()=>{
+      status.hidden=true;status.textContent='';shareStatusTimers.delete(status);
+    },SHARE_STATUS_DURATION_MS));
   };
   try{await copyText(url);report(t('share.copied'));}
   catch(err){console.error(err);report(t('share.failed'));}

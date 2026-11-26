@@ -1,9 +1,9 @@
 # Project instructions
 
-- At the end of every assistant turn, prepend a timestamped block to `observations.md` summarizing what you learned and did in that round. Never edit, reorder, or delete existing blocks; insert only at the top.
+- At the end of every assistant turn, insert a new timestamped block at the top of `observations.md` summarizing what you learned and did in that round. Never edit, reorder, or delete existing blocks; the staged file must equal the new blocks plus the previous file byte-for-byte.
 - Run Playwright against the built `public/` output, never the source tree. `npm test` builds and serves `public/` automatically.
 - Deployable pages and scripts live in `src/`; files served verbatim live in `static/`; Vite bundles both into `public/`. Do not serve or test the source tree directly.
-- Bump the service-worker cache version in `static/sw.js` when changing cached assets, add new bundle files to its asset list, and keep the patch strings in `scripts/finalize.mjs` in sync.
+- Bump the service-worker cache version in `static/sw.js` when changing cached assets and add new bundle files to its asset list. `static/sw.js` is deployed verbatim; there is no post-build patch step.
 - Keep user-facing copy in `static/i18n/*.json`; treat the text in `src/index.html` as a no-JavaScript fallback only.
 - Libraries come from npm and are bundled by Vite. Do not add vendored copies under `vendor/`.
 - Shared mutable state lives in the `store` object in `src/js/store.js`; modules own behaviour, the store owns state.
@@ -27,8 +27,8 @@
 
 - Add shared UI hooks once (`#actionStatus` live region, `#betaBadgeState` span) and reuse them for all feedback/state findings instead of one-off markup per bug.
 - For any new i18n key, update `src/js/i18n.js` FALLBACK **and** all 15 `static/i18n/*.json` catalogues in one pass; `npm run i18n:check` is the gate.
-- When catalogue keys change, update hard-coded counts in `tests/e2e.spec.js` (currently 202) and keep dynamic-key lookups exempt from literal scanning.
-- When cached assets change, bump `CACHE` in `static/sw.js` and update the expected version in `tests/audit-sw.spec.js`. `scripts/finalize.mjs` only patches the `'./sw.js',` token; there is no version string to sync there.
+- When catalogue keys change, derive expected counts in `tests/e2e.spec.js` from the English catalogue instead of hard-coding a number, and keep dynamic-key lookups exempt from literal scanning.
+- When cached assets change, bump `CACHE` in `static/sw.js` and update the expected version in `tests/audit-sw.spec.js`. The service worker is copied verbatim, so edit `static/sw.js` directly; no build-script patch token exists.
 - Add regressions to the spec that already owns the area (`tests/live-findings-fixes.spec.js`, `tests/mobile.spec.js`) instead of creating a new suite.
 
 ### Known time sinks on this codebase
