@@ -37,7 +37,7 @@
   <div class="header-end">
     <div class="header-actions">
       <button class="beta-badge" id="betaBadge" type="button" aria-pressed="false" data-i18n-tooltip="beta.badgeTip" data-i18n-aria-label="beta.badgeTip" aria-label="Turns on experiments and a data export." title="Turns on experiments and a data export." data-tooltip="Turns on experiments and a data export.">
-        <span data-i18n="beta.badge">Beta</span>
+        <span data-i18n="beta.badge">Beta</span><span class="beta-state" id="betaBadgeState" data-i18n="beta.off">Off</span>
       </button>
       <button class="icon-button" id="library" type="button" data-i18n-tooltip="people.library" data-i18n-aria-label="people.library" aria-label="Saved people" title="Saved people" data-tooltip="Saved people">
         <span class="icon icon-bookmark" aria-hidden="true"></span>
@@ -258,6 +258,7 @@
   </nav>
 </div>
 <div class="mobile-error" id="mobileError" role="alert" hidden></div>
+<output id="actionStatus" class="action-status" role="status" aria-live="polite" hidden></output>
 <dialog class="dialog" id="peopleDialog" aria-labelledby="libraryTitle">
   <div class="dialog-head">
     <h2 id="libraryTitle" data-i18n="people.libraryTitle">Saved people</h2>

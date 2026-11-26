@@ -192,5 +192,13 @@
   "beta.diagnosticsHelp": "Beta cũng hiển thị nút Chẩn đoán ở chân trang. Nút này tải xuống và sao chép tên, điểm xuất phát và tuyến đường của bạn.",
   "options.toleranceHelp": "Mục tiêu có mức tối thiểu: 8 phút tại ga, 5 phút tại các trạm khác, HK$1 cho giá vé.",
   "error.noCommonArea": "Tất cả điểm xuất phát đều kết nối được với mạng lưới, nhưng không có khu vực nào mà mọi người đều đến được trong 90 phút.",
-  "results.noFitTolerance": "Không có khu vực nào phù hợp với mức dung sai này. Hãy tăng mức dung sai."
+  "results.noFitTolerance": "Không có khu vực nào phù hợp với mức dung sai này. Hãy tăng mức dung sai.",
+  "results.header": "{count} khu vực tốt nhất · công bằng nhất trước",
+  "people.removed": "Đã xóa {name}.",
+  "people.undo": "Hoàn tác",
+  "people.restored": "Đã khôi phục {name}.",
+  "legal.summaryPrivacy": "Tóm tắt: Người và cài đặt của bạn chỉ lưu trên thiết bị này. Tìm kiếm địa điểm và ô bản đồ gửi yêu cầu đến dịch vụ bên thứ ba. Liên kết chia sẻ thể hiện kịch bản trong URL. Không có tài khoản, phân tích hay máy chủ ứng dụng.",
+  "legal.summaryTerms": "Tóm tắt: Kết quả chỉ là ước tính, không phải dẫn đường hay tư vấn chuyên môn. Hãy kiểm tra thông tin chính thức của nhà vận hành trước khi đi. Ứng dụng được cung cấp \"nguyên trạng\"; bạn chịu trách nhiệm về nội dung mình nhập và chia sẻ.",
+  "legal.summaryCredits": "Tóm tắt: Dữ liệu bản đồ từ OpenStreetMap, ô bản đồ từ OpenFreeMap, tìm kiếm từ Photon và giá vé từ dữ liệu mở của MTR. Mã ứng dụng theo giấy phép MIT.",
+  "legal.summaryProcess": "Tóm tắt: Điểm xuất phát được ghép với trạm gần nhất, định tuyến cục bộ tính thời gian di chuyển và xếp khu vực theo chênh lệch thời gian hoặc giá vé công bằng. Giá vé xe buýt là ước tính."
 }

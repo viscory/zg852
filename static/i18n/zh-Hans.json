@@ -192,5 +192,13 @@
   "beta.diagnosticsHelp": "测试版还会在页脚显示“诊断”按钮。它会下载并复制你的姓名、起点和路线。",
   "options.toleranceHelp": "目标设有下限：车站为 8 分钟，其他站点为 5 分钟，车费为 HK$1。",
   "error.noCommonArea": "各出发地都能接上交通网络，但没有所有人都能在90分钟内到达的地区。",
-  "results.noFitTolerance": "没有符合此容差的区域。请提高容差。"
+  "results.noFitTolerance": "没有符合此容差的区域。请提高容差。",
+  "results.header": "前 {count} 个区域 · 最公平者优先",
+  "people.removed": "已移除{name}。",
+  "people.undo": "撤销",
+  "people.restored": "已恢复{name}。",
+  "legal.summaryPrivacy": "摘要：你的人员和设置只保存在本设备。地点搜索和地图瓦片会向第三方服务发出请求；分享链接会在网址中显示方案。没有账户、分析或应用后端。",
+  "legal.summaryTerms": "摘要：结果只是估算，并非导航或专业建议。出发前请查阅运营商的官方信息。本程序按现状提供；你决定输入和分享的内容。",
+  "legal.summaryCredits": "摘要：地图数据来自 OpenStreetMap，瓦片来自 OpenFreeMap，搜索由 Photon 提供，票价来自港铁开放数据。程序代码采用 MIT 许可。",
+  "legal.summaryProcess": "摘要：起点会匹配附近站点，本地路径计算出行时间，再按公平的车程或票价差距排序。巴士票价为估算。"
 }

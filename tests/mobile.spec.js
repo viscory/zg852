@@ -263,6 +263,35 @@ test('unbounded point tap shows a route card without scores', async ({ page }) =
   await expect(page.locator('#interestRatings')).not.toContainText('/100');
 });
 
+test('an expanded route card scrolls to the fare disclaimer instead of clipping it', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.locator('#go').click();
+  await waitForSearch(page, { heat: true });
+  await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
+  await page.waitForTimeout(500);
+  const target = await page.evaluate(() => {
+    for (const el of document.querySelectorAll('path.heat-cell')) {
+      const box = el.getBoundingClientRect();
+      if (box.width < 12 || box.height < 12 || box.top < 70 || box.top > innerHeight - 80) continue;
+      const x = box.left + box.width / 2, y = box.top + box.height / 2;
+      const top = document.elementFromPoint(x, y);
+      if (top === el || top?.closest?.('.leaflet-interactive') === el) return { x, y };
+    }
+    return null;
+  });
+  expect(target).not.toBeNull();
+  await page.touchscreen.tap(target.x, target.y);
+  await expect(page.locator('body')).toHaveClass(/mobile-route-open/);
+  await page.locator('#toggleRoute').click();
+  await expect(page.locator('.fare-note')).toBeVisible();
+
+  const scroller = page.locator('#flipStage');
+  const metrics = await scroller.evaluate(el => ({ scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }));
+  expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
+  await scroller.evaluate(el => { el.scrollTop = el.scrollHeight; });
+  await expect(page.locator('.fare-note')).toBeInViewport();
+});
+
 test('focusing a start hides the bars and keeps suggestions above the keyboard', async ({ page }) => {
   await page.setViewportSize({ width: 393, height: 664 });
   const input = page.locator('#start-p1');

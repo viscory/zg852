@@ -192,5 +192,13 @@
   "beta.diagnosticsHelp": "Beta juga menampilkan tombol Diagnostics di bawah. Tombol ini mengunduh dan menyalin nama, titik awal, dan rute Anda.",
   "options.toleranceHelp": "Target memiliki batas bawah: 8 menit di stasiun, 5 menit di halte lain, HK$1 untuk tarif.",
   "error.noCommonArea": "Semua titik awal terhubung ke jaringan, tetapi tidak ada area yang dapat dicapai semua orang dalam 90 menit.",
-  "results.noFitTolerance": "Tidak ada area yang sesuai dengan toleransi ini. Naikkan toleransi."
+  "results.noFitTolerance": "Tidak ada area yang sesuai dengan toleransi ini. Naikkan toleransi.",
+  "results.header": "{count} area terbaik · paling adil diutamakan",
+  "people.removed": "{name} dihapus.",
+  "people.undo": "Urungkan",
+  "people.restored": "{name} dipulihkan.",
+  "legal.summaryPrivacy": "Ringkasan: Orang dan pengaturan Anda tetap di perangkat ini. Pencarian tempat dan ubin peta mengirim permintaan ke penyedia pihak ketiga. Tautan berbagi menampilkan skenario di URL. Tidak ada akun, analitik, atau backend aplikasi.",
+  "legal.summaryTerms": "Ringkasan: Hasil hanya perkiraan, bukan navigasi atau nasihat profesional. Periksa informasi operator resmi sebelum bepergian. Aplikasi diberikan \"sebagaimana adanya\"; Anda bertanggung jawab atas data yang dimasukkan dan dibagikan.",
+  "legal.summaryCredits": "Ringkasan: Data peta dari OpenStreetMap, ubin dari OpenFreeMap, pencarian dari Photon, dan tarif dari data terbuka MTR. Kode aplikasi berlisensi MIT.",
+  "legal.summaryProcess": "Ringkasan: Titik awal dicocokkan dengan halte terdekat, perutean lokal menghitung waktu, dan area diurutkan berdasarkan selisih waktu atau tarif yang adil. Tarif bus adalah perkiraan."
 }

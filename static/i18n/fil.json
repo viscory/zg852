@@ -192,5 +192,13 @@
   "beta.diagnosticsHelp": "Nagpapakita rin ang Beta ng button na Diagnostics sa footer. Ini-download at kinocopy nito ang inyong mga pangalan, pinagmulan at ruta.",
   "options.toleranceHelp": "May pinakamababa ang target: 8 min sa mga estasyon, 5 min sa ibang hintuan, HK$1 sa pamasahe.",
   "error.noCommonArea": "Lahat ng panimulang lugar ay nakakonekta sa network, ngunit walang lugar na maaabot ng lahat sa loob ng 90 minuto.",
-  "results.noFitTolerance": "Walang lugar na sakto sa tolerance na ito. Taasan ito."
+  "results.noFitTolerance": "Walang lugar na sakto sa tolerance na ito. Taasan ito.",
+  "results.header": "Pinakamahusay na {count} lugar · pinakamakatarungan muna",
+  "people.removed": "Tinanggal ang {name}.",
+  "people.undo": "I-undo",
+  "people.restored": "Naibalik ang {name}.",
+  "legal.summaryPrivacy": "Buod: Ang mga tao at setting ay nananatili sa iyong device. Ang paghahanap ng lugar at mga tile ng mapa ay nagpapadala ng request sa third-party providers. Ipinapakita ng share link ang senaryo sa URL. Walang account, analytics, o app backend.",
+  "legal.summaryTerms": "Buod: Mga tantya lang ang resulta, hindi navigation o propesyonal na payo. Suriin ang opisyal na impormasyon ng operator bago magbiyahe. Ibibigay ang app \"as is\"; ikaw ang may pananagutan sa inilalagay at ibinabahagi mo.",
+  "legal.summaryCredits": "Buod: Ang data ng mapa ay mula sa OpenStreetMap, tiles mula sa OpenFreeMap, paghahanap mula sa Photon, at pamasahe mula sa bukas na data ng MTR. Ang code ng app ay MIT licensed.",
+  "legal.summaryProcess": "Buod: Itinutugma ang mga panimulang lugar sa malapit na hintuan, kinakalkula ng lokal na routing ang oras, at inaayos ang mga lugar ayon sa patas na agwat ng oras o pamasahe. Tantya ang pamasahe sa bus."
 }

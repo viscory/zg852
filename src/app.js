@@ -7,7 +7,7 @@ import { betaVectorsEnabled } from './js/vectors.js';
 import { applySharedState,restoreState,restoreDirectory,restoreSelection,readSavedSelection,shareScenario,readHashState,save } from './js/state.js';
 import { triggerSearch } from './js/engine.js';
 import { createMap,drawOrigins } from './js/map.js';
-import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,applyUnboundedUi,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,commitPeople,setSidebarFace,flashTooltip,setFairness,clearPointNotice } from './js/ui.js';
+import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,applyUnboundedUi,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,showActionStatus,commitPeople,setSidebarFace,flashTooltip,setFairness,clearPointNotice } from './js/ui.js';
 import { exportDiagnostics } from './js/diagnostics.js';
 import { clearPoint } from './js/map.js';
 import { initScrollShadows } from './js/scroll.js';
@@ -96,7 +96,13 @@ document.querySelectorAll('dialog').forEach(dialog=>{
 document.querySelectorAll('.legal-button[data-legal]').forEach(button=>{button.onclick=()=>openLegal(button.dataset.legal);});
 document.querySelectorAll('.chip').forEach(chip=>chip.onclick=()=>{
   const on=chip.getAttribute('aria-pressed')==='true';
-  if(on&&document.querySelectorAll('.chip[aria-pressed="true"]').length<=1){showError(t('error.noMode'));return;}
+  if(on&&document.querySelectorAll('.chip[aria-pressed="true"]').length<=1){
+    const message=t('error.noMode');
+    showError(message);
+    showActionStatus(message);
+    flashTooltip(chip,message);
+    return;
+  }
   chip.setAttribute('aria-pressed',String(!on));
   clearError();readSettingsFromDom();
 });

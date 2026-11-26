@@ -222,3 +222,127 @@ test('fare mode orders results by the displayed fare spread', async ({ page }) =
   expect(spreads.every(Number.isFinite)).toBe(true);
   expect(spreads).toEqual([...spreads].sort((a, b) => a - b));
 });
+
+test('every displayed bus fare carries the estimate marker', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(1);
+  const rows = await page.locator('.result-row').count();
+  let checked = 0;
+  for (let index = 0; index < rows; index++) {
+    await page.locator(`.result-row[data-index="${index}"]`).click();
+    const fares = page.locator('#steps .route-bus .leg-meta .fare');
+    const count = await fares.count();
+    if (!count) continue;
+    checked = count;
+    const missing = await fares.evaluateAll(els => els.filter(el => !el.querySelector('.fare-estimate')).length);
+    expect(missing, `bus fares in result ${index}`).toBe(0);
+    break;
+  }
+  expect(checked).toBeGreaterThan(0);
+});
+
+test('the rejected last-mode toggle is announced in the shared status', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('.chip[data-mode="rail"]').click();
+  await page.locator('.chip[data-mode="bus"]').click();
+  await expect(page.locator('#error')).toHaveText('Enable at least one transport mode.');
+  await expect(page.locator('#actionStatus')).toBeVisible();
+  await expect(page.locator('#actionStatus')).toContainText('Enable at least one transport mode.');
+  await expect(page.locator('.chip[data-mode="bus"]')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('removing a person offers an undo that restores them', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await expect(page.locator('.card')).toHaveCount(2);
+  await page.locator('button[aria-label="Remove person B"]').click();
+  await expect(page.locator('.card')).toHaveCount(1);
+  await expect(page.locator('#actionStatus')).toBeVisible();
+  await expect(page.locator('#actionStatus')).toContainText('Removed Person B.');
+  await page.locator('#actionStatus .action-undo').click();
+  await expect(page.locator('.card')).toHaveCount(2);
+  await expect(page.locator('#actionStatus')).toContainText('Restored Person B.');
+});
+
+test('saving a person announces success outside the hover tooltip', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  // Only one start is set, so no search flips the sidebar away from the cards.
+  const input = page.locator('#start-p1');
+  await input.fill('North Point');
+  await input.press('Tab');
+  await expect(input).toHaveValue('North Point');
+  await page.locator('button[aria-label="Save person"]').first().click();
+  await expect(page.locator('#actionStatus')).toBeVisible();
+  await expect(page.locator('#actionStatus')).toHaveText('Saved to your people');
+});
+
+test('Enter on an unambiguous start commits it and runs the search', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  // The default scenario already has two starts, so typing over one is enough
+  // to prove Enter commits the place and starts a search without clicking Go.
+  const input = page.locator('#start-p2');
+  await expect(input).toHaveValue('North Point');
+  await input.fill('Tsuen Wan');
+  await expect(page.locator('#suggest-p2')).toBeVisible();
+  await input.press('Enter');
+  await expect(page.locator('#suggest-p2')).toBeHidden();
+  await expect(input).toHaveValue('Tsuen Wan');
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+});
+
+test('the results count and legal summaries follow the selected language', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  const rows = await page.locator('.result-row').count();
+  await expect(page.locator('#nres')).toHaveText(`Top ${rows} areas · fairest first`);
+
+  const german = await (await page.request.get('i18n/de.json')).json();
+  await page.locator('#locale').selectOption('de');
+  await expect(page.locator('#nres')).toHaveText(german['results.header'].replace('{count}', String(rows)));
+  await page.locator('.legal-button[data-legal="process"]').click();
+  await expect(page.locator('.legal-summary')).toHaveAttribute('lang', 'de');
+  await expect(page.locator('.legal-summary')).toHaveText(german['legal.summaryProcess']);
+  await expect(page.locator('#legalBody')).toHaveAttribute('lang', 'en');
+  await expect(page.locator('.legal-note')).toHaveText(german['legal.englishOnly']);
+});
+
+test('truncated result names expose their full value', async ({ page }) => {
+  await page.goto('/');
+  const [northPoint, tsuenWan] = await Promise.all([nodeOrigin(page, 'North Point'), nodeOrigin(page, 'Tsuen Wan')]);
+  const longName = 'Alexandra Verylongname That Cannot Fit In A Result Row';
+  const url = await shareUrl(page, {
+    v: 1,
+    people: [
+      { id: 'p1', name: longName, origin: northPoint, walkMinutes: 20 },
+      { id: 'p2', name: 'B', origin: tsuenWan, walkMinutes: 20 },
+    ],
+    settings,
+    locale: 'en',
+  });
+  await page.goto(url);
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  const name = page.locator('.result-row .person-name').first();
+  await expect(name).toHaveAttribute('title', longName);
+  await expect(name).toHaveAttribute('aria-label', longName);
+});
+
+test('the desktop beta badge shows its on/off state', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await expect(page.locator('#betaBadgeState')).toBeVisible();
+  await expect(page.locator('#betaBadgeState')).toHaveText('Off');
+  await page.locator('#betaBadge').click();
+  await expect(page.locator('#betaBadge')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#betaBadgeState')).toHaveText('On');
+  await page.locator('#betaBadge').click();
+  await expect(page.locator('#betaBadgeState')).toHaveText('Off');
+});

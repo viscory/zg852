@@ -180,6 +180,27 @@ export function flashTooltip(element,message){
   clearTimeout(element.tooltipTimer);
   element.tooltipTimer=setTimeout(()=>setLabel(element,original),1600);
 }
+let actionStatusTimer=null;
+export function hideActionStatus(){
+  clearTimeout(actionStatusTimer);actionStatusTimer=null;
+  const status=$('actionStatus');if(status){status.hidden=true;status.replaceChildren();}
+}
+export function showActionStatus(message,{actionLabel='',onAction=null,duration=6000}={}){
+  const status=$('actionStatus');if(!status)return;
+  clearTimeout(actionStatusTimer);
+  status.replaceChildren();
+  const text=document.createElement('span');
+  text.textContent=message;
+  status.appendChild(text);
+  if(actionLabel&&typeof onAction==='function'){
+    const button=document.createElement('button');
+    button.type='button';button.className='action-undo';button.textContent=actionLabel;
+    button.onclick=()=>{hideActionStatus();onAction();};
+    status.appendChild(button);
+  }
+  status.hidden=false;
+  actionStatusTimer=setTimeout(()=>{status.hidden=true;status.replaceChildren();},duration);
+}
 function activeMetric(){
   return activeFairnessMetric(store.settings.fairness);
 }
@@ -233,12 +254,14 @@ export function applyUnboundedUi(){
 }
 export function applyBetaFeatures(){
   const enabled=betaVectorsEnabled();
+  const stateKey=enabled?'beta.on':'beta.off';
   const badge=$('betaBadge');if(badge)badge.setAttribute('aria-pressed',String(enabled));
+  const badgeState=$('betaBadgeState');if(badgeState){badgeState.dataset.i18n=stateKey;badgeState.textContent=t(stateKey);}
   const section=$('vectorSection');if(section)section.hidden=!enabled;
   const legendKey=$('legendVectorKey');if(legendKey)legendKey.hidden=!enabled;
   const diagnostics=$('exportDiagnostics');if(diagnostics)diagnostics.hidden=!enabled;
   const mobileBeta=$('mobileBeta');if(mobileBeta)mobileBeta.setAttribute('aria-pressed',String(enabled));
-  const mobileBetaState=$('mobileBetaState');if(mobileBetaState){const key=enabled?'beta.on':'beta.off';mobileBetaState.dataset.i18n=key;mobileBetaState.textContent=t(key);}
+  const mobileBetaState=$('mobileBetaState');if(mobileBetaState){mobileBetaState.dataset.i18n=stateKey;mobileBetaState.textContent=t(stateKey);}
 }
 export function applySettingsToDom(){
   document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',String(store.settings.modes.includes(c.dataset.mode))));
@@ -318,14 +341,14 @@ export function renderResults(active=store.activePeople){
     return;
   }
   state.hidden=true;
-  count.textContent=`${t('results.areas',{count:store.results.length})} · ${t('results.sortHint')}`;
+  count.textContent=t('results.header',{count:store.results.length});
   syncMobileResults('ready',active);
   // Never switch mobile panes from a recompute: only explicit navigation or
   // selecting a result may move the user out of the pane they are editing.
   list.innerHTML=store.results.map((r,i)=>`<div role="listitem"><button class="result-row" type="button" data-index="${i}" aria-label="${esc(`${t('results.selectTitle')}: ${r.label}`)}">
     <span class="result-head"><b>${esc(r.label)}</b><span class="tag">${esc(t('cat.'+r.catKey))}</span><span class="district">${esc(r.district)}</span></span>
     <span class="result-times"><span>${esc(store.settings.fairness==='fare'?t('results.fareSpread',{value:money(r.fareGap)}):t('results.spread',{value:intNum(r.gap)}))}</span><span>${esc(t('results.longest',{value:intNum(r.slowest)}))}</span></span>
-    <span class="result-people">${r.routes.map((route,j)=>`<span class="result-person"><span class="avatar ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span><span class="person-name">${esc(displayName(active[j],j))}</span>${fareMarkup(route)}</span>`).join('')}</span>
+    <span class="result-people">${r.routes.map((route,j)=>{const name=esc(displayName(active[j],j));return `<span class="result-person"><span class="avatar ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span><span class="person-name" title="${name}" aria-label="${name}">${name}</span>${fareMarkup(route)}</span>`;}).join('')}</span>
   </button></div>`).join('');
   list.querySelectorAll('.result-row').forEach(row=>{row.onclick=()=>selectResult(Number(row.dataset.index),active,true);});
   markSelectedResult();
@@ -413,8 +436,17 @@ export function renderSuggestions(sug,entries,person,input,failed=false,settled=
     else if(e.key==='End'){e.preventDefault();highlight(rows().length-1);}
     else if(e.key==='Enter'){
       e.preventDefault();
-      if(active>=0&&rows()[active])rows()[active].click();
-      else resolveTypedOrigin(input);
+      if(active>=0&&rows()[active]){rows()[active].click();return;}
+      // Enter commits an unambiguous typed place, closes the list and runs the
+      // same Search action as the button. Ambiguous text stays open so the
+      // required suggestion can still be chosen.
+      if(resolveTypedOrigin(input)){
+        state.cancel?.();
+        sug.hidden=true;active=-1;
+        input.setAttribute('aria-expanded','false');
+        input.removeAttribute('aria-activedescendant');
+        $('go')?.click();
+      }
     }
     else if(e.key==='Escape'){
       e.preventDefault();state.cancel?.();
@@ -496,8 +528,16 @@ export function makeCard(person){
   card.querySelector('.save-person').onclick=()=>savePersonToDirectory(person);
   card.querySelector('.remove').onclick=()=>{
     if(store.pinTarget===id)clearPinMode();
-    store.people=store.people.filter(p=>p.id!==id);
+    const index=store.people.indexOf(person);
+    if(index<0)return;
+    const name=displayName(person,index);
+    store.people.splice(index,1);
     commitPeople();
+    showActionStatus(t('people.removed',{name}),{actionLabel:t('people.undo'),onAction:()=>{
+      store.people.splice(Math.min(index,store.people.length),0,person);
+      commitPeople();
+      showActionStatus(t('people.restored',{name}));
+    }});
   };
   card.querySelector('.pin').onclick=()=>startPinMode(id,input,sug);
   const walk=card.querySelector('[data-walk]'),walkValue=card.querySelector('.walk-row .value');
@@ -548,7 +588,7 @@ export function refreshPersonLabels(){
     row.querySelectorAll('.result-person').forEach((entry,j)=>{
       const person=active[j];if(!person)return;
       const name=displayName(person,j);
-      const label=entry.querySelector('.person-name');if(label)label.textContent=name;
+      const label=entry.querySelector('.person-name');if(label){label.textContent=name;label.title=name;label.setAttribute('aria-label',name);}
       const avatar=entry.querySelector('.avatar');if(avatar)avatar.textContent=initialsFor(name);
     });
   });
@@ -635,7 +675,9 @@ export function savePersonToDirectory(person){
 }
 export function flashSaved(id){
   const card=document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);if(!card)return;
-  flashTooltip(card.querySelector('.save-person'),t('people.saved'));
+  const message=t('people.saved');
+  flashTooltip(card.querySelector('.save-person'),message);
+  showActionStatus(message);
 }
 export function deleteDirectoryPerson(id){
   store.directory=store.directory.filter(d=>d.id!==id);
@@ -720,16 +762,22 @@ function legalKindFromHref(href){
     return LEGAL_KINDS.includes(kind)?kind:null;
   }catch{return null;}
 }
-function legalNote(){
+function legalNote(kind){
+  const fragment=document.createDocumentFragment();
+  const summary=document.createElement('p');
+  summary.className='legal-summary';summary.lang=store.locale;
+  summary.textContent=t(`legal.summary${kind[0].toUpperCase()}${kind.slice(1)}`);
+  fragment.appendChild(summary);
   const note=document.createElement('p');
   note.className='legal-note';note.textContent=t('legal.englishOnly');
-  return note;
+  fragment.appendChild(note);
+  return fragment;
 }
-function setLegalBody(main){
+function setLegalBody(kind,main){
   const body=$('legalBody');if(!body)return;
   body.lang='en';
   const fragment=document.createDocumentFragment();
-  fragment.appendChild(legalNote());
+  fragment.appendChild(legalNote(kind));
   if(main)[...main.childNodes].forEach(node=>fragment.appendChild(document.importNode(node,true)));
   body.replaceChildren(fragment);
 }
@@ -756,10 +804,10 @@ export async function openLegal(kind){
       button.textContent=link.textContent;
       link.replaceWith(button);
     });
-    setLegalBody(main);
+    setLegalBody(kind,main);
   }catch(err){
     console.error(err);
-    if(body){setLegalBody(null);const message=document.createElement('p');message.textContent=t('legal.failed');body.appendChild(message);}
+    if(body){setLegalBody(kind,null);const message=document.createElement('p');message.textContent=t('legal.failed');body.appendChild(message);}
   }
 }
 document.addEventListener('click',event=>{

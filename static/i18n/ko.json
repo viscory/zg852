@@ -192,5 +192,13 @@
   "beta.diagnosticsHelp": "베타는 하단에 진단 버튼도 표시합니다. 이름, 출발 장소, 경로를 다운로드하고 복사합니다.",
   "options.toleranceHelp": "목표에는 하한이 있습니다. 역에서는 8분, 다른 정류장에서는 5분, 요금은 HK$1입니다.",
   "error.noCommonArea": "모든 출발지가 교통망에 연결되지만, 모든 사람이 90분 안에 도달할 수 있는 장소가 없습니다.",
-  "results.noFitTolerance": "이 허용 범위에 맞는 지역이 없습니다. 허용 범위를 넓히세요."
+  "results.noFitTolerance": "이 허용 범위에 맞는 지역이 없습니다. 허용 범위를 넓히세요.",
+  "results.header": "상위 {count}개 지역 · 가장 공정한 곳부터",
+  "people.removed": "{name}을(를) 삭제했습니다.",
+  "people.undo": "실행 취소",
+  "people.restored": "{name}을(를) 복원했습니다.",
+  "legal.summaryPrivacy": "요약: 사람과 설정은 이 기기에 저장됩니다. 장소 검색과 지도 타일은 제3자 서비스에 요청을 보냅니다. 공유 링크에는 시나리오가 URL에 포함됩니다. 계정, 분석, 앱 백엔드는 없습니다.",
+  "legal.summaryTerms": "요약: 결과는 추정치이며 내비게이션이나 전문 조언이 아닙니다. 출발 전에 공식 운영 정보를 확인하세요. 앱은 있는 그대로 제공되며, 입력하고 공유하는 내용은 사용자의 책임입니다.",
+  "legal.summaryCredits": "요약: 지도 데이터는 OpenStreetMap, 타일은 OpenFreeMap, 검색은 Photon, 요금은 MTR 공개 데이터에서 가져옵니다. 앱 코드는 MIT 라이선스입니다.",
+  "legal.summaryProcess": "요약: 출발지를 주변 정류장에 연결하고 기기에서 이동 시간을 계산한 뒤 공정한 시간 또는 요금 차이로 정렬합니다. 버스 요금은 추정치입니다."
 }

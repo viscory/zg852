@@ -192,5 +192,13 @@
   "beta.diagnosticsHelp": "Beta also shows a Diagnostics button in the footer. It downloads and copies your names, start places and routes.",
   "options.toleranceHelp": "A target has a floor: 8 min at stations, 5 min at other stops, HK$1 for fares.",
   "error.noCommonArea": "Your starts reach the network, but no area is reachable by everyone within 90 minutes.",
-  "results.noFitTolerance": "No areas fit this tolerance. Increase it."
+  "results.noFitTolerance": "No areas fit this tolerance. Increase it.",
+  "results.header": "Top {count} areas · fairest first",
+  "people.removed": "Removed {name}.",
+  "people.undo": "Undo",
+  "people.restored": "Restored {name}.",
+  "legal.summaryPrivacy": "Summary: Your people and settings stay on this device. Place search and map tiles contact third-party providers; share links reveal the scenario in the URL. There is no account, analytics, or app backend.",
+  "legal.summaryTerms": "Summary: Results are estimates, not navigation or professional advice. Check official operator information before travelling. The app is provided as is; you control what you enter and share.",
+  "legal.summaryCredits": "Summary: Map data comes from OpenStreetMap, tiles from OpenFreeMap, search from Photon, and fares from MTR open data. Application code is MIT licensed.",
+  "legal.summaryProcess": "Summary: Starts are matched to nearby stops, local routing computes travel times, and areas are sorted by fair time or fare spread. Bus fares are estimates."
 }

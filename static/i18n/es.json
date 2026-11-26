@@ -192,5 +192,13 @@
   "beta.diagnosticsHelp": "Beta también muestra un botón de Diagnóstico en el pie de página. Descarga y copia sus nombres, puntos de partida y rutas.",
   "options.toleranceHelp": "Un objetivo tiene un mínimo: 8 min en estaciones, 5 min en otras paradas, HK$1 en tarifas.",
   "error.noCommonArea": "Todos los puntos de partida llegan a la red, pero no hay ninguna zona a la que todos puedan llegar en 90 minutos.",
-  "results.noFitTolerance": "Ninguna área se ajusta a esta tolerancia. Auméntala."
+  "results.noFitTolerance": "Ninguna área se ajusta a esta tolerancia. Auméntala.",
+  "results.header": "Las {count} mejores zonas · las más equitables primero",
+  "people.removed": "Se eliminó {name}.",
+  "people.undo": "Deshacer",
+  "people.restored": "Se restauró {name}.",
+  "legal.summaryPrivacy": "Resumen: Tus personas y ajustes permanecen en este dispositivo. La búsqueda de lugares y las teselas del mapa envían solicitudes a servicios de terceros. El enlace compartido muestra el escenario en la URL. No hay cuenta, analítica ni backend de la aplicación.",
+  "legal.summaryTerms": "Resumen: Los resultados son estimaciones, no navegación ni asesoramiento profesional. Consulta la información oficial del operador antes de viajar. La aplicación se ofrece «tal cual»; tú controlas lo que introduces y compartes.",
+  "legal.summaryCredits": "Resumen: Los datos del mapa proceden de OpenStreetMap, las teselas de OpenFreeMap, la búsqueda de Photon y las tarifas de los datos abiertos de MTR. El código de la aplicación tiene licencia MIT.",
+  "legal.summaryProcess": "Resumen: Los puntos de partida se asocian a paradas cercanas, el cálculo local obtiene los tiempos y las zonas se ordenan por una diferencia de tiempo o tarifa equitativa. Las tarifas de autobús son estimaciones."
 }

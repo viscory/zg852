@@ -192,5 +192,13 @@
   "beta.diagnosticsHelp": "Le bêta affiche aussi un bouton Diagnostics en pied de page. Il télécharge et copie vos noms, lieux de départ et itinéraires.",
   "options.toleranceHelp": "Une cible a un plancher : 8 min en gare, 5 min aux autres arrêts, 1 HK$ pour les tarifs.",
   "error.noCommonArea": "Tous les points de départ rejoignent le réseau, mais aucun lieu n'est accessible à tout le monde en 90 minutes.",
-  "results.noFitTolerance": "Aucune zone ne correspond à cette tolérance. Augmentez-la."
+  "results.noFitTolerance": "Aucune zone ne correspond à cette tolérance. Augmentez-la.",
+  "results.header": "{count} meilleures zones · les plus équitables d’abord",
+  "people.removed": "{name} a été supprimé.",
+  "people.undo": "Annuler",
+  "people.restored": "{name} a été restauré.",
+  "legal.summaryPrivacy": "Résumé : Vos personnes et vos réglages restent sur cet appareil. La recherche de lieux et les tuiles cartographiques envoient des requêtes à des services tiers. Le lien de partage révèle le scénario dans l’URL. Aucun compte, analyse ou serveur d’application.",
+  "legal.summaryTerms": "Résumé : Les résultats sont des estimations, pas un service de navigation ni un conseil professionnel. Vérifiez les informations officielles des opérateurs avant de voyager. L’application est fournie « en l’état » ; vous contrôlez ce que vous saisissez et partagez.",
+  "legal.summaryCredits": "Résumé : Données cartographiques d’OpenStreetMap, tuiles d’OpenFreeMap, recherche par Photon et tarifs des données ouvertes de MTR. Le code de l’application est sous licence MIT.",
+  "legal.summaryProcess": "Résumé : Les points de départ sont associés aux arrêts proches, un calcul local détermine les temps de trajet et les zones sont classées selon un écart de temps ou de tarif équitable. Les tarifs de bus sont des estimations."
 }

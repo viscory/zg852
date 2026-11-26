@@ -83,7 +83,12 @@ export function routeFares(route){
       flushRail();flushLightRail();
       const official=scheduledRouteFare(leg);
       const fare=round1(official??bandFare(km,BUS_FARE_BANDS));
-      bus+=fare;leg.fare=fare;mark([leg],official===null);
+      // The Process page states that bus/minibus fares are distance-band
+      // estimates. Mark every bus leg as an estimate, even when a matching
+      // snapshot fare was found, so identical fare sources never render with
+      // different certainty markers. Ferry snapshots remain unmarked.
+      const estimated=leg.mode==='bus'||official===null;
+      bus+=fare;leg.fare=fare;mark([leg],estimated);
     }
   }
   flushRail();flushLightRail();

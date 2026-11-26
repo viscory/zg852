@@ -1,3 +1,16 @@
+## 2026-11-26T09:35:21.308550Z
+
+- Completed all 10 production QA fixes: bus/minibus fares now always carry the estimate marker; the mobile expanded route card has a bounded inner scroller; person removal offers Undo; legal dialogs show localized summaries; the last-mode rejection is visible; Enter commits an unambiguous start and runs Search; the results header is a single localized string; long names expose full values; Save announces success; and the desktop Beta badge shows On/Off.
+- Added focused regressions for each fix, updated catalogue-key and service-worker-version expectations, kept the exact English results heading, and bumped the cache to zg852-v73.
+- Verified `npm run lint` (15 catalogues, 202 keys each, 125 literal keys verified) and `npm test` against built `public/` (182 passed). Untracked QA screenshots and `audit/` were left untouched.
+
+## 2026-11-26T09:13:03.573692+00:00
+
+- Finalized the live black-box QA report for https://zg852.pages.dev with exactly 10 ranked, evidence-backed findings.
+- Re-verified additional candidates from fresh production loads: stale selection was preserved intentionally and was not reported; zoom links did not pollute the URL; one-click person removal has no confirmation or undo; Enter in the start-place combobox leaves suggestions open; the desktop BETA badge has no visible pressed state.
+- Ranked fare-estimate marking, mobile route-panel clipping, and undestructive person removal highest because they affect fare truth, hidden route data, or lost scenario data; placed localization and minor feedback/state issues lower.
+- Kept the report evidence-only: DOM values, computed styles, storage state, console/network observations, and reproducible browser flows; no source, git, audit, test-output, or prior-report evidence was used.
+
 ## 2026-11-26T09:12:43Z
 
 - Implemented and pushed fixes for the actionable QA findings: headway wait no longer double-counts in displayed route legs; mobile Plan layout reserves a CTA dock so chips/checkbox are not covered; mobile no-results hint shows the real failure reason; share links omit a selection when none was made; route key now states colour=person and line style=mode; interest rating bars expose meter semantics without changing the bar-only visual design.
