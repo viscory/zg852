@@ -24,16 +24,16 @@ test.beforeEach(async ({ page }) => {
   }));
 });
 
-// Finding 1: the heat colour, the card chips and the result order must all be
-// driven by the worst fare anyone pays, not a hidden total/spread mix.
-test('fare ranking, heat value and visible chips share one value', () => {
+// Finding 1: the result order follows the fare spread shown on the card, while
+// the heat colour follows the largest visible fare chip named by the map key.
+test('fare ranking uses the displayed spread and heat uses the visible worst fare', () => {
   const engine = source('engine.js');
   const model = source('model.js');
   const map = source('map.js');
   const ui = source('ui.js');
 
   expect(engine).toMatch(/compareAreaRank\(a\.cell,b\.cell,'fare'\)/);
-  expect(model).toMatch(/if\(metric === 'fare'\)return \[\s*Number\(area\?\.maxFare\) \|\| 0,/);
+  expect(model).toMatch(/if\(metric === 'fare'\)return \[\s*Number\(area\?\.fareGap\) \|\| 0,\s*Number\(area\?\.maxFare\) \|\| 0,/);
   expect(model).toMatch(/export const heatValue = \(area,metric='time'\) => metric === 'fare'\s*\? Number\(area\?\.maxFare\) \|\| 0/);
   expect(map).toMatch(/const value=heatValue\(cell,metric\)/);
   expect(ui).toMatch(/fareMarkup\(route\)/);

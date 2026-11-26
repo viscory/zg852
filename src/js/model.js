@@ -32,10 +32,12 @@ export function overFairnessBand(cell,tolerance){
 
 // The visible ordering. Time mode uses the vector-adjusted fairness score
 // (the displayed spread and longest, with the disclosed interest preference as
-// a final tie-break). Fare mode starts with the worst fare anyone pays, which
-// is the largest fare chip on the card and the value used by the heat legend.
+// a final tie-break). Fare mode starts with the displayed fare spread, then
+// the largest visible fare chip and the displayed time numbers. The heat
+// colour still follows the largest fare chip, as the map key states.
 export function areaRank(area,metric='time'){
   if(metric === 'fare')return [
+    Number(area?.fareGap) || 0,
     Number(area?.maxFare) || 0,
     Number(area?.slowest) || 0,
     Number(area?.gap) || 0,

@@ -118,8 +118,9 @@ export function compute(reveal=false){
       cell.fareEstimated=cached.estimated;
       passing.push({cell,fitScore});
     }
-    // One shared fare ordering: the largest fare on the card first, then the
-    // displayed time numbers, then the disclosed interest preference and key.
+    // One shared fare ordering: the displayed fare spread first, then the
+    // largest fare chip, the displayed time numbers and the disclosed interest
+    // preference. The heat legend separately explains its largest-fare colour.
     passing.sort((a,b)=>compareAreaRank(a.cell,b.cell,'fare'));
     store.cloudCells=passing.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
     store.results=passing.slice(0,7).map(({cell})=>{

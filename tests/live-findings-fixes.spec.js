@@ -155,3 +155,70 @@ test('a failed search shows the real error instead of the pre-search prompt', as
   await expect(page.locator('#error')).toContainText(/cannot reach|no area is reachable/);
   await expect(page.locator('#resultState')).toBeHidden();
 });
+
+test('Unlimited shows the ranked areas and still picks any point under them', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('#tolerance').evaluate(el => {
+    el.value = String(el.max);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await expect(page.locator('#tolval')).toHaveText('Unlimited');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(1);
+  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+  await expect(page.locator('path.heat-cell').first()).toHaveAttribute('aria-hidden', 'true');
+  await expect(page.locator('path.heat-cell[tabindex]')).toHaveCount(0);
+
+  // A click on top of a shaded cell must pick a free point, not the cell.
+  const target = await page.locator('path.heat-cell').evaluateAll(cells => {
+    const map = document.getElementById('map');
+    for (const cell of cells) {
+      const box = cell.getBoundingClientRect();
+      if (box.width < 8 || box.height < 8) continue;
+      const x = box.left + box.width / 2, y = box.top + box.height / 2;
+      if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) continue;
+      const top = document.elementFromPoint(x, y);
+      if (!map?.contains(top) || top?.classList?.contains('leaflet-interactive')) continue;
+      return { x, y };
+    }
+    return null;
+  });
+  expect(target).not.toBeNull();
+  await page.mouse.click(target.x, target.y);
+  await expect(page.locator('#pointBanner')).toBeVisible();
+  await expect(page.locator('#detailTitle')).toHaveText('Pinned point');
+});
+
+test('the left-panel toggle names the pane it reveals', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  const toggle = page.locator('#swapFace');
+  await expect(toggle).toHaveAttribute('aria-label', 'Show selected route');
+
+  await page.locator('.result-row').first().click();
+  await expect(page.locator('.side-left .face[data-face="detail"]')).toBeVisible();
+  await expect(toggle).toHaveAttribute('aria-label', 'Show people and start places');
+  await expect(page.locator('#start-p1')).toBeHidden();
+
+  await toggle.click();
+  await expect(page.locator('.side-left .face[data-face="people"]')).toBeVisible();
+  await expect(page.locator('#start-p1')).toBeVisible();
+  await expect(page.locator('[data-walk]').first()).toBeVisible();
+});
+
+test('fare mode orders results by the displayed fare spread', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('#fairnessToggle [data-fairness="fare"]').click();
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(1);
+  const spreads = await page.locator('.result-row').evaluateAll(rows => rows.map(row => {
+    const label = row.querySelector('.result-times > span')?.textContent || '';
+    return Number((label.match(/[\d.]+/) || [0])[0]);
+  }));
+  expect(spreads.every(Number.isFinite)).toBe(true);
+  expect(spreads).toEqual([...spreads].sort((a, b) => a - b));
+});

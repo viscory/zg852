@@ -74,7 +74,7 @@ test('the Fairness toggle switches labels and legend without losing each toleran
   await expect(page.locator('#tolval')).toHaveText('40%');
 });
 
-test('fare mode ranks results by the largest fare shown on the card', async ({ page }) => {
+test('fare mode ranks results by the displayed fare spread', async ({ page }) => {
   await page.locator('#fairnessToggle [data-fairness="fare"]').click();
   await expect(page.locator('#tolval')).toHaveText('25%');
   await page.locator('#go').click();
@@ -82,22 +82,23 @@ test('fare mode ranks results by the largest fare shown on the card', async ({ p
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   await expect(page.locator('#legendFairText')).toHaveText('Fair area, darker means cheaper fares');
 
-  const worstFares = await page.locator('.result-row').evaluateAll(rows => rows.map(row => {
-    const fares = [...row.querySelectorAll('.person-fares .fare')].map(node => Number((node.textContent.match(/[\d.]+/) || [0])[0]));
-    return Math.max(...fares);
+  const spreads = await page.locator('.result-row').evaluateAll(rows => rows.map(row => {
+    const label = row.querySelector('.result-times > span')?.textContent || '';
+    return Number((label.match(/[\d.]+/) || [0])[0]);
   }));
-  expect(worstFares.length).toBeGreaterThan(1);
-  expect(worstFares).toEqual([...worstFares].sort((a, b) => a - b));
+  expect(spreads.length).toBeGreaterThan(1);
+  expect(spreads.every(Number.isFinite)).toBe(true);
+  expect(spreads).toEqual([...spreads].sort((a, b) => a - b));
 });
 
-test('fare Unlimited hides the heat map and allows a map point', async ({ page }) => {
+test('fare Unlimited keeps the heat map as reference and allows a map point', async ({ page }) => {
   await page.locator('#fairnessToggle [data-fairness="fare"]').click();
   await setTolerance(page, 3.05);
   await expect(page.locator('#tolval')).toHaveText('Unlimited');
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
-  await expect(page.locator('path.heat-cell')).toHaveCount(0);
+  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   await expect(page.locator('#unboundedHint')).toBeVisible();
   const map = await page.locator('#map').boundingBox();
   await page.touchscreen.tap(map.x + map.width / 2, map.y + map.height / 2);

@@ -96,15 +96,16 @@ test('bundled route fares replace the capped bus bands', () => {
   expect(config).toMatch(/BUS_FARE_BANDS=\[\[4,5\.5\]/);
 });
 
-// Finding 7: fare ranking uses the same worst-fare value as the heat legend,
-// with displayed time values and the disclosed interest preference as tie-breaks.
-test('fare ranking sorts by the worst fare shown on the card', () => {
+// Finding 7: fare ranking uses the displayed fare spread, with visible fare
+// and time values plus the disclosed interest preference as tie-breaks.
+test('fare ranking sorts by the fare spread shown on the card', () => {
   const engine = source('engine.js');
   const model = source('model.js');
   expect(engine).toMatch(/totalFare=Math\.round\(fares\.reduce\(/);
   expect(engine).toMatch(/fareSpread=Math\.round\(\(fareGap\/Math\.max\(meanFare,1\)\)/);
   expect(engine).toMatch(/cached\.meanFare\*fareLimit,FARE_GAP_FLOOR/);
   expect(engine).toMatch(/compareAreaRank\(a\.cell,b\.cell,'fare'\)/);
+  expect(model).toMatch(/Number\(area\?\.fareGap\)\s*\|\|\s*0/);
   expect(model).toMatch(/Number\(area\?\.maxFare\)\s*\|\|\s*0/);
   expect(engine).not.toMatch(/fareEstimated\)-/);
   expect(engine).not.toMatch(/meetingSuitability/);

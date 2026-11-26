@@ -140,6 +140,20 @@ export function setSidebarFace(face){
   const apply=()=>{
     store.sidebarFace=face;
     document.querySelectorAll('.side-left [data-face]').forEach(el=>{el.hidden=el.dataset.face!==face;});
+    // The button names what it reveals, so the people inputs are never hidden
+    // behind a control that sounds like it merely exchanges the two panes.
+    const toggle=$('swapFace');
+    if(toggle){
+      const key=face==='people'?'sidebar.showRoute':'sidebar.showPeople';
+      const label=t(key);
+      toggle.dataset.i18nAriaLabel=key;
+      toggle.dataset.i18nTooltip=key;
+      toggle.setAttribute('aria-label',label);
+      toggle.setAttribute('title',label);
+      toggle.setAttribute('data-tooltip',label);
+      const glyph=toggle.querySelector('.icon');
+      if(glyph)glyph.className=`icon icon-${face==='people'?'route':'users'}`;
+    }
   };
   if(!stage||matchMedia('(prefers-reduced-motion: reduce)').matches){apply();return;}
   const token=++flipToken;

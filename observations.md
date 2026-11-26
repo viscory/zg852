@@ -1,3 +1,10 @@
+## 2026-11-26T08:38:13Z
+
+- Fixed the three confirmed quit-level live findings at source. Unlimited now keeps the ranked heat cells as non-interactive, aria-hidden reference overlays, so the map is no longer blank while results remain and clicks anywhere still pick a free point.
+- Replaced the misleading face control with a truthful, face-aware label ("Show selected route" / "Show people and start places") plus matching route/users icons, across the fallback, all 15 catalogues and the DOM; the start/walk inputs are now visibly one labelled click away after selecting a route.
+- Fare mode now ranks by the displayed fare spread first, with the visible largest fare chip and displayed time values as tie-breaks; the heat legend still truthfully describes its largest-fare colour.
+- Added three DOM regressions, updated the affected assertions and catalogue count, and bumped the service worker to `zg852-v71`. `npm run lint` is clean and `CI=true npm test` passes 170/170 against built `public/`. Pre-existing untracked audit/screenshot artefacts were left untouched.
+
 ## 2026-11-26T06:44:22Z
 
 - Committed and pushed `04a5f9f` ("fix: align results, map, share and locale behaviour with live findings") to `main` at `github.com:viscory/zg852.git`: 29 files, 259 insertions, 23 deletions. Pre-existing untracked `audit/` and screenshot artefacts were left out.

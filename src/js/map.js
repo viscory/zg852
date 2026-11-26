@@ -203,8 +203,10 @@ export function heatColor(cell,budget,metric='time'){
 export function drawCloud(budget){
   hideTooltip();
   cloudLayer.clearLayers();
-  if(store.unbounded)return;
   const metric=store.settings.fairness==='fare'?'fare':'time';
+  // Unlimited still shows the ranked areas as a visual reference, but the
+  // rectangles must not swallow map clicks: every point is pickable there.
+  const referenceOnly=store.unbounded;
 
   // One roving tab stop instead of hundreds: Tab enters the map once, arrow
   // keys move between cells, and Enter/Space selects. A row of 600 focusable
@@ -212,14 +214,17 @@ export function drawCloud(budget){
   const entries=[];
   store.cloudCells.forEach(c=>{
     const lat0=c.cy*CELL_SIZE,lon0=c.cx*CELL_SIZE,color=heatColor(c,budget,metric);
-    const rect=L.rectangle([[lat0,lon0],[lat0+CELL_SIZE,lon0+CELL_SIZE]],{color,weight:0,fillColor:color,fillOpacity:.34,interactive:true,className:'heat-cell'});
-    rect.on('mouseover',e=>scheduleCellTooltip(c,e.originalEvent));
-    rect.on('mousemove',e=>positionTooltip(e.originalEvent));
-    rect.on('mouseout',hideTooltip);
-    rect.on('click',e=>{if(e.originalEvent)L.DomEvent.stopPropagation(e.originalEvent);selectCell(c);});
+    const rect=L.rectangle([[lat0,lon0],[lat0+CELL_SIZE,lon0+CELL_SIZE]],{color,weight:0,fillColor:color,fillOpacity:.34,interactive:!referenceOnly,className:referenceOnly?'heat-cell heat-cell-reference':'heat-cell'});
+    if(!referenceOnly){
+      rect.on('mouseover',e=>scheduleCellTooltip(c,e.originalEvent));
+      rect.on('mousemove',e=>positionTooltip(e.originalEvent));
+      rect.on('mouseout',hideTooltip);
+      rect.on('click',e=>{if(e.originalEvent)L.DomEvent.stopPropagation(e.originalEvent);selectCell(c);});
+    }
     rect.addTo(cloudLayer);
     const cellNode=rect.getElement();
     if(!cellNode)return;
+    if(referenceOnly){cellNode.setAttribute('aria-hidden','true');return;}
     cellNode.setAttribute('tabindex','-1');
     cellNode.setAttribute('role','button');
     const fareLabel=metric==='fare'&&isNum(c.maxFare)?`, ${money(c.maxFare)}`:'';
