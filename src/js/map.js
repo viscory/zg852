@@ -63,15 +63,16 @@ export function applyMapLabels(){
   for(const id of LABEL_LAYERS)if(gl.getLayer(id))gl.setLayoutProperty(id,'text-field',placeNameField());
 }
 
-// The plugin's public getMaplibreMap() accessor tells us whether its Maplibre
-// instance was created. addTo() can throw before that happens, yet the layer is
-// already registered with Leaflet, whose removeLayer() calls onRemove() and
-// dereferences the missing instance. This is the only case where we seed the
-// private field with a no-op so the supported teardown can complete; the
-// original error is still thrown by the caller.
+// Last-resort teardown shim. The plugin's public getMaplibreMap() accessor tells
+// us whether its Maplibre instance was created. addTo() can throw before that
+// happens, yet the layer is already registered with Leaflet, whose removeLayer()
+// calls onRemove() and dereferences the missing instance. Only for a genuine
+// maplibre-gl-leaflet layer (identified by that accessor) whose instance is
+// missing do we seed the private field with a no-op so teardown can complete;
+// the original error is still thrown by the caller.
 function safeRemoveGlLayer(mapToClean,glLayer){
   try{
-    if(!glLayer.getMaplibreMap?.())glLayer._glMap={remove(){}};
+    if(typeof glLayer?.getMaplibreMap==='function'&&!glLayer.getMaplibreMap())glLayer._glMap={remove(){}};
     mapToClean.removeLayer(glLayer);
   }catch(removeErr){console.error(removeErr);}
 }
@@ -304,9 +305,11 @@ export function positionTooltip(event){
   tooltip.style.left=`${Math.max(8,Math.min(event.clientX+12,window.innerWidth-width-8))}px`;
   tooltip.style.top=`${Math.max(8,Math.min(event.clientY+12,window.innerHeight-height-8))}px`;
 }
-// Widths travel as a data attribute and are applied with the style property
-// after insertion. This keeps one transfer mechanism and no inline-style
-// strings in the bundle (the production-bundle CSP test requires that).
+// Widths travel as a temporary data attribute and are applied with the style
+// property after insertion, then the attribute is removed. CSP forbids inline
+// style strings, so this data-width -> style.width handoff is the sanctioned
+// channel: one transfer mechanism, no inline-style strings in the bundle (the
+// production-bundle CSP test requires that).
 function barMarkup(className,rating){
   return `<i class="${className}" data-width="${esc(rating)}"></i>`;
 }
@@ -356,6 +359,9 @@ export function hideTooltip(){
 }
 export function resultMatches(result,sel){
   if(!result||!sel)return false;
+  // Key and node matching are the primary identity for saved/cell results. The
+  // coordinate epsilon below only supports unsaved point selections, which have
+  // no stable key or node yet and must tolerate tiny lat/lon differences.
   return result.key===sel.key||(Number.isFinite(sel.node)&&result.node===sel.node)||
     (Number.isFinite(sel.lat)&&Number.isFinite(sel.lon)&&Math.abs(result.lat-sel.lat)<1e-5&&Math.abs(result.lon-sel.lon)<1e-5);
 }
@@ -475,7 +481,10 @@ export function renderSelection(r,active=store.activePeople,fit=false){
   applyBarWidths($('fitGrid'));
   const spread=store.settings.fairness==='fare'?t('results.fareSpread',{value:money(r.fareGap)}):t('results.spread',{value:intNum(r.gap)});
   $('detailSub').textContent=`${spread} ${t('results.longest',{value:intNum(r.slowest)})}`;
-  const already=r.times.every(value=>value<=0.5);
+  // "Already there" is a structural fact: every person snapped to the target
+  // cell and therefore has zero legs. Read it from the leg structure rather
+  // than a time epsilon, so exact-zero and tiny-float travel times behave alike.
+  const already=r.routes.length>0&&r.routes.every(route=>route.legs.length===0);
   $('steps').innerHTML=legCount?r.routes.map((route,j)=>`<div class="step">
     <span class="dot ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>
     <span class="txt"><b>${esc(displayName(active[j],j))}</b><span class="legs">${route.legs.map(legChip).join('')}</span><span class="route-meta"><span class="muted">${esc(t('results.totalTime',{value:minuteText(r.times[j])}))}</span>${fareMarkup(route)}</span></span></div>`).join(''):`<div class="step route-empty"><span class="txt"><b>${esc(r.label)}</b><span class="muted">${esc(t(already?'route.already':'results.noRoutes'))}</span></span></div>`;

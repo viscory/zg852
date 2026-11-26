@@ -9,9 +9,10 @@ module.exports = defineConfig({
   testDir: './tests',
   fullyParallel: true,
   reporter: 'list',
-  // Two CI workers keeps the map/WebGL cases from starving each other on the
-  // shared runners without making the suite needlessly slow.
-  workers: process.env.CI ? 2 : undefined,
+  // Two workers everywhere keeps the map/WebGL cases from starving each other
+  // and makes a plain local `npm test` behave like CI instead of oversubscribing
+  // the dev server on high-core machines.
+  workers: 2,
   retries: process.env.CI ? 1 : 0,
   use: {
     baseURL: externalBaseURL || baseURL,

@@ -1,11 +1,10 @@
 const { test, expect } = require('@playwright/test');
 
-// This suite deliberately never calls page.route(): it verifies what the app
-// actually does against the real tile and geocoder services. The other suites
-// block those hosts to keep their fixtures deterministic.
+// This is the intentionally unstubbed suite: it never calls page.route() and
+// verifies what the app actually does against the real tile and geocoder
+// services. The other suites stub those hosts to keep their fixtures
+// deterministic; this suite is the only real-network coverage and runs in CI.
 test.describe('real network', () => {
-  test.skip(!!process.env.CI, 'the public tile and geocoder services are unreliable in CI');
-
   test('a clean load renders real tiles, a real search renders heat cells, and only expected hosts are contacted', async ({ page }) => {
     const baseURL = test.info().project.use?.baseURL || process.env.TEST_BASE_URL || 'http://127.0.0.1:8765';
     const firstParty = new URL(baseURL).host;

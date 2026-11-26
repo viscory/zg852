@@ -4,6 +4,8 @@
 // finalize.mjs loads before this script in every built page. Change domains in
 // that one file. If the config is absent (e.g. the raw source tree in dev), the
 // comparison cannot match and noindex is applied, which is the safe direction.
+// preview-config.js must be present in the deploy: without it every host is
+// treated as a preview and gets noindex, including production.
 const PRODUCTION_HOSTNAME = globalThis.ZG852_PRODUCTION_HOSTNAME;
 
 if(location.hostname!==PRODUCTION_HOSTNAME){

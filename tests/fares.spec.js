@@ -18,7 +18,9 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/photon.komoot.io/api/**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ features: [] }) }));
 });
 
-test('bundled MTR fares are the official station-pair values', () => {
+test('bundled MTR fares are internally consistent and sourced from OCT_ADT_FARE', () => {
+  // Live station-pair amounts are verified by scripts/generate-mtr-fares.mjs at
+  // build time, not by this spec; it only checks the snapshot's own integrity.
   const fares = JSON.parse(readFileSync('static/data/mtr-fares.json', 'utf8'));
   const nodes = JSON.parse(readFileSync('static/data/nodes.json', 'utf8'));
   const station = name => nodes.names.findIndex((value, i) => value === name && nodes.kind[i] === 1);

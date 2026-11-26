@@ -1,5 +1,4 @@
 const { test, expect, devices } = require('@playwright/test');
-const { sliderPosition } = require('./helpers');
 
 test.use({ ...devices['iPhone 15'], browserName: 'chromium' });
 
@@ -8,11 +7,14 @@ async function openSettings(page) {
   await expect(page.locator('#optionsHeading')).toBeFocused();
 }
 
-async function setTolerance(page, value) {
-  await page.locator('#tolerance').evaluate((el, position) => {
-    el.value = String(position);
+// Slider positions are hardcoded from the published mapping, not derived from
+// the source config, so the mapping itself is checked rather than assumed:
+// 1→5%, 6→10%, 11→15%, 36→40%, 46→50%, 96→100%, 97→101%, 200→300%, 201→Unlimited.
+async function setTolerance(page, position) {
+  await page.locator('#tolerance').evaluate((el, value) => {
+    el.value = String(value);
     el.dispatchEvent(new Event('input', { bubbles: true }));
-  }, await sliderPosition(value));
+  }, position);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -31,27 +33,34 @@ test('the tolerance slider is linear to 100%, logarithmic to 300%, then Unlimite
   await expect(page.locator('#tolerance')).toHaveAttribute('step', '1');
   await expect(page.locator('#tolerance ~ .slider-row.ends span').last()).toHaveText('Unlimited');
 
-  await setTolerance(page, 0);
+  await setTolerance(page, 1);
+  await expect(page.locator('#tolerance')).toHaveValue('1');
   await expect(page.locator('#tolval')).toHaveText('5%');
   await expect(page.locator('#tolerance')).toHaveAttribute('aria-valuetext', '5%');
 
-  await setTolerance(page, 0.1);
+  await setTolerance(page, 6);
+  await expect(page.locator('#tolerance')).toHaveValue('6');
   await expect(page.locator('#tolval')).toHaveText('10%');
   await expect(page.locator('#tolerance')).toHaveAttribute('aria-valuetext', '10%');
 
-  await setTolerance(page, 0.15);
+  await setTolerance(page, 11);
+  await expect(page.locator('#tolerance')).toHaveValue('11');
   await expect(page.locator('#tolval')).toHaveText('15%');
 
-  await setTolerance(page, 1);
+  await setTolerance(page, 96);
+  await expect(page.locator('#tolerance')).toHaveValue('96');
   await expect(page.locator('#tolval')).toHaveText('100%');
 
-  await setTolerance(page, 1.01);
+  await setTolerance(page, 97);
+  await expect(page.locator('#tolerance')).toHaveValue('97');
   await expect(page.locator('#tolval')).toHaveText('101%');
 
-  await setTolerance(page, 3);
+  await setTolerance(page, 200);
+  await expect(page.locator('#tolerance')).toHaveValue('200');
   await expect(page.locator('#tolval')).toHaveText('300%');
 
-  await setTolerance(page, 3.05);
+  await setTolerance(page, 201);
+  await expect(page.locator('#tolerance')).toHaveValue('201');
   await expect(page.locator('#tolval')).toHaveText('Unlimited');
 });
 
@@ -66,7 +75,7 @@ test('the Fairness toggle switches labels and legend without losing each toleran
   await expect(page.locator('#tolval')).toHaveText('25%');
   await expect(page.locator('#legendFairText')).toHaveText('Fair area, darker means cheaper fares');
 
-  await setTolerance(page, 0.4);
+  await setTolerance(page, 36);
   await expect(page.locator('#tolval')).toHaveText('40%');
   await page.locator('#fairnessToggle [data-fairness="time"]').click();
   await expect(page.locator('#tolval')).toHaveText('10%');
@@ -93,7 +102,7 @@ test('fare mode ranks results by the displayed fare spread', async ({ page }) =>
 
 test('fare Unlimited keeps the heat map as reference and allows a map point', async ({ page }) => {
   await page.locator('#fairnessToggle [data-fairness="fare"]').click();
-  await setTolerance(page, 3.05);
+  await setTolerance(page, 201);
   await expect(page.locator('#tolval')).toHaveText('Unlimited');
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
@@ -107,7 +116,7 @@ test('fare Unlimited keeps the heat map as reference and allows a map point', as
 
 test('fare fairness and its tolerance persist across reloads', async ({ page }) => {
   await page.locator('#fairnessToggle [data-fairness="fare"]').click();
-  await setTolerance(page, 0.5);
+  await setTolerance(page, 46);
   await expect.poll(() => page.evaluate(() => localStorage.getItem('hkfair.v2.settings'))).toContain('"fareTolerance":0.5');
   const stored = await page.evaluate(() => localStorage.getItem('hkfair.v2.settings'));
   expect(stored).toContain('"fairness":"fare"');

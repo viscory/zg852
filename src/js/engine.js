@@ -4,7 +4,7 @@ import { compareAreaRank,fairnessTolerance,noFitErrorKey,noReachErrorKey } from 
 
 import { t,applyStaticText } from './i18n.js';
 import { districtFor,loadNetwork } from './data.js';
-import { cellFitScore,cellPreference } from './vectors.js';
+import { cellFitScore } from './vectors.js';
 import { sourcesFor,solve,bestTimes,walkTimes,walkBudget,buildCells,prepareRoutes,cellToResult,legLabel,SOURCE_NO_STOP,SOURCE_WRONG_MODE,SOURCE_OUTSIDE_WALK } from './routing.js';
 import { save } from './state.js';
 import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,refreshTranslatedNames,setWorking,setSidebarFace,applyUnboundedUi,hasPendingOrigins } from './ui.js';
@@ -15,10 +15,9 @@ const SOURCE_ERROR_KEYS={
   [SOURCE_WRONG_MODE]:'error.noNearbyMode',
   [SOURCE_OUTSIDE_WALK]:'error.noNearby',
 };
-const rankCells = cells => cells.map(cell=>{
-  const vectorAdjustment=cellPreference(cell);
-  return {cell,vectorAdjustment,fitScore:cellFitScore(cell)};
-}).sort((a,b)=>compareAreaRank(a,b,'time'));
+// Interest preferences are informational: ordering uses only the displayed
+// ranking inputs, never a preference adjustment.
+const rankCells = cells => cells.map(cell=>({cell,fitScore:cellFitScore(cell)})).sort((a,b)=>compareAreaRank(a,b,'time'));
 
 export function compute(reveal=false){
   clearError();
@@ -84,7 +83,7 @@ export function compute(reveal=false){
     store.results.forEach(r=>prepareRoutes(r,store.activePeople));
   }else{
     // Fare mode keeps the same time-feasibility filter and 90-minute cap, then
-    // orders the surviving cells by the worst fare anyone pays.
+    // orders the surviving cells by the displayed fare spread (fareGap).
     const timeTolerance=fairnessTolerance('time',store.settings);
     const timeCells=buildCells(effectiveGrids,timeTolerance,TRAVEL_BUDGET_MINUTES);
     const ordered=rankCells(timeCells);
@@ -92,7 +91,7 @@ export function compute(reveal=false){
     if(store.costCacheKey!==cacheKey){store.costCacheKey=cacheKey;store.costCache=new Map();}
     const fareUnbounded=isUnboundedTolerance(fareLimit);
     const passing=[];
-    for(const {cell,fitScore,vectorAdjustment} of ordered){
+    for(const {cell,fitScore} of ordered){
       let cached=store.costCache.get(cell.key);
       if(!cached){
         const probe=cellToResult(cell);
@@ -112,7 +111,7 @@ export function compute(reveal=false){
         store.costCache.set(cell.key,cached);
       }
       if(!fareUnbounded&&cached.fareGap>Math.max(cached.meanFare*fareLimit,FARE_GAP_FLOOR))continue;
-      cell.fitScore=fitScore;cell.vectorAdjustment=vectorAdjustment;
+      cell.fitScore=fitScore;
       cell.fares=cached.fares;cell.maxFare=cached.maxFare;cell.totalFare=cached.totalFare;
       cell.fareGap=cached.fareGap;cell.fareSpread=cached.fareSpread;cell.fareScore=cached.fareScore;
       cell.fareEstimated=cached.estimated;

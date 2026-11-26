@@ -6,7 +6,9 @@ const root = join(__dirname, '..');
 // Read the real workflow so this spec fails if a required CI step is removed.
 const CI_WORKFLOW = readFileSync(join(root, '.github', 'workflows', 'ci.yml'), 'utf8');
 
-test('CI workflow runs lint, build, test and deploy', () => {
+test('workflow file declares lint, build, test and deploy commands', () => {
+  // This asserts the workflow file contains the declared commands, not that CI
+  // actually executed them; real runs are verified by the CI service itself.
   for (const step of ['npm run lint', 'npm run build', 'npm test', 'npx wrangler pages deploy public']) {
     expect(CI_WORKFLOW, `${step} should be present in .github/workflows/ci.yml`).toContain(step);
   }

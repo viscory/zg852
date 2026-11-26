@@ -115,6 +115,9 @@ test('non-bus ride legs never claim to open a bus route', async ({ page }) => {
   await page.goto(await shareUrl(page, state));
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect.poll(() => page.locator('#steps .step').count()).toBe(2);
+  // Prove the lightRail mode request was actually honoured before asserting
+  // that no leg offers a bus link.
+  await expect.poll(() => page.locator('#steps .ride-leg.route-lightRail').count()).toBeGreaterThan(0);
   for (const mode of ['rail', 'ferry', 'lightRail']) {
     expect(await page.locator(`#steps .ride-leg.route-${mode} .bus-link`).count()).toBe(0);
   }

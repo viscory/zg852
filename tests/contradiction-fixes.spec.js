@@ -63,7 +63,7 @@ test('no hidden meeting-suitability tie-break reorders equally fair areas', asyn
 
 // Finding 3: fare mode may reorder cells but may never widen the time-feasible
 // set by dropping the time-difference filter.
-test('fare mode keeps the time fairness filter', async () => {
+test('buildCells keeps the time fairness filter used by fare mode', async () => {
   const [{ buildCells }, { store }] = await loadSourceModules(['routing.js', 'store.js'], stubs);
   store.NODES = {
     names: ['A', 'B', 'C'], kind: [1, 1, 1],

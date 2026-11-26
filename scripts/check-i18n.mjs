@@ -12,7 +12,9 @@ const i18nFile = path.join(root, 'src/js/i18n.js');
 // This package is CommonJS and i18n.js imports browser-only modules, so import
 // the exported FALLBACK from an import-free copy of its source. This strips
 // import lines and evaluates the literal FALLBACK object via a data: import;
-// it is a source-text transform and must be kept minimal.
+// it is a source-text transform and must be kept minimal. This is NOT an
+// executable test of i18n.js: the actual guarantee enforced below is key-set
+// parity between FALLBACK and the catalogues.
 const i18nSource = fs.readFileSync(i18nFile, 'utf8');
 const standalone = i18nSource.replace(/^import [^\n]*\n/gm, '');
 const { FALLBACK } = await import(`data:text/javascript;base64,${Buffer.from(standalone).toString('base64')}`);

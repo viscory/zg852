@@ -879,6 +879,8 @@ test('all catalogues keep the same keys', async ({ page }) => {
   for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'vector.ratings', 'results.fareTotal', 'results.noFitMtr', 'results.noFitTolerance', 'results.fareSpread', 'sidebar.showRoute', 'sidebar.showPeople', 'error.noCommonArea', 'error.someNoReach', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
+  // This not.toContain list is a regression guard for retired copy only: it
+  // proves those keys stayed out of the catalogues, not anything about live UI.
   for (const key of ['app.meaning', 'people.focusLabel', 'people.focusTime', 'people.focusCost']) {
     expect(Object.keys(catalogues[0])).not.toContain(key);
   }
@@ -1471,7 +1473,8 @@ test('Urdu puts the people panel on the right', async ({ page }) => {
   expect(boxes.people).toBeGreaterThan(boxes.options);
 });
 
-test('shipped graph keeps plausible hop times', async ({ page }) => {
+test('shipped graph reflects the builder\'s rail-hop repairs', async ({ page }) => {
+  // Thresholds below come from the constants in scripts/build_graph.py.
   const report = await page.evaluate(async () => {
     const net = await (await fetch('data/network.json')).json();
     const nodes = await (await fetch('data/nodes.json')).json();
@@ -1503,11 +1506,18 @@ test('shipped graph keeps plausible hop times', async ({ page }) => {
 });
 
 test('a late place search does not reopen a chosen stop', async ({ page }) => {
-  // The remote response is fulfilled after a short, real delay. Once the local
-  // stop is chosen, the stale response must not reopen the suggestion list.
-  let completed = 0;
+  // Two promise gates replace the fixed sleep. The handler announces when the
+  // remote request actually arrives, then holds the response until the local
+  // stop has been chosen; the test releases it explicitly so "late" means
+  // after the pick, never "after N milliseconds".
+  let requestSeenResolve;
+  const requestSeen = new Promise(r => { requestSeenResolve = r; });
+  let releaseLate;
+  const late = new Promise(r => { releaseLate = r; });
   await page.route('**/photon.komoot.io/api/**', async route => {
-    await new Promise(resolve => setTimeout(resolve, 150));
+    requestSeenResolve?.();
+    requestSeenResolve = null;
+    await late;
     try {
       await route.fulfill({
         status: 200,
@@ -1520,8 +1530,6 @@ test('a late place search does not reopen a chosen stop', async ({ page }) => {
       });
     } catch {
       // The app may abort the superseded lookup; the late arrival is the point.
-    } finally {
-      completed += 1;
     }
   });
   const card = page.locator('.card').first();
@@ -1529,10 +1537,11 @@ test('a late place search does not reopen a chosen stop', async ({ page }) => {
   await input.fill('Central');
   const row = card.locator('.suggestion').filter({ has: page.locator('.place-main', { hasText: /^Central$/ }) }).first();
   await expect(row).toBeVisible();
+  await requestSeen;
   await row.click();
   await expect(input).toHaveValue('Central');
   await expect(card.locator('.suggestions')).toBeHidden();
-  await expect(input).toHaveValue('Central');
+  releaseLate();
   await expect(card.locator('.suggestions')).toBeHidden();
 });
 

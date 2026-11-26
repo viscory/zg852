@@ -37,9 +37,11 @@ export function cellTopNames(cell){
   const top=store.POI?.cells?.[cell.key]?.top||{};
   return VECTOR_KEYS.flatMap(key=>top[key]||[]).slice(0,3);
 }
-// POI values are already log-normalised to 0..1 per category (see
-// scripts/build_poi_index.py). Surface that as a readable 0..100 rating rather
-// than treating the raw decimals as an opaque preference input.
+// These "ratings" are relative activity scores, not quality ratings: the POI
+// values are log-normalised counts in 0..1 per category (see
+// scripts/build_poi_index.py). Surface that as a readable 0..100 score rather
+// than treating the raw decimals as an opaque preference input. The exported
+// name stays categoryRating for the existing display callers.
 export function categoryRating(value){
   return Math.round(clamp(Number(value)||0,0,1)*100);
 }

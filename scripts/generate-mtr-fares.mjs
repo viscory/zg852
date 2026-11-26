@@ -15,7 +15,7 @@ const aelUrl = 'https://opendata.mtr.com.hk/data/airport_express_fares.csv';
 //   FIELD      - ordinary unquoted characters
 //   QUOTED     - inside a double-quoted field (commas/newlines are data)
 //   AFTER_QUOTE - a closing quote was just consumed; only , newline or " follows
-// Tests by construction (checked against the state table above, no test lib):
+// Illustrative examples (verified by inspection, not an automated test):
 //   'a,b\r\n1,"x,y"'  -> [{a:'1', b:'x,y'}]       (comma inside quotes is data)
 //   'a\n"say ""hi"""' -> [{a:'say "hi"'}]          (doubled quote is an escape)
 //   'a,b\r\n1,\r\n'    -> [{a:'1', b:''}]           (empty trailing field, CRLF)

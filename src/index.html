@@ -36,9 +36,10 @@
   </div>
   <div class="header-end">
     <div class="header-actions">
-      <!-- Sync constraint: the beta tooltip English fallback appears five times
-           across the header badge and mobile row (aria-label, title, data-tooltip
-           and their i18n keys). Update every copy together with beta.badgeTip. -->
+      <!-- Sync constraint: the beta tooltip English fallback appears seven times.
+           betaBadge has aria-label, title, data-tooltip, data-i18n-tooltip and
+           data-i18n-aria-label; mobileBeta has data-tooltip and data-i18n-tooltip.
+           Update every copy together with beta.badgeTip. -->
       <button class="beta-badge" id="betaBadge" type="button" aria-pressed="false" data-i18n-tooltip="beta.badgeTip" data-i18n-aria-label="beta.badgeTip" aria-label="Turns on experiments and a data export." title="Turns on experiments and a data export." data-tooltip="Turns on experiments and a data export.">
         <span data-i18n="beta.badge">Beta</span><span class="beta-state" id="betaBadgeState" data-i18n="beta.off">Off</span>
       </button>
@@ -116,7 +117,7 @@
             </div>
           </div>
           <div class="steps" id="steps" aria-label="Routes" data-i18n-aria-label="results.routes"></div>
-          <p class="note fare-note" data-i18n="results.fareNote">Total adult Octopus fare estimate. Check the operator for exact fares.</p>
+          <p class="note fare-note" data-i18n="results.fareNote">Fares are published adult Octopus values where available; ≈ marks a distance-band estimate. Check the operator before travelling.</p>
         </section>
         <p class="detail-placeholder" id="detailPlaceholder" data-i18n="map.areaHint">Tap a red area to see routes.</p>
       </div>
@@ -146,7 +147,7 @@
         <span class="icon icon-close" aria-hidden="true"></span>
       </button>
     </div>
-    <div class="unbounded-hint" id="unboundedHint" hidden data-i18n="map.pickAnywhere">Unlimited mode is on: tap anywhere on the map to choose a meeting point.</div>
+    <div class="unbounded-hint" id="unboundedHint" hidden data-i18n="map.pickAnywhere">Unlimited mode is on: tap anywhere on the map to choose a meeting point. The 90-minute travel limit still applies.</div>
     <div class="map-tooltip" id="mapTooltip" role="tooltip" hidden></div>
     <div class="legend disclosure open" id="mapLegend">
       <button class="legend-head disclosure-head" id="legendToggle" type="button" aria-expanded="true" aria-controls="legendBody">

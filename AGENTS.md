@@ -13,7 +13,7 @@
 ## Fast runbook: turn a QA report into a verified fix push
 
 - Scope: when asked to "fix push" after a report, implement **every** numbered finding, add focused regressions, rebuild/verify, then commit and push. Do not re-run the report unless asked.
-- No test may assert source text with regexes, fabricate network responses, use invented pixel zones, or use fixed sleeps as synchronisation; behavioural assertions only.
+- Tests may stub or fixture third-party services (such as Photon and map tiles) for determinism, but no test may fabricate app data, assert source text with regexes, use invented pixel zones, or use fixed sleeps as synchronisation; behavioural assertions only. The real-network suite is the only place live third-party hosts are exercised.
 - Do **not** add, remove, or narrow `page.route(...)` handlers to make tests pass. Leave every existing test route and network path reachable; never block a route as a shortcut.
 
 ### First 10 minutes: inventory in parallel

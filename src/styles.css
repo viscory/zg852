@@ -7,13 +7,14 @@
   --mono:ui-monospace,'JetBrains Mono','SFMono-Regular',Menlo,monospace;
   --r-sm:3px;--r-md:5px;--r-lg:7px;
   --icon:12px;--field:36px;--header:52px;
-  /* Space reserved below the sticky options panel for results, footer and header. */
+  /* Conservative space reserved below the sticky options panel for the header,
+     results and footer; mobile uses different layout rules. */
   --options-reserved:500px;
   --vector-ends-track-display:contents;
   /* One z-index ladder, low to high: local overlaps, in-pane chrome, sticky
      panels, floating map chrome, banner/notice, overlays, navigation, feedback. */
   --z-local:2;--z-chrome:20;--z-sticky-panel:30;--z-floating:900;
-  --z-hint:940;--z-banner:950;--z-notice:951;--z-share-status:1000;
+  --z-hint:940;--z-banner:950;--z-notice:952;--z-share-status:1000;
   --z-map-tooltip:1200;--z-route-card:1250;--z-cta:1300;
   --z-mobile-nav:1400;--z-mobile-error:1450;--z-action-status:1500;
 }

@@ -3,8 +3,10 @@
 
 hkbus.app deep links are full slugs of the shape
 ``/en/route/{route}-{serviceType}-{origin}-{destination}``; a bare route
-number is not a valid page. The authoritative slugs are derived from the
-hk-bus-crawling ``routeList`` keys, which are available as a public JSON feed.
+number is not a valid page. Candidate slugs come from the hk-bus-crawling
+``routeList`` feed, but a page is chosen by scoring the similarity of its
+endpoint names to the line's origin/destination: there is no stable route
+identifier linking our lines to hkbus.app pages.
 
 This is a maintenance tool, not part of the normal Vite build: the generated
 ``static/data/hkbus.json`` is committed so the app never needs a network call
@@ -59,7 +61,8 @@ def hkbus_slug(key):
     return "-".join(urllib.parse.quote(part.lower().replace(" ", "-"), safe="-") for part in parts)
 
 
-def match_route(line, index, route_list):
+def score_route_match(line, index, route_list):
+    """Pick a routeList key by endpoint-name similarity scoring, not identity."""
     candidates = index.get(route_number(line["l"]), [])
     if not candidates:
         return None
@@ -120,7 +123,7 @@ def main():
             urls.append(None)
             meta.append({"status": "not-a-bus-line"})
             continue
-        key = match_route(line, index, route_list)
+        key = score_route_match(line, index, route_list)
         url = route_url(key)
         if url is None:
             if not key:

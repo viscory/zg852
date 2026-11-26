@@ -11,6 +11,7 @@ This section is the truth for the current build. Everything below it is history,
 - Interchange wait is shown as a separate note and is NOT included in leg minutes.
 - The sidebar footer has legal links only; there is no attribution or inspiration note.
 - The empty state uses `#goPlan`.
+- The results count reads "Top {count} areas": only seven result rows are listed while up to 600 cells are drawn.
 
 ## History — superseded
 
@@ -18,7 +19,7 @@ This file records visual critiques of 就腳. The dated notes below are supersed
 
 ### 2026-11-25 Honest wording and disclosures (History — superseded)
 
-The header subtitle now says "Find a fair meeting point in Hong Kong"; "most convenient for everyone" was dropped because the solver minimises a speed-and-spread score, not group convenience. The results count reads "Top {count} areas" because only seven rows are listed while up to 600 cells are drawn. (superseded — incorrect in current build) The tolerance labels say "Target time difference" and "Target fare difference", and a note under the slider states the floors that the percentage does not override: 8 minutes at stations, 5 minutes at other stops, HK$1 for fares. The dormant preference strings and their unused formatter are gone; the hidden preference scoring is unchanged. (superseded — incorrect in current build) Turning Beta on now shows a note that Diagnostics downloads and copies names, start places and routes, and the Privacy page documents the export. A selected area's title now comes from the same stop used for its marker and routes instead of a higher-priority neighbour in the same grid cell.
+The header subtitle now says "Find a fair meeting point in Hong Kong"; "most convenient for everyone" was dropped because the solver minimises a speed-and-spread score, not group convenience. The results count reads "Top {count} areas" because only seven rows are listed while up to 600 cells are drawn. (still true in current build) The tolerance labels say "Target time difference" and "Target fare difference", and a note under the slider states the floors that the percentage does not override: 8 minutes at stations, 5 minutes at other stops, HK$1 for fares. The dormant preference strings and their unused formatter are gone; the hidden preference scoring is unchanged. (superseded — incorrect in current build) Turning Beta on now shows a note that Diagnostics downloads and copies names, start places and routes, and the Privacy page documents the export. A selected area's title now comes from the same stop used for its marker and routes instead of a higher-priority neighbour in the same grid cell.
 
 ### 2026-11-25 Fairness metric toggle and tolerance slider (History — superseded)
 

@@ -14,7 +14,7 @@ The app stores these values in browser `localStorage`:
 - `hkfair.v2.geocache`: recent place-search results
 - `hkfair.v2.locale`: selected language
 
-Share links put the current scenario in the URL fragment, including the `includeHeadway` setting. Walk tolerance stays with each person. Anyone who receives the link can see that scenario. Do not put sensitive information into people names or start places if you plan to share.
+Share links put the current scenario in the URL fragment, including the `includeHeadway` setting. The selected result (the chosen area/cell) and any pinned meeting point are also encoded in the URL fragment. Walk tolerance stays with each person. Anyone who receives the link can see that scenario. Do not put sensitive information into people names or start places if you plan to share.
 
 Clear site data in your browser to remove stored values.
 

@@ -43,7 +43,7 @@ const warnedOnce=new Set();
 // warning is emitted once per distinct message while beta diagnostics are on.
 export function warnOnce(...args){
   if(!store.settings?.beta?.vectors)return;
-  const key=args.map(value=>String(value)).join('\u0000');
+  const key=JSON.stringify(args);
   if(warnedOnce.has(key))return;
   warnedOnce.add(key);
   console.warn(...args);

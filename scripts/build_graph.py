@@ -275,6 +275,10 @@ def segment_geometry(shape, d0, d1, start, end):
 
 
 def main():
+    # Counts of data we deliberately discard; reported at the end so the loss
+    # is visible instead of silent.
+    skipped_trips = 0
+    dropped_edges = 0
     with zipfile.ZipFile(FEED) as zf:
         stops = {}
         for row in read_table(zf, "stops.txt"):
@@ -369,6 +373,7 @@ def main():
             node_seq = [node for _, node, _, _ in records]
             times = [t for _, _, t, _ in records if t is not None]
             if len(node_seq) < 2 or len(times) != len(records):
+                skipped_trips += 1
                 continue
             pattern = tuple(node_seq)
             route = trip_route[tid]
@@ -391,6 +396,8 @@ def main():
                 dt = times[i + 1] - times[i]
                 if 0 < dt < 60:
                     pattern_edges[(route, pattern)][i].append(dt)
+                else:
+                    dropped_edges += 1
 
         pattern_rep_shape = {
             key: max(counts.items(), key=lambda item: (item[1], item[0]))[0]
@@ -510,6 +517,7 @@ def main():
     print(f"nodes={len(nodes)} platforms={sum(map(len, station_platforms.values()))} "
           f"exits={sum(map(len, station_exits.values()))} lines={len(lines)} "
           f"walk_edges={len(walk)} size={os.path.getsize(OUT)/1e6:.1f}MB")
+    print(f"dropped_edges={dropped_edges} skipped_trips={skipped_trips}")
 
 
 def station_name(node):

@@ -82,10 +82,11 @@ function syncResultsFallback(){
   else{empty.hidden=false;if(row)row.hidden=true;}
 }
 
-// The measured route-card height is handed to CSS as --route-card-h so the
-// Leaflet controls can be placed above the card. The ResizeObserver and every
-// explicit state change funnel through here; batching keeps one measurement
-// per frame and therefore one control position per frame.
+// One-way JS -> CSS measurement, not a configuration channel: the measured
+// route-card height is published as --route-card-h only so CSS can offset the
+// Leaflet controls above the card, and nothing reads it back into JS. The
+// ResizeObserver and every explicit state change funnel through here; batching
+// keeps one measurement per frame and therefore one control position per frame.
 function syncRouteCardHeight(){
   if(routeCardHeightFrame)return;
   routeCardHeightFrame=requestAnimationFrame(()=>{

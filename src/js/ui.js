@@ -16,9 +16,24 @@ import { isMobileLayout,setMobileView } from './mobile.js';
 
 
 const LEGAL_KINDS=['privacy','terms','credits','process'];
+// Deliberately keyed by DOM node: type-ahead state (pending matches, chosen
+// suggestion, debounce handles) belongs to one input and must be collected with
+// it. This is transient, input-scoped state only - no global configuration and
+// no new globals are introduced.
 const originStates=new WeakMap();
 const tooltipTimers=new WeakMap();
 const runningMotions=new WeakMap();
+// Listeners waiting for the first successful search render (used by the mobile
+// shared-link handoff). A Set makes registration idempotent and lets callers
+// unsubscribe themselves without exposing any new global.
+const searchSettledListeners=new Set();
+export function onSearchSettled(callback){
+  searchSettledListeners.add(callback);
+  return ()=>searchSettledListeners.delete(callback);
+}
+function notifySearchSettled(){
+  searchSettledListeners.forEach(callback=>callback());
+}
 // The keyframes mirror the CSS ones so the visible result is unchanged while
 // the Web Animations API owns the timing, cancellation and completion signal.
 const FLIP_OUT_FRAMES=[{transform:'rotateY(0)'},{transform:'rotateY(90deg)'}];
@@ -389,6 +404,9 @@ export function renderResults(active=store.activePeople){
   markSelectedResult();
   applyUnboundedUi();
   requestAnimationFrame(syncScrollShadows);
+  // Results are now on screen. Notify only here - not in setWorking or the
+  // empty branch - so consumers act on real results, never a skeleton.
+  notifySearchSettled();
 }
 export function markSelectedResult(){
   document.querySelectorAll('.result-row').forEach(row=>row.classList.toggle('selected',Number(row.dataset.index)===store.selected));
@@ -860,8 +878,10 @@ document.addEventListener('click',event=>{
   openLegal(button.dataset.legal);
 });
 function installUiListeners(){
-  // Resolve typed text before the app's own search handler runs; unresolved
-  // text is blocked here as well as by hasPendingOrigins() in the engine.
+  // Single authoritative veto on Search: resolve typed origins first, and if
+  // any text is still unresolved, swallow this click before the app's own
+  // handler runs. The engine's hasPendingOrigins() guard protects other search
+  // entry points; this listener does not rely on it as a fallback.
   $('go')?.addEventListener('click',event=>{
     if(!resolveAllPendingOrigins()){
       event.preventDefault();

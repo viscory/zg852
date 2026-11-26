@@ -8,7 +8,7 @@ import { applySharedState,restoreState,restoreDirectory,restoreSelection,readSav
 import { triggerSearch } from './js/engine.js';
 import { warnOnce } from './js/fares.js';
 import { createMap,drawOrigins } from './js/map.js';
-import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,applyUnboundedUi,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,showActionStatus,commitPeople,setSidebarFace,flashTooltip,setFairness,clearPointNotice } from './js/ui.js';
+import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,applyUnboundedUi,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,showActionStatus,commitPeople,setSidebarFace,flashTooltip,setFairness,clearPointNotice,onSearchSettled } from './js/ui.js';
 import { exportDiagnostics } from './js/diagnostics.js';
 import { clearPoint } from './js/map.js';
 import { initScrollShadows } from './js/scroll.js';
@@ -30,10 +30,6 @@ const LOAD_ERROR_KEYS=Object.fromEntries(LOADERS.map(({label,errorKey})=>[label,
 LOAD_ERROR_KEYS.Timetable='error.timetableFailed';
 const NODES_INDEX=LOADERS.findIndex(({label})=>label==='Nodes');
 const ENGLISH_CATALOGUE_INDEX=LOADERS.findIndex(({label})=>label==='English catalogue');
-// The deferred search must settle before the mobile route face can open on a
-// shared link; keeping the existing handoff delay preserves the observed
-// timing on slow devices without touching the search pipeline.
-const MOBILE_ROUTE_OPEN_DELAY_MS=900;
 function loadFailure(label,err){
   const message=`${label}: ${err?.message||String(err)}`;
   return t(LOAD_ERROR_KEYS[label]||'error.searchFailed',{message});
@@ -81,8 +77,15 @@ async function init(){
     loadNetwork().then(()=>{
       if(sharedScenario&&store.people.length>=2){
         setMobileView('map');
+        // Open the mobile route face when the shared search actually renders
+        // results instead of after a guessed delay. Subscribing before the
+        // search starts makes this deterministic on fast and slow devices, and
+        // the one-shot unsubscribe stops later recomputes from reopening a face
+        // the user has deliberately closed.
+        if(isMobileLayout()){
+          const stop=onSearchSettled(()=>{stop();openMobileRoute();});
+        }
         triggerSearch(!isMobileLayout());
-        if(isMobileLayout())setTimeout(()=>{if(store.results.length&&store.selection)openMobileRoute();},MOBILE_ROUTE_OPEN_DELAY_MS);
       }
     }).catch(err=>{
       console.error(err);

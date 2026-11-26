@@ -283,7 +283,9 @@ export function applySharedState(){
   if(replacing)backupLocalScenario();
   const needTwo=sharedPeople.length<2;
   store.people=sharedPeople;
-  const modes=Array.isArray(state.settings?.modes)?state.settings.modes.filter(m=>m==='rail'||m==='bus'):null;
+  // Share links must restore every enabled mode, not just rail and bus,
+  // otherwise lightRail and ferry selections silently disappear on import.
+  const modes=Array.isArray(state.settings?.modes)?state.settings.modes.filter(m=>['rail','bus','lightRail','ferry'].includes(m)):null;
   store.settings=buildSettings({...state.settings,includeHeadway:normIncludeHeadway(state.settings?.includeHeadway)},modes);
   if(LOCALES.includes(state.locale))store.locale=state.locale;
   store.sharedSelection=state.selected&&typeof state.selected==='object'?state.selected:null;

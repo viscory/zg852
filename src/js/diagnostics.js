@@ -1,4 +1,4 @@
-import { LETTERS,TRAVEL_TOLERANCE_MAX,TRAVEL_BUDGET_MINUTES } from './config.js';
+import { LETTERS,TRAVEL_BUDGET_MINUTES,isUnboundedTolerance } from './config.js';
 import { store } from './store.js';
 import { heatValue,rankInputs } from './model.js';
 import { displayName,copyText } from './state.js';
@@ -81,10 +81,10 @@ export function diagnosticData(){
       modes:store.settings.modes||[],
       tolerance,
       tolerancePercent:Math.round(tolerance*100),
-      toleranceLimited:tolerance<TRAVEL_TOLERANCE_MAX,
+      toleranceLimited:!isUnboundedTolerance(tolerance),
       fareTolerance,
       fareTolerancePercent:Math.round(fareTolerance*100),
-      fareToleranceLimited:fareTolerance<TRAVEL_TOLERANCE_MAX,
+      fareToleranceLimited:!isUnboundedTolerance(fareTolerance),
       travelBudgetMinutes:TRAVEL_BUDGET_MINUTES,
       unbounded:!!store.unbounded,
       includeHeadway:store.settings.includeHeadway!==false,

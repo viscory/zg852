@@ -6,3 +6,4 @@ playwright-report/
 public/
 .DS_Store
 npm-debug.log*
+static/data/graph.json

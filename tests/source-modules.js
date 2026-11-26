@@ -1,5 +1,9 @@
 // Import pure source modules (and their local dependencies) in Node.
 //
+// These tests import a rewritten copy of the ESM source, not the deployed
+// bundle, so they are policy-unit tests only: they check exported logic, not
+// what the shipped browser build actually does.
+//
 // The app packages are CommonJS and the real bundle is browser-only, so source
 // files cannot be imported by path here. Copying just the requested ESM modules
 // and their relative imports into one temporary .mjs tree lets tests assert the

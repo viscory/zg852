@@ -137,12 +137,13 @@ export class MinHeap{
     return[d,k];}
 }
 
-// Solver state codec. A key packs (node, line) into one integer; the line digit
-// is offset by two so FRESH and BOARDED remain non-negative inside the key.
-export const FRESH=-2,BOARDED=-1,STATE_OFFSET=2;
-export function encodeState(node,line,stride){return node*stride+line+STATE_OFFSET;}
-export function decodeNode(state,stride){return Math.floor(state/stride);}
-export function decodeLine(state,stride){return state%stride-STATE_OFFSET;}
+// Solver state identity is an explicit (node, line) pair, not a packed integer.
+// FRESH (-2) and BOARDED (-1) are walk states; line codes are >= 0. Keeping the
+// pair as a typed string avoids stride arithmetic and hidden bit allocations.
+export const FRESH=-2,BOARDED=-1;
+export function encodeState(node,line){return `${node}:${line}`;}
+export function decodeNode(state){const i=state.indexOf(':');return Number(i<0?state:state.slice(0,i));}
+export function decodeLine(state){const i=state.indexOf(':');return Number(i<0?0:state.slice(i+1));}
 export function isWalkState(line){return line<0;}
 export function isFreshState(line){return line===FRESH;}
 export function isBoardedState(line){return line===BOARDED;}
@@ -151,7 +152,7 @@ export function solve(sources,mask,maxTime=180){
   // FRESH is on foot before any boarding, BOARDED is on foot after alighting,
   // and a non-negative line code means riding that line.
   const include=store.settings.includeHeadway!==false;
-  const stride=store.NET.lines.length+STATE_OFFSET,key=(node,line)=>encodeState(node,line,stride),start=-1;
+  const key=(node,line)=>encodeState(node,line),start=-1;
   const dist=new Map(),prev=new Map(),heap=new MinHeap();
   sources.forEach(({node,minutes})=>{
     const k=key(node,FRESH);
@@ -165,7 +166,7 @@ export function solve(sources,mask,maxTime=180){
   while(heap.size){
     const[d,k]=heap.pop();
     if(d>(dist.get(k)??Infinity)||d>maxTime)continue;
-    const node=decodeNode(k,stride),line=decodeLine(k,stride);
+    const node=decodeNode(k),line=decodeLine(k);
     if(isWalkState(line)){
       for(const[to,step]of store.walkAdj[node])relax(key(to,line),d+step,k);
       for(const li of store.nodeLines[node])if(mask&lineCategoryBit(store.NET.lines[li].c)){
@@ -180,16 +181,16 @@ export function solve(sources,mask,maxTime=180){
       for(const[li,to,step]of store.rideAdj[node])if(li===line)relax(key(to,li),d+step,k);
     }
   }
-  return{dist,prev,stride,key,start};
+  return{dist,prev,key,start};
 }
 export function bestTimes(sol){
   const best=new Float64Array(store.NODES.names.length).fill(Infinity);
-  for(const[k,d]of sol.dist){const node=decodeNode(k,sol.stride);if(d<best[node])best[node]=d;}
+  for(const[k,d]of sol.dist){const node=decodeNode(k);if(d<best[node])best[node]=d;}
   return best;
 }
 export function walkTimes(sol){
   const best=new Float64Array(store.NODES.names.length).fill(Infinity);
-  for(const[k,d]of sol.dist)if(isFreshState(decodeLine(k,sol.stride))){const node=decodeNode(k,sol.stride);if(d<best[node])best[node]=d;}
+  for(const[k,d]of sol.dist)if(isFreshState(decodeLine(k))){const node=decodeNode(k);if(d<best[node])best[node]=d;}
   return best;
 }
 // Each mode now has its own chip, so a single-mode selection maps to exactly
@@ -300,13 +301,12 @@ export function reconcileDisplayMinutes(route,total){
   route.text=legs.map(leg=>leg.text).join(' -> ')||t('route.already');
   return route;
 }
-// Reused across candidate routes: describe() calls reconstructChain thousands
-// of times, so the cycle guard must not allocate a fresh Set for each chain.
-const chainSeen=new Set();
+// reconstructChain can be re-entered and is called for many candidate routes,
+// so the cycle guard is allocated per call instead of shared at module scope.
 export function reconstructChain(sol,k){
   // Stop on the real predecessor cycle instead of an arbitrary hop limit; a
   // well-formed Dijkstra tree has no cycle, so ordinary chains are unchanged.
-  chainSeen.clear();
+  const chainSeen=new Set();
   const chain=[];let cur=k;
   while(cur!==undefined&&cur!==sol.start&&!chainSeen.has(cur)){
     chainSeen.add(cur);chain.push(cur);cur=sol.prev.get(cur);
@@ -326,8 +326,9 @@ function mergeWalks(legs){
   }
   return legs;
 }
-// Polyline and node coordinates are rounded to ~1e-5 degrees, so 1e-4 is a
-// generous endpoint match. Kept here instead of allocating the comparison
+// GEOMETRY_EPSILON / samePoint(): historical polyline precision. The bundled
+// paths were rounded to ~1e-5 degrees, so 1e-4 is a generous endpoint match
+// for those legacy coordinates. Kept here instead of allocating the comparison
 // closure for every leg of every candidate route.
 const GEOMETRY_EPSILON=1e-4;
 function samePoint(point,target){
@@ -349,7 +350,7 @@ export function describe(sol,origin,target,walkMinutes=WALK_STEP_DEFAULT,targetP
       current=null;
     };
     chain.forEach((st,i)=>{
-      const node=decodeNode(st,sol.stride),line=decodeLine(st,sol.stride);
+      const node=decodeNode(st),line=decodeLine(st);
       const pst=i===0?sol.start:chain[i-1];
       const priorDistance=pst===sol.start?0:(sol.dist.get(pst)??0);
       const stepT=(sol.dist.get(st)??0)-priorDistance;
@@ -370,12 +371,12 @@ export function describe(sol,origin,target,walkMinutes=WALK_STEP_DEFAULT,targetP
           // the capped half-headway h. The wait is rendered as its own leg note,
           // so subtract it from the ride text to avoid showing it twice while
           // keeping the charged total (and ranking) unchanged.
-          const fromBoarded=pst!==sol.start&&isBoardedState(decodeLine(pst,sol.stride));
+          const fromBoarded=pst!==sol.start&&isBoardedState(decodeLine(pst));
           const interchangeWait=includeHeadway&&fromBoarded&&isNum(info.h)?info.h:0;
           current={mode,line:label,lineName:info.n||info.l,lineIndex:line,minutes:Math.max(0,stepT-interchangeWait),coords:[coord,coord],from:name,to:name,fromNode:node,toNode:node,stopCount:0,interchangeWait};
         }else{
           current.minutes+=stepT;
-          const fromNode=pst===sol.start?null:decodeNode(pst,sol.stride);
+          const fromNode=pst===sol.start?null:decodeNode(pst);
           const edgeIndex=fromNode===null?undefined:store.rideAdj[fromNode].find(([id,to])=>id===line&&to===node)?.[3];
           const seg=edgeIndex===undefined?null:store.NET.lines[line].g?.[edgeIndex];
           const start=fromNode===null?null:[store.NODES.lat[fromNode],store.NODES.lon[fromNode]];
@@ -409,6 +410,9 @@ export function describe(sol,origin,target,walkMinutes=WALK_STEP_DEFAULT,targetP
     candidates.push({d,line:l,legs:merged,fares,total:fares.total});
   }
   if(!candidates.length)return{text:t('route.unreachable'),legs:[],path:[[origin.lat,origin.lon]],fares:{rail:0,lightRail:0,bus:0,total:0,estimated:false}};
+  // By design a direct walk wins whenever it fits options.walkTolerance: this
+  // is a walk-first preference, not a fastest-path guarantee. Faster transit
+  // routes are only considered when no walk candidate fits the tolerance.
   const walk=candidates.find(c=>c.line===FRESH&&c.d<=walkLimit);
   if(!walk)candidates.sort((a,b)=>a.d-b.d||a.total-b.total);
   const best=walk||candidates[0],legs=best.legs;

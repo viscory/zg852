@@ -194,13 +194,7 @@ def attraction_category(row):
 
 
 def parse_tourism_coordinates(value):
-    """Parse the tourism feed's single "lat N, lon E" coordinate field.
-
-    The feed publishes no numeric latitude/longitude columns, so this regex
-    operates on that one structured field rather than on arbitrary description
-    prose. A non-match returns (None, None); add_tourism counts it and the build
-    exits non-zero rather than silently dropping the attraction.
-    """
+    """Parse the tourism feed's "lat N, lon E" prose field (a known fragility, since no numeric columns exist; non-matches are counted and fail the build rather than silently dropping the attraction)."""
     match = TOURISM_COORDINATE_RE.search(value or '')
     if not match:
         return None, None

@@ -32,7 +32,12 @@ export const FAIRNESS_DEFAULT='time';
 export function activeFairnessMetric(value){return FAIRNESS_METRICS.includes(value)?value:FAIRNESS_DEFAULT;}
 export const TRAVEL_TOLERANCE_MIN=0.05;
 export const TRAVEL_TOLERANCE_MAX=3.0;
-export const TRAVEL_TOLERANCE_UNBOUNDED=3.05;
+// The unbounded stop is a sentinel fraction (3.05 = 305%), not a real upper
+// bound. Time and fare tolerances share this one sentinel so settings, slider
+// positions and share links all agree on its meaning.
+export const UNBOUNDED_TOLERANCE_SENTINEL=3.05;
+// Older name kept as an alias for existing consumers; the value is unchanged.
+export const TRAVEL_TOLERANCE_UNBOUNDED=UNBOUNDED_TOLERANCE_SENTINEL;
 export const TRAVEL_TOLERANCE_DEFAULT=0.1;
 export const FARE_TOLERANCE_DEFAULT=0.25;
 export const FARE_GAP_FLOOR=1.0;
@@ -41,7 +46,10 @@ export const TOLERANCE_LINEAR_END=96;
 // Slider positions are one piecewise map: 1 starts at 5%, 96 is 100%, 97..200
 // continue logarithmically to 300%, and 201 is the unbounded stop. The inverse
 // derives its log base from TRAVEL_TOLERANCE_MAX so the two directions cannot
-// drift when the published maximum changes.
+// drift when the published maximum changes. The slider DOM max attribute is
+// set by UI code from these constants (TOLERANCE_SLIDER_MAX); this module stays
+// the source of truth for the range. Settings and share links keep fractions,
+// never slider positions.
 export const TOLERANCE_SLIDER_MIN=1;
 export const TOLERANCE_LINEAR_OFFSET=4;
 export const TOLERANCE_PERCENT_SCALE=100;
@@ -50,27 +58,27 @@ export const TOLERANCE_LOG_STEPS=TOLERANCE_SLIDER_MAX-TOLERANCE_SLIDER_MIN-TOLER
 export function travelTolerance(value){
   const n=Number(value);
   if(!Number.isFinite(n))return TRAVEL_TOLERANCE_DEFAULT;
-  if(n>=TRAVEL_TOLERANCE_UNBOUNDED)return TRAVEL_TOLERANCE_UNBOUNDED;
+  if(n>=UNBOUNDED_TOLERANCE_SENTINEL)return UNBOUNDED_TOLERANCE_SENTINEL;
   const clamped=Math.min(TRAVEL_TOLERANCE_MAX,Math.max(0,Math.round(n*100)/100));
   return clamped<TRAVEL_TOLERANCE_MIN?TRAVEL_TOLERANCE_MIN:clamped;
 }
 export function fareTolerance(value){
   const n=Number(value);
   if(!Number.isFinite(n))return FARE_TOLERANCE_DEFAULT;
-  if(n>=TRAVEL_TOLERANCE_UNBOUNDED)return TRAVEL_TOLERANCE_UNBOUNDED;
+  if(n>=UNBOUNDED_TOLERANCE_SENTINEL)return UNBOUNDED_TOLERANCE_SENTINEL;
   const clamped=Math.min(TRAVEL_TOLERANCE_MAX,Math.max(0,Math.round(n*100)/100));
   return clamped<TRAVEL_TOLERANCE_MIN?TRAVEL_TOLERANCE_MIN:clamped;
 }
-export function isUnboundedTolerance(value){return travelTolerance(value)>=TRAVEL_TOLERANCE_UNBOUNDED;}
+export function isUnboundedTolerance(value){return travelTolerance(value)>=UNBOUNDED_TOLERANCE_SENTINEL;}
 export function toleranceFromSlider(position){
   const p=Math.max(TOLERANCE_SLIDER_MIN,Math.min(TOLERANCE_SLIDER_MAX,Math.round(Number(position)||TOLERANCE_SLIDER_MIN)));
-  if(p>=TOLERANCE_SLIDER_MAX)return TRAVEL_TOLERANCE_UNBOUNDED;
+  if(p>=TOLERANCE_SLIDER_MAX)return UNBOUNDED_TOLERANCE_SENTINEL;
   if(p<=TOLERANCE_LINEAR_END)return travelTolerance((TOLERANCE_LINEAR_OFFSET+p)/TOLERANCE_PERCENT_SCALE);
   return travelTolerance(Math.pow(TRAVEL_TOLERANCE_MAX,(p-TOLERANCE_LINEAR_END)/TOLERANCE_LOG_STEPS));
 }
 export function sliderPositionForTolerance(value){
   const tolerance=travelTolerance(value);
-  if(tolerance>=TRAVEL_TOLERANCE_UNBOUNDED)return TOLERANCE_SLIDER_MAX;
+  if(tolerance>=UNBOUNDED_TOLERANCE_SENTINEL)return TOLERANCE_SLIDER_MAX;
   const pct=tolerance*TOLERANCE_PERCENT_SCALE;
   if(pct<=TOLERANCE_LINEAR_END_PERCENT)return Math.max(TOLERANCE_SLIDER_MIN,Math.min(TOLERANCE_LINEAR_END,Math.round(pct-TOLERANCE_LINEAR_OFFSET)));
   const position=TOLERANCE_LINEAR_END+Math.round(Math.log(pct/TOLERANCE_PERCENT_SCALE)/Math.log(TRAVEL_TOLERANCE_MAX)*TOLERANCE_LOG_STEPS);
