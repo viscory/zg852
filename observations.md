@@ -1,3 +1,7 @@
+## 2026-11-26T06:44:22Z
+
+- Committed and pushed `04a5f9f` ("fix: align results, map, share and locale behaviour with live findings") to `main` at `github.com:viscory/zg852.git`: 29 files, 259 insertions, 23 deletions. Pre-existing untracked `audit/` and screenshot artefacts were left out.
+
 ## 2026-11-26T06:43:54Z
 
 - Fixed the 10 live findings at source with the smallest complete diff: whole-minute display fields (`cellToResult`) so spread matches its own totals, heat buckets keyed to the displayed minute, fare-mode cards/detail/cell labels/tooltips showing the fare spread and cell fare, honest error/empty copy, a visible last-mode guard, in-place share-hash application, a sort hint and locale-following pinned labels.
