@@ -164,6 +164,8 @@
   "people.max": "Sie können höchstens 8 Personen hinzufügen.",
   "search.selectSuggestion": "Wählen Sie einen Vorschlag oder verwenden Sie eine Kartenmarkierung für diesen Startort.",
   "share.invalid": "Dieser Freigabelink ist ungültig.",
+  "share.replaced": "Geteiltes Szenario geöffnet. Deine vorherigen Personen und Einstellungen wurden gespeichert.",
+  "share.undo": "Rückgängig",
   "legal.englishOnly": "Dieses Dokument ist nur auf Englisch verfügbar.",
   "people.tab": "Personen",
   "people.count_one": "Person",

@@ -91,14 +91,51 @@ test('a malformed share hash shows an inline error before it is cleared', async 
   const expected = en['share.invalid'] || 'share.invalid';
   const url = `${new URL(page.url()).origin}${new URL(page.url()).pathname}#s=not-valid-base64!!`;
 
-  // A hash-only navigation is same-document, so reload to run init() with it.
+  // The fragment is consumed on arrival, so the error is shown by the
+  // hash-change import itself rather than surviving a later reload.
   await page.goto(url);
-  await page.reload();
 
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   expect(new URL(page.url()).hash).toBe('');
   await expect(page.locator('#error')).toBeVisible();
   await expect(page.locator('#error')).toHaveText(expected);
+});
+
+async function twoPersonShareState(page, name) {
+  return page.evaluate(value => {
+    const people = JSON.parse(localStorage.getItem('hkfair.v2.people'));
+    people[0].name = value;
+    return { v: 1, people, settings: JSON.parse(localStorage.getItem('hkfair.v2.settings')), locale: 'en', selected: { kind: 'result', index: 0 } };
+  }, name);
+}
+
+test('a share link is consumed so later edits survive a reload', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('.name-input').first().fill('Local User');
+  await expect.poll(async () => (await savedPeople(page))[0].name).toBe('Local User');
+  await page.goto(await makeShareUrl(page, await twoPersonShareState(page, 'Shared User')));
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  expect(new URL(page.url()).hash).toBe('');
+  await expect(page.locator('#actionStatus')).toContainText('Shared scenario opened');
+  expect((await savedPeople(page))[0].name).toBe('Shared User');
+  await page.locator('.name-input').first().fill('Edited After Share');
+  await expect.poll(async () => (await savedPeople(page))[0].name).toBe('Edited After Share');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  expect((await savedPeople(page))[0].name).toBe('Edited After Share');
+});
+
+test('Undo after a share link restores the previous local scenario', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('.name-input').first().fill('Local User');
+  await expect.poll(async () => (await savedPeople(page))[0].name).toBe('Local User');
+  await page.goto(await makeShareUrl(page, await twoPersonShareState(page, 'Shared User')));
+  await expect(page.locator('#actionStatus .action-undo')).toBeVisible();
+  await page.locator('#actionStatus .action-undo').click();
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  expect((await savedPeople(page))[0].name).toBe('Local User');
 });
 
 test('a one-person share link loads that person and shows the need-two error', async ({ page }) => {
@@ -108,7 +145,6 @@ test('a one-person share link loads that person and shows the need-two error', a
   const url = await makeShareUrl(page, await onePersonState(page));
 
   await page.goto(url);
-  await page.reload();
 
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   expect(new URL(page.url()).hash).toBe('');

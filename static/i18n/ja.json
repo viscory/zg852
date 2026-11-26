@@ -164,6 +164,8 @@
   "people.max": "追加できるのは最大 8 人です。",
   "search.selectSuggestion": "候補から地点を選ぶか、地図のピンを使用してください。",
   "share.invalid": "この共有リンクは無効です。",
+  "share.replaced": "共有されたシナリオを開きました。以前のメンバーと設定は保存されています。",
+  "share.undo": "元に戻す",
   "legal.englishOnly": "この文書は英語のみで提供されています。",
   "people.tab": "メンバー",
   "people.count_one": "人",

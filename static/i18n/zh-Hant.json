@@ -164,6 +164,8 @@
   "people.max": "最多只能加入 8 位成員。",
   "search.selectSuggestion": "請從建議中選擇地點，或使用地圖標記。",
   "share.invalid": "此分享連結無效。",
+  "share.replaced": "已開啟分享的行程，先前的人員與設定已儲存。",
+  "share.undo": "復原",
   "legal.englishOnly": "本文件僅提供英文版本。",
   "people.tab": "人物",
   "people.count_one": "人",

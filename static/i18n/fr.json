@@ -164,6 +164,8 @@
   "people.max": "Vous pouvez ajouter jusqu'à 8 personnes.",
   "search.selectSuggestion": "Choisissez une suggestion ou utilisez un repère sur la carte pour ce point de départ.",
   "share.invalid": "Ce lien de partage n'est pas valide.",
+  "share.replaced": "Scénario partagé ouvert. Vos personnes et paramètres précédents ont été enregistrés.",
+  "share.undo": "Annuler",
   "legal.englishOnly": "Ce document n'est disponible qu'en anglais.",
   "people.tab": "Personnes",
   "people.count_one": "personne",

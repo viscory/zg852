@@ -164,6 +164,8 @@
   "people.max": "You can add up to 8 people.",
   "search.selectSuggestion": "Choose a suggestion or use a map pin for this start place.",
   "share.invalid": "This share link is invalid.",
+  "share.replaced": "Shared scenario opened. Your previous people and settings were saved.",
+  "share.undo": "Undo",
   "legal.englishOnly": "This document is available in English only.",
   "people.tab": "People",
   "people.count_one": "person",

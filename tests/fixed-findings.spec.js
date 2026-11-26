@@ -71,7 +71,6 @@ test('fare heat scale covers every published fare, including Airport Express', a
     selected: { kind: 'result', index: 0 },
   };
   await page.goto(await shareUrl(page, state));
-  await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
 
@@ -103,7 +102,6 @@ test('non-bus ride legs never claim to open a bus route', async ({ page }) => {
     selected: { kind: 'result', index: 0 },
   };
   await page.goto(await shareUrl(page, state));
-  await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect.poll(() => page.locator('#steps .ride-leg.route-lightRail').count()).toBeGreaterThan(0);
   expect(await page.locator('#steps .ride-leg.route-lightRail .bus-link').count()).toBe(0);
@@ -132,7 +130,6 @@ test('mode exclusions explain that no compatible nearby stop was found', async (
   const en = await (await page.request.get('i18n/en.json')).json();
   expect(en['error.noNearbyMode']).toBe('No nearby stop is available for the selected travel modes.');
   await page.goto(await shareUrl(page, state));
-  await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('#error')).toHaveText('No nearby stop is available for the selected travel modes.');
 });
@@ -155,7 +152,6 @@ test('a rejected pin blames the walk limit when that is what failed', async ({ p
   const en = await (await page.request.get('i18n/en.json')).json();
   expect(en['error.pointWalkLimit']).toBe("That point needs a final walk longer than someone's walk tolerance.");
   await page.goto(await shareUrl(page, state));
-  await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await expect(page.locator('#pointNotice')).toBeVisible();

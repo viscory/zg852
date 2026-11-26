@@ -164,6 +164,8 @@
   "people.max": "최대 8명까지 추가할 수 있습니다.",
   "search.selectSuggestion": "추천 장소를 선택하거나 지도 핀을 사용하세요.",
   "share.invalid": "이 공유 링크가 유효하지 않습니다.",
+  "share.replaced": "공유된 시나리오를 열었습니다. 이전 사람과 설정은 저장되었습니다.",
+  "share.undo": "되돌리기",
   "legal.englishOnly": "이 문서는 영어로만 제공됩니다.",
   "people.tab": "사람",
   "people.count_one": "명",

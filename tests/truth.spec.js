@@ -57,6 +57,26 @@ test('the results heading counts only the displayed top areas', async ({ page })
   await expect(page.locator('#nres')).toHaveText(`Top ${rows} areas · fairest first`);
 });
 
+test('displayed route minutes add up to the displayed total', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  const rows = await page.locator('.result-row').count();
+  for (let i = 0; i < rows; i++) {
+    await page.locator('.result-row').nth(i).click();
+    await expect(page.locator('#steps .step')).not.toHaveCount(0);
+    const steps = await page.locator('#steps .step').all();
+    for (const step of steps) {
+      const parts = await step.locator('.leg-time, .walk-leg .ride-text, .interchange-wait').allInnerTexts();
+      const sum = parts.reduce((total, text) => total + Number((text.match(/(\d+)\s*min/) || [0, 0])[1]), 0);
+      const totalText = await step.locator('.route-meta .muted').innerText();
+      const total = Number((totalText.match(/(\d+)/) || [0, 0])[1]);
+      expect(sum, `leg minutes for "${totalText}" must add up`).toBe(total);
+    }
+  }
+});
+
 test('a selected area is named after the stop its routes actually use', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.goto('/');
@@ -79,7 +99,6 @@ test('a selected area is named after the stop its routes actually use', async ({
     };
   });
   await page.goto(await makeShareUrl(page, state));
-  await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await page.locator('.result-row').first().click();

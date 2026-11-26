@@ -54,7 +54,6 @@ test('routes show looked-up MTR fares instead of distance-band estimates', async
   });
   const url = await makeShareUrl(page, state);
   await page.goto(url);
-  await page.reload();
 
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);

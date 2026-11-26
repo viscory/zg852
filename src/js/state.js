@@ -6,7 +6,7 @@ import { t } from './i18n.js';
 import { migrateVectors } from './vectors.js';
 import { loadGeoCache } from './search.js';
 import { findExact,districtFor } from './data.js';
-import { applySettingsToDom,flashTooltip,showError } from './ui.js';
+import { applySettingsToDom,flashTooltip,showError,showActionStatus } from './ui.js';
 
 const SELECTION_KEY='hkfair.v2.selection';
 // Share errors are raised while init() is still setting up. init() calls
@@ -25,6 +25,37 @@ function flushShareError(){
   showError(t(key));
 }
 
+// A share link replaces the whole scenario. Keep a one-click way back when
+// the device already holds a scenario the user changed, instead of destroying
+// it silently or blocking the link behind a modal.
+function hasLocalScenario(){
+  const rawPeople=parseStored(readStorage(KEY.people));
+  if(!Array.isArray(rawPeople)||!rawPeople.length)return false;
+  const people=rawPeople.map(normalizePerson).filter(Boolean);
+  if(!people.length)return false;
+  const defaults=defaultPeople();
+  const samePeople=people.length===defaults.length&&people.every((p,i)=>
+    !p.name&&p.walkMinutes===defaults[i].walkMinutes&&p.origin?.node===defaults[i].origin?.node);
+  const rawSettings=parseStored(readStorage(KEY.settings));
+  const settings=buildSettings(rawSettings,Array.isArray(rawSettings?.modes)?rawSettings.modes:null);
+  const sameSettings=JSON.stringify(settings)===JSON.stringify(buildSettings(null,null));
+  return !(samePeople&&sameSettings);
+}
+function backupLocalScenario(){
+  writeStorage(KEY.previousScenario,JSON.stringify({
+    people:readStorage(KEY.people),settings:readStorage(KEY.settings),
+    locale:readStorage(KEY.locale),selection:readStorage(SELECTION_KEY),
+  }));
+}
+function restoreLocalScenario(){
+  const backup=parseStored(readStorage(KEY.previousScenario));
+  if(!backup)return;
+  for(const [key,value] of Object.entries({[KEY.people]:backup.people,[KEY.settings]:backup.settings,[KEY.locale]:backup.locale,[SELECTION_KEY]:backup.selection})){
+    if(value!==null&&value!==undefined)writeStorage(key,value);
+  }
+  writeStorage(KEY.previousScenario,JSON.stringify({}));
+  location.reload();
+}
 function readStorage(key){
   try{return localStorage.getItem(key);}
   catch(err){console.error(err);return null;}
@@ -209,12 +240,14 @@ function clearShareHash(){
   try{history.replaceState(null,'',location.pathname+location.search);}
   catch(err){console.error(err);}
 }
-export function applySharedState(keepHash=false){
+export function applySharedState(){
   if(!location.hash.startsWith('#s='))return false;
   const state=readHashState();
-  if(!state){flagShareError('share.invalid');if(!keepHash)clearShareHash();return false;}
+  if(!state){flagShareError('share.invalid');clearShareHash();return false;}
   const sharedPeople=state.people.map(normalizePerson).filter(Boolean);
-  if(!sharedPeople.length){flagShareError('share.invalid');if(!keepHash)clearShareHash();return false;}
+  if(!sharedPeople.length){flagShareError('share.invalid');clearShareHash();return false;}
+  const replacing=hasLocalScenario();
+  if(replacing)backupLocalScenario();
   const needTwo=sharedPeople.length<2;
   store.people=sharedPeople;
   const modes=Array.isArray(state.settings?.modes)?state.settings.modes.filter(m=>m==='rail'||m==='bus'):null;
@@ -227,9 +260,11 @@ export function applySharedState(keepHash=false){
   store.seq=nextSeq(store.people);
   save();
   saveSelection();
-  // A hash pasted into an open page must survive a reload; boot still removes
-  // it once the scenario has been restored.
-  if(!keepHash)clearShareHash();
+  // Consume the fragment as soon as it has been applied. Leaving it in the
+  // URL made every later reload re-import the original link and silently undo
+  // anything the recipient edited afterwards.
+  clearShareHash();
+  if(replacing)showActionStatus(t('share.replaced'),{actionLabel:t('share.undo'),onAction:restoreLocalScenario,duration:12000});
   if(needTwo)flagShareError('error.needTwo');
   return true;
 }

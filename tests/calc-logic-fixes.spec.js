@@ -70,7 +70,6 @@ test('a coordinate origin can still search after source pooling', async ({ page 
     selected: { kind: 'result', index: 0 },
   };
   await page.goto(await shareUrl(page, state));
-  await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
 });
@@ -150,7 +149,6 @@ test('Airport Express result uses the official bundled fare', async ({ page }) =
     selected: { kind: 'point', lat: hongKong.lat, lon: hongKong.lon },
   };
   await page.goto(await shareUrl(page, state));
-  await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
 

@@ -96,7 +96,8 @@ export function routeFares(route){
 }
 export const walkBudget=person=>snapWalkMinutes(person?.walkMinutes);
 export function prepareRoutes(result,active=store.activePeople){
-  result.routes=store.sols.map((solution,j)=>describe(solution,active[j].origin,result.node,walkBudget(active[j]),result.point||null));
+  result.routes=store.sols.map((solution,j)=>reconcileMinutes(
+    describe(solution,active[j].origin,result.node,walkBudget(active[j]),result.point||null),result.times[j]));
   result.paths=result.routes.map(route=>route.path);
   return result;
 }
@@ -238,15 +239,39 @@ export function stopName(name){
   if(exit>=0)return value.slice(0,exit);
   return value;
 }
-export function walkLegText(leg){return t('route.walkLeg',{time:minuteText(leg.minutes)}).replace(/\s+/g,' ').trim();}
+// Raw leg minutes and the raw total are rounded independently at display time.
+// Keep a per-leg displayed value so the shown legs add up to the shown total.
+export function shownMinutes(leg){return Number.isFinite(leg.shownMinutes)?leg.shownMinutes:leg.minutes;}
+export function walkLegText(leg){return t('route.walkLeg',{time:minuteText(shownMinutes(leg))}).replace(/\s+/g,' ').trim();}
 export function interchangeWaitText(leg){return leg.interchangeWait>0?t('route.interchangeWait',{value:minuteText(leg.interchangeWait)}):'';}
 export function rideLegText(leg){
   const stops=tp('route.stopCount',leg.stopCount||0);
   const line=leg.mode==='rail'?(leg.lineName||String(leg.line).replace(/^MTR\s+/i,'')):leg.line;
-  const text=t('route.rideLeg',{mode:t('mode.'+leg.mode),line,from:leg.from,to:leg.to,stops,time:minuteText(leg.minutes)});
+  const text=t('route.rideLeg',{mode:t('mode.'+leg.mode),line,from:leg.from,to:leg.to,stops,time:minuteText(shownMinutes(leg))});
   return (text+' '+interchangeWaitText(leg)).replace(/\s+/g,' ').trim();
 }
 export function legLabel(leg){return leg.mode==='walk'?walkLegText(leg):rideLegText(leg);}
+function reconcileMinutes(route,total){
+  const legs=route.legs;
+  if(!legs.length||!isNum(total))return route;
+  // Interchange waits are shown as their own notes, so reserve their rounded
+  // minutes before distributing the remaining whole minutes across the legs.
+  const waitTotal=legs.reduce((a,l)=>a+(l.interchangeWait>0?Math.round(l.interchangeWait):0),0);
+  const target=Math.round(total)-waitTotal;
+  const raw=legs.map(l=>l.minutes),floors=raw.map(v=>Math.floor(v+1e-9)),shown=floors.slice();
+  let delta=target-floors.reduce((a,b)=>a+b,0);
+  const largestFirst=raw.map((v,i)=>({i,frac:v-Math.floor(v)})).sort((a,b)=>b.frac-a.frac);
+  for(let k=0;delta>0&&k<largestFirst.length;k++,delta--)shown[largestFirst[k].i]++;
+  if(delta<0)for(let k=largestFirst.length-1;delta<0&&k>=0;k--,delta++)shown[largestFirst[k].i]=Math.max(0,shown[largestFirst[k].i]-1);
+  legs.forEach((leg,i)=>{
+    leg.shownMinutes=shown[i];
+    leg.text=leg.mode==='walk'&&leg.to===t('map.pinnedPoint')
+      ?t('route.walkTo',{time:minuteText(shown[i]),to:leg.to}).replace(/\s+/g,' ').trim()
+      :legLabel(leg);
+  });
+  route.text=legs.map(leg=>leg.text).join(' -> ')||t('route.already');
+  return route;
+}
 export function reconstructChain(sol,k){
   const chain=[];let cur=k;
   while(cur!==undefined&&cur!==sol.start&&chain.length<4000){chain.push(cur);cur=sol.prev.get(cur);}

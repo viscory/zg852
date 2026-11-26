@@ -164,6 +164,8 @@
   "people.max": "Puedes añadir hasta 8 personas.",
   "search.selectSuggestion": "Elige una sugerencia o usa un pin del mapa para este punto de partida.",
   "share.invalid": "Este enlace para compartir no es válido.",
+  "share.replaced": "Se abrió el escenario compartido. tus personas y ajustes anteriores se guardaron.",
+  "share.undo": "Deshacer",
   "legal.englishOnly": "Este documento solo está disponible en inglés.",
   "people.tab": "Personas",
   "people.count_one": "persona",

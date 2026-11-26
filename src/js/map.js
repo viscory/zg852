@@ -8,7 +8,7 @@ import { heatValue } from './model.js';
 import { $,esc,clamp,isNum,icon,initialsFor,avatarClass,haversine } from './util.js';
 import { t,intNum,minuteText } from './i18n.js';
 import { cellTopNames,cellRatings,cellVector,cellCount,cellPreference,overallRating } from './vectors.js';
-import { prepareRoutes,legLabel,fareMarkup,money,cellToResult,interchangeWaitText,walkBudget } from './routing.js';
+import { prepareRoutes,legLabel,shownMinutes,fareMarkup,money,cellToResult,interchangeWaitText,walkBudget } from './routing.js';
 import { routeLink,mtrLineCode,districtFor } from './data.js';
 import { fareHeatMax } from './fares.js';
 import { displayName,saveSelection } from './state.js';
@@ -394,7 +394,7 @@ function legChip(leg){
   const fare=leg.fare?`<span class="fare">${estimate}${esc(t('results.fareTotal',{value:money(leg.fare)}))}</span>`:'';
   const wait=interchangeWaitText(leg);
   const waitNote=wait?`<span class="interchange-wait">${esc(wait)}</span>`:'';
-  return `<span class="ride-leg route-${leg.mode}"><span class="leg-mode"><span class="icon icon-${rail?'rail':'bus'}" aria-hidden="true"></span>${modeLabel}</span>${stops}<span class="leg-meta"><span class="leg-time">${esc(minuteText(leg.minutes))}</span>${fare}${waitNote}</span></span>`;
+  return `<span class="ride-leg route-${leg.mode}"><span class="leg-mode"><span class="icon icon-${rail?'rail':'bus'}" aria-hidden="true"></span>${modeLabel}</span>${stops}<span class="leg-meta"><span class="leg-time">${esc(minuteText(shownMinutes(leg)))}</span>${fare}${waitNote}</span></span>`;
 }
 export function renderSelection(r,active=store.activePeople,fit=false){
   if(!r)return;

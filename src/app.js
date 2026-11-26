@@ -120,7 +120,7 @@ $('mobileBeta')?.addEventListener('click',()=>setBetaEnabled(!betaVectorsEnabled
 document.querySelectorAll('[data-vector]').forEach(input=>{input.oninput=readSettingsFromDom;});
 $('locale').onchange=e=>changeLocale(e.target.value);
 window.addEventListener('hashchange',()=>{
-  if(!location.hash.startsWith('#s=')||!applySharedState(true))return;
+  if(!location.hash.startsWith('#s=')||!applySharedState())return;
   applySettingsToDom();renderCards();drawOrigins();
   if(store.people.length>=2)triggerSearch(!isMobileLayout());
 });

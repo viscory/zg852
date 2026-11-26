@@ -164,6 +164,8 @@
   "people.max": "Hanggang 8 tao lang ang maaaring idagdag.",
   "search.selectSuggestion": "Pumili ng mungkahing lugar o gamitin ang map pin para sa panimulang lugar na ito.",
   "share.invalid": "Invalid ang share link na ito.",
+  "share.replaced": "Binuksan ang ibinahaging senaryo. Nai-save ang iyong dating mga tao at setting.",
+  "share.undo": "Ibalik",
   "legal.englishOnly": "Ang dokumentong ito ay available lamang sa Ingles.",
   "people.tab": "Mga tao",
   "people.count_one": "tao",

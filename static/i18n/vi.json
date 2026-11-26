@@ -164,6 +164,8 @@
   "people.max": "Bạn có thể thêm tối đa 8 người.",
   "search.selectSuggestion": "Hãy chọn một gợi ý hoặc dùng ghim bản đồ cho điểm xuất phát này.",
   "share.invalid": "Liên kết chia sẻ này không hợp lệ.",
+  "share.replaced": "Đã mở kịch bản được chia sẻ. Người và cài đặt trước đó của bạn đã được lưu.",
+  "share.undo": "Hoàn tác",
   "legal.englishOnly": "Tài liệu này chỉ có bằng tiếng Anh.",
   "people.tab": "Người",
   "people.count_one": "người",

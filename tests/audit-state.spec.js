@@ -193,11 +193,10 @@ test('a shared pinned point survives reload', async ({ page }) => {
   });
   const url = await makeShareUrl(page, state);
   await page.goto(url);
-  await page.reload();
 
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
-  // A share link with a selection now re-runs the search on load so the
-  // recipient arrives at the pinned point, not an empty panel.
+  // A share link with a selection re-runs the search on arrival and consumes
+  // its fragment, so the recipient lands at the pinned point immediately.
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await expect(page.locator('#pointBanner')).toBeVisible();
   await expect(page.locator('#detailTitle')).toHaveText('Pinned point');
@@ -231,7 +230,6 @@ test('a pinned point shows the MTR route to Yuen Long', async ({ page }) => {
   });
   const url = await makeShareUrl(page, state);
   await page.goto(url);
-  await page.reload();
 
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
@@ -253,7 +251,6 @@ test('an out-of-reach pinned point shows a map notice', async ({ page }) => {
   });
   const url = await makeShareUrl(page, state);
   await page.goto(url);
-  await page.reload();
 
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
