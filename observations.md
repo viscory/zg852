@@ -1,3 +1,8 @@
+## 2026-11-26T09:35:58.640597Z
+
+- Committed the 10-fix implementation as `1d561e2` ("fix: close final production QA findings") and pushed it to `origin/main`; 27 files changed, 403 insertions and 40 deletions.
+- The commit covers source, all 15 i18n catalogues, focused regression tests and the service-worker cache bump; pre-existing untracked `audit/` and screenshot artefacts were left untouched.
+
 ## 2026-11-26T09:35:21.308550Z
 
 - Completed all 10 production QA fixes: bus/minibus fares now always carry the estimate marker; the mobile expanded route card has a bounded inner scroller; person removal offers Undo; legal dialogs show localized summaries; the last-mode rejection is visible; Enter commits an unambiguous start and runs Search; the results header is a single localized string; long names expose full values; Save announces success; and the desktop Beta badge shows On/Off.
