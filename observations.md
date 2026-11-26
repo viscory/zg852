@@ -1,3 +1,7 @@
+## 2026-11-26T08:39:00Z
+
+- Committed and pushed `d53584d` ("fix: keep Unlimited map visible, label face toggle and rank fare spread") to `main` at `github.com:viscory/zg852.git`: 30 files, 166 insertions, 49 deletions. Pre-existing untracked `audit/` and screenshot artefacts were left out.
+
 ## 2026-11-26T08:38:13Z
 
 - Fixed the three confirmed quit-level live findings at source. Unlimited now keeps the ranked heat cells as non-interactive, aria-hidden reference overlays, so the map is no longer blank while results remain and clicks anywhere still pick a free point.
