@@ -44,6 +44,7 @@
   "results.longest": "Más largo {value} min.",
   "map.fairArea": "Zona equitativa, cuanto más oscuro, menor tiempo de viaje",
   "map.routeKey": "Leyenda de rutas",
+  "map.routeKeyHelp": "Color = persona · estilo de línea = transporte",
   "map.walkKey": "A pie",
   "map.railKey": "MTR",
   "map.busKey": "Autobús",

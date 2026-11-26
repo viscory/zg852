@@ -44,6 +44,7 @@
   "results.longest": "सबसे लंबा {value} मिनट।",
   "map.fairArea": "निष्पक्ष क्षेत्र, गहरा रंग कम यात्रा समय दर्शाता है",
   "map.routeKey": "मार्ग संकेत",
+  "map.routeKeyHelp": "रंग = व्यक्ति · रेखा शैली = परिवहन",
   "map.walkKey": "पैदल",
   "map.railKey": "MTR",
   "map.busKey": "बस",

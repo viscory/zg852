@@ -186,6 +186,19 @@ test('a validation error is visible above the tabs, not buried in a scroller', a
   await expect(page.locator('#mobileResultsEmpty')).toBeVisible();
 });
 
+test('no-results card explains the failure instead of repeating setup instructions', async ({ page }) => {
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('#start-p2').fill('Cheung Chau');
+  await expect(page.locator('#suggest-p2 .suggestion').first()).toBeVisible();
+  await page.locator('#suggest-p2 .suggestion').first().click();
+  await page.locator('#go').click();
+  await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'results');
+  await expect(page.locator('#mobileEmptyHint')).toContainText('90 minutes');
+  await expect(page.locator('#mobileEmptyHint')).not.toContainText('Set up who is meeting');
+});
+
 test('beta parameters stay in Plan and do not collide with the CTA', async ({ page }) => {
   await page.locator('#mobileBeta').click();
   await expect(page.locator('#vectorSection')).toBeVisible();
@@ -228,6 +241,12 @@ test('bounded heat tap opens the route card with bar-only ratings', async ({ pag
   await page.locator('#interestToggle').click();
   await expect(page.locator('#fitGrid .fit-row')).toHaveCount(6);
   await expect(page.locator('#interestRatings')).not.toContainText('/100');
+  const meters = await page.locator('#fitGrid .fit-row').evaluateAll(rows => rows.map(row => ({
+    role: row.getAttribute('role'),
+    label: row.getAttribute('aria-label'),
+    now: Number(row.getAttribute('aria-valuenow')),
+  })));
+  expect(meters.every(meter => meter.role === 'meter' && /:\s*\d+%$/.test(meter.label || '') && Number.isFinite(meter.now))).toBe(true);
 });
 
 test('unbounded point tap shows a route card without scores', async ({ page }) => {

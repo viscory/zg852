@@ -44,6 +44,7 @@
   "results.longest": "Dài nhất {value} phút.",
   "map.fairArea": "Khu vực công bằng, màu đậm hơn nghĩa là thời gian di chuyển ngắn hơn",
   "map.routeKey": "Chú giải lộ trình",
+  "map.routeKeyHelp": "Màu = người · kiểu đường = phương tiện",
   "map.walkKey": "Đi bộ",
   "map.railKey": "MTR",
   "map.busKey": "Xe buýt",

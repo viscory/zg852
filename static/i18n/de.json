@@ -44,6 +44,7 @@
   "results.longest": "Längste {value} Min.",
   "map.fairArea": "Fairer Bereich, dunkler bedeutet kürzere Fahrzeit",
   "map.routeKey": "Routenlegende",
+  "map.routeKeyHelp": "Farbe = Person · Linienstil = Verkehrsmittel",
   "map.walkKey": "Zu Fuß",
   "map.railKey": "MTR",
   "map.busKey": "Bus",

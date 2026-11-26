@@ -44,6 +44,7 @@
   "results.longest": "최장 {value}분.",
   "map.fairArea": "공평 지역, 색이 진할수록 이동 시간이 짧음",
   "map.routeKey": "경로 범례",
+  "map.routeKeyHelp": "색상=사람 · 선 스타일=교통수단",
   "map.walkKey": "도보",
   "map.railKey": "MTR",
   "map.busKey": "버스",

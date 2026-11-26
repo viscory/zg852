@@ -69,10 +69,14 @@ export function showError(message){
   // The alert already says why there are no areas; the pre-search prompt would
   // contradict it.
   if(state&&!store.results.length)state.hidden=true;
+  // The mobile Fair areas panel replaces the desktop alert, so its hint must
+  // explain the failure instead of telling users to redo completed setup.
+  if(!store.results.length)syncMobileResults('error',store.activePeople,message);
 }
 export function clearError(){
   const el=$('error');el.textContent='';el.hidden=true;
   const mobile=$('mobileError');if(mobile){mobile.textContent='';mobile.hidden=true;}
+  syncMobileResults('ready');
 }
 let pointNoticeTimer=null;
 function hidePointNotice(){
@@ -268,11 +272,18 @@ export function readSettingsFromDom(){
   save();
   scheduleRecompute();
 }
-export function syncMobileResults(mode='ready',active=store.activePeople){
+export function syncMobileResults(mode='ready',active=store.activePeople,message=''){
   const row=$('mobileScenarioRow'),text=$('mobileScenarioText'),empty=$('mobileResultsEmpty');
   const title=$('mobileEmptyTitle'),hint=$('mobileEmptyHint'),button=$('goPlan');
   if(!row||!empty)return;
   if(!isMobileLayout()){row.hidden=true;empty.hidden=true;return;}
+  if(mode==='error'){
+    row.hidden=true;empty.hidden=false;
+    if(title){title.dataset.i18n='results.emptyShort';title.textContent=t('results.emptyShort');}
+    if(hint){hint.hidden=false;hint.dataset.i18n='';hint.textContent=message||t('results.emptyHint');}
+    if(button)button.hidden=false;
+    return;
+  }
   if(mode==='loading'){
     row.hidden=true;empty.hidden=false;
     if(title){title.dataset.i18n='options.searching';title.textContent=t('options.searching');}

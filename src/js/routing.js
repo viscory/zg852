@@ -291,11 +291,14 @@ export function describe(sol,origin,target,walkMinutes=WALK_STEP_DEFAULT,targetP
         const info=store.NET.lines[line],mode=rideMode(info.c),label=info.l,name=mode==='rail'||mode==='lightRail'?stopName(rawName):rawName;
         if(!current||current.mode!==mode||current.line!==label){
           close();
-          // The first ride-state stepT already contains the boarding penalty w
-          // from solve(); the interchange half-headway h is charged there (and
-          // reflected in stepT) for BOARDED boarding only when includeHeadway is on.
+          // The first ride-state stepT contains the boarding penalty w from
+          // solve(). When headway is on, an interchange boarding also includes
+          // the capped half-headway h. The wait is rendered as its own leg note,
+          // so subtract it from the ride text to avoid showing it twice while
+          // keeping the charged total (and ranking) unchanged.
           const fromBoarded=pst!==sol.start&&(pst%sol.stride)===1;
-          current={mode,line:label,lineName:info.n||info.l,lineIndex:line,minutes:stepT,coords:[coord,coord],from:name,to:name,fromNode:node,toNode:node,stopCount:0,interchangeWait:includeHeadway&&fromBoarded&&isNum(info.h)?info.h:0};
+          const interchangeWait=includeHeadway&&fromBoarded&&isNum(info.h)?info.h:0;
+          current={mode,line:label,lineName:info.n||info.l,lineIndex:line,minutes:Math.max(0,stepT-interchangeWait),coords:[coord,coord],from:name,to:name,fromNode:node,toNode:node,stopCount:0,interchangeWait};
         }else{
           current.minutes+=stepT;
           const fromNode=pst===sol.start?null:Math.floor(pst/sol.stride);

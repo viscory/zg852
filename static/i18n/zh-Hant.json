@@ -44,6 +44,7 @@
   "results.longest": "最長 {value} 分鐘。",
   "map.fairArea": "公平區域，顏色越深代表行程時間越短",
   "map.routeKey": "路線圖例",
+  "map.routeKeyHelp": "顏色代表人物 · 線型代表交通方式",
   "map.walkKey": "步行",
   "map.railKey": "港鐵",
   "map.busKey": "巴士",

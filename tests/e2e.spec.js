@@ -362,6 +362,37 @@ test('interchange waits are charged only after the first transit leg', async ({ 
   expect(await page.locator('.ride-leg .leg-meta .interchange-wait').count()).toBe(notes.length);
 });
 
+test('displayed route legs reconcile with the total when headway is shown', async ({ page }) => {
+  await expect(page.locator('#includeHeadway')).toBeChecked();
+  await page.locator('.chips button[data-mode="bus"]').click();
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+
+  let found = false;
+  const rows = page.locator('.result-row');
+  const count = Math.min(await rows.count(), 14);
+  for (let i = 0; i < count; i++) {
+    await rows.nth(i).click();
+    const steps = await page.locator('#steps .step').evaluateAll(elements => elements.map(step => {
+      const values = [...step.querySelectorAll('.ride-text, .leg-time, .interchange-wait')]
+        .map(el => Number((el.textContent.match(/\d+/) || [])[0]) || 0);
+      const totalText = step.querySelector('.route-meta .muted')?.textContent || '';
+      return {
+        sum: values.reduce((a, b) => a + b, 0),
+        total: Number((totalText.match(/\d+/) || [])[0]),
+        hasWait: Boolean(step.querySelector('.interchange-wait')),
+      };
+    }));
+    const candidate = steps.find(step => step.hasWait && Number.isFinite(step.total));
+    if (candidate) {
+      found = true;
+      expect(candidate.sum).toBe(candidate.total);
+      break;
+    }
+  }
+  expect(found).toBe(true);
+});
+
 test('travel budget slider is gone', async ({ page }) => {
   await expect(page.locator('#budget')).toHaveCount(0);
   await expect(page.locator('#budgetval')).toHaveCount(0);
@@ -471,6 +502,7 @@ test('selected map area shows district subtitles and segmented routes', async ({
   await expect(page.locator('#detailDistrict')).not.toBeEmpty();
   await expect(page.locator('.legend')).toBeVisible();
   await expect(page.locator('.legend .route-key')).toBeVisible();
+  await expect(page.locator('.route-key-help')).toHaveText('Colour = person · line style = mode');
   await expect(page.locator('.route-key .route-walk')).toBeVisible();
   await expect(page.locator('.route-key .route-rail')).toBeVisible();
   await expect(page.locator('.route-key .route-bus')).toBeVisible();
@@ -845,7 +877,7 @@ test('locale switching translates static text and enables RTL layout', async ({ 
 test('all catalogues keep the same keys and avoid ranking wording', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(catalogues[0]).sort();
-  expect(expected).toHaveLength(193);
+  expect(expected).toHaveLength(194);
   for (const key of ['app.subtitle', 'options.includeHeadway', 'options.tolerance', 'options.unbounded', 'route.rideLeg', 'route.stops', 'route.busLink', 'route.walkTo', 'route.interchangeWait', 'route.stopCount_other', 'map.pickAnywhere', 'map.pinnedPoint', 'map.clearPoint', 'diag.button', 'diag.help', 'vector.ratings', 'results.fareTotal', 'results.noFitMtr', 'results.noFitTolerance', 'results.sortHint', 'results.fareSpread', 'sidebar.showRoute', 'sidebar.showPeople', 'error.noCommonArea', 'error.someNoReach', 'legal.privacy', 'legal.terms', 'legal.credits', 'legal.process', 'legal.close']) {
     expect(Object.keys(catalogues[0])).toContain(key);
   }
@@ -1268,6 +1300,25 @@ test('share links restore the current scenario', async ({ page }) => {
   await expect(page.locator('.name-input').first()).toHaveValue('Alex');
   await expect(page.locator('#includeHeadway')).not.toBeChecked();
   await expect(page.locator('.card').first().locator('[data-walk]')).toHaveValue('10');
+});
+
+test('sharing a setup before any search does not invent a selected result', async ({ page }) => {
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await expect(page.locator('#nres')).toHaveText('');
+  await page.evaluate(() => {
+    window.__copied = '';
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async text => { window.__copied = text; } },
+    });
+  });
+  await page.locator('#share').click();
+  const url = await page.evaluate(() => window.__copied);
+  const state = await sharedState(page, url);
+  expect(state).not.toHaveProperty('selected');
+  expect(state.people).toHaveLength(2);
 });
 
 test('legal buttons open the dialog with loaded documents and direct pages still work', async ({ page }) => {

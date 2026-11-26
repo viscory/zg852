@@ -44,6 +44,7 @@
   "results.longest": "Longest {value} min.",
   "map.fairArea": "Fair area, darker means shorter travel time",
   "map.routeKey": "Route key",
+  "map.routeKeyHelp": "Colour = person · line style = mode",
   "map.walkKey": "Walk",
   "map.railKey": "MTR",
   "map.busKey": "Bus",

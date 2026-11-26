@@ -44,6 +44,7 @@
   "results.longest": "Terpanjang {value} mnt.",
   "map.fairArea": "Area adil, makin gelap berarti waktu perjalanan makin singkat",
   "map.routeKey": "Kunci rute",
+  "map.routeKeyHelp": "Warna = orang · gaya garis = moda transportasi",
   "map.walkKey": "Jalan kaki",
   "map.railKey": "MTR",
   "map.busKey": "Bus",

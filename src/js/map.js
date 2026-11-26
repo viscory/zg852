@@ -278,7 +278,10 @@ export function positionTooltip(event){
   tooltip.style.top=`${Math.max(8,Math.min(event.clientY+12,window.innerHeight-height-8))}px`;
 }
 function ratingTooltipMarkup(title,subtitle,ratings){
-  return `<b>${esc(title)}</b>${subtitle?`<span class="tooltip-sub">${esc(subtitle)}</span>`:''}${ratings.map(({key,rating})=>`<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}"><span>${esc(t('vector.'+key))}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${rating}"></i></span></span>`).join('')}`;
+  return `<b>${esc(title)}</b>${subtitle?`<span class="tooltip-sub">${esc(subtitle)}</span>`:''}${ratings.map(({key,rating})=>{
+    const value=Math.round(Number(rating)||0),label=t('vector.'+key);
+    return `<span class="tooltip-vector" data-category="${esc(key)}" data-rating="${rating}" aria-label="${esc(label)}: ${value}%"><span>${esc(label)}</span><span class="tooltip-track"><i class="tooltip-fill" data-width="${rating}"></i></span></span>`;
+  }).join('')}`;
 }
 function showRatingTooltip(target,event,delay,title,subtitle,ratings){
   clearTimeout(store.tooltipTimer);
@@ -369,10 +372,13 @@ export function applySelection(active=store.activePeople){
   selectResult(clamp(Number(store.selection?.index)||0,0,Math.max(0,store.results.length-1)),active);
 }
 function interestRatingMarkup(result){
-  return (result.ratings||cellRatings(result)).map(({key,rating})=>`<div class="fit-row" data-category="${esc(key)}" data-rating="${rating}">
-    <span class="fit-label">${esc(t('vector.'+key))}</span>
-    <span class="fit-track"><i class="fit-fill" data-width="${rating}"></i></span>
-  </div>`).join('');
+  return (result.ratings||cellRatings(result)).map(({key,rating})=>{
+    const value=Math.round(Number(rating)||0),label=t('vector.'+key);
+    return `<div class="fit-row" data-category="${esc(key)}" data-rating="${rating}" role="meter" aria-label="${esc(label)}: ${value}%" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${value}">
+      <span class="fit-label">${esc(label)}</span>
+      <span class="fit-track"><i class="fit-fill" data-width="${rating}"></i></span>
+    </div>`;
+  }).join('');
 }
 function legChip(leg){
   if(leg.mode==='walk')return `<span class="walk-leg route-walk"><span class="ride-text">${esc(leg.text||legLabel(leg))}</span></span>`;

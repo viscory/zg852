@@ -44,6 +44,7 @@
   "results.longest": "最長は {value} 分です。",
   "map.fairArea": "公平エリア、色が濃いほど移動時間が短い",
   "map.routeKey": "ルートの凡例",
+  "map.routeKeyHelp": "色＝人 · 線種＝交通手段",
   "map.walkKey": "徒歩",
   "map.railKey": "MTR",
   "map.busKey": "バス",

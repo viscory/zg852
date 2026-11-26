@@ -44,6 +44,7 @@
   "results.longest": "นานที่สุด {value} นาที",
   "map.fairArea": "พื้นที่แฟร์ สีเข้มหมายถึงเวลาเดินทางสั้นลง",
   "map.routeKey": "สัญลักษณ์เส้นทาง",
+  "map.routeKeyHelp": "สี = คน · รูปแบบเส้น = การเดินทาง",
   "map.walkKey": "เดิน",
   "map.railKey": "MTR",
   "map.busKey": "รถบัส",

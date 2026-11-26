@@ -44,6 +44,7 @@
   "results.longest": "Pinakamatagal {value} min.",
   "map.fairArea": "Patas na lugar, mas madilim ang mas maikling oras ng biyahe",
   "map.routeKey": "Susian ng ruta",
+  "map.routeKeyHelp": "Kulay = tao · estilo ng linya = transportasyon",
   "map.walkKey": "Lakad",
   "map.railKey": "MTR",
   "map.busKey": "Bus",

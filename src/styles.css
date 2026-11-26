@@ -289,6 +289,7 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .swatch.h5{background:#FACC15}
 .swatch.h6{background:#FDE68A}
 .route-key{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.route-key-help{color:var(--muted);font-size:11px}
 .vector-key,.pin-key,.recenter-key{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .vector-key .icon,.pin-key .icon,.recenter-key .icon{--icon:12px;color:var(--accent)}
 .key-line{width:24px;border-top:2px solid var(--accent)}
@@ -420,7 +421,9 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   .side-left:has(.flip-out),.side-left:has(.flip-in){overflow:visible}
 
   /* Plan: people + settings, one scroll, fixed CTA. */
-  body[data-mobile-view="plan"] .layout{overflow-y:auto;overscroll-behavior:contain;padding:0 12px calc(var(--tabbar) + env(safe-area-inset-bottom) + 76px);-webkit-overflow-scrolling:touch}
+  /* Reserve a dock for the fixed CTA so Plan controls can never sit under it,
+     at any scroll position (not just after the panel has been scrolled down). */
+  body[data-mobile-view="plan"] .layout{overflow-y:auto;overscroll-behavior:contain;margin-bottom:calc(var(--tabbar) + env(safe-area-inset-bottom) + 56px);padding:0 12px calc(var(--tabbar) + env(safe-area-inset-bottom) + 76px);-webkit-overflow-scrolling:touch}
   body[data-mobile-view="plan"] .side-left,
   body[data-mobile-view="plan"] .side-right{display:block}
   body[data-mobile-view="plan"] .side-left{padding-top:10px}

@@ -173,14 +173,18 @@ export async function copyText(text){
   if(!ok)throw new Error('copy failed');
 }
 export async function shareScenario(){
-  const selectedState=store.selection?.kind==='cell'
+  // Only share a selection the sender actually has. A setup copied before any
+  // search must not make the recipient open an invented first result.
+  const hasResults=Array.isArray(store.results)&&store.results.length>0;
+  const selectedState=!hasResults?null:store.selection?.kind==='cell'
     ?{kind:'cell',key:store.selection.key,node:store.selection.node,lat:store.selection.lat,lon:store.selection.lon}
     :store.selection?.kind==='point'
       ?{kind:'point',node:store.selection.node,lat:store.selection.lat,lon:store.selection.lon}
       :{kind:'result',index:store.selected>=0?store.selected:0};
   const settings=clone(store.settings);
   settings.includeHeadway=normIncludeHeadway(settings.includeHeadway);
-  const state={v:1,people:store.people.map(p=>({id:p.id,name:p.name,origin:p.origin,walkMinutes:snapWalkMinutes(p.walkMinutes)})),settings,locale:store.locale,selected:selectedState};
+  const state={v:1,people:store.people.map(p=>({id:p.id,name:p.name,origin:p.origin,walkMinutes:snapWalkMinutes(p.walkMinutes)})),settings,locale:store.locale};
+  if(selectedState)state.selected=selectedState;
   const url=`${location.origin}${location.pathname}${location.search}#s=${encodeBase64Url(state)}`;
   const button=$('share'),status=$('shareStatus');
   const report=message=>{
@@ -217,7 +221,9 @@ export function applySharedState(keepHash=false){
   store.settings=buildSettings({...state.settings,includeHeadway:normIncludeHeadway(state.settings?.includeHeadway)},modes);
   if(LOCALES.includes(state.locale))store.locale=state.locale;
   store.sharedSelection=state.selected&&typeof state.selected==='object'?state.selected:null;
-  store.selection=normalizeSelection(store.sharedSelection)||{kind:'result',index:0};
+  // Old links without a selection should restore the setup without inventing
+  // a selected result. compute()/applySelection() safely handle a null choice.
+  store.selection=normalizeSelection(store.sharedSelection);
   store.seq=nextSeq(store.people);
   save();
   saveSelection();

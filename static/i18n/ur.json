@@ -44,6 +44,7 @@
   "results.longest": "سب سے طویل {value} منٹ۔",
   "map.fairArea": "منصفانہ علاقہ، گہرا رنگ کم سفر کا وقت ظاہر کرتا ہے",
   "map.routeKey": "راستے کی علامت",
+  "map.routeKeyHelp": "رنگ = شخص · لائن کا انداز = ذریعہ سفر",
   "map.walkKey": "پیدل",
   "map.railKey": "MTR",
   "map.busKey": "بس",

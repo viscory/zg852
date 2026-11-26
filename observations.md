@@ -1,3 +1,16 @@
+## 2026-11-26T09:09:33.891433+00:00
+
+- Completed live black-box QA of https://zg852.pages.dev from fresh browser contexts at desktop 1440x900 and mobile 375x812; reset localStorage/sessionStorage between runs and re-verified findings twice.
+- Evidence gathered only from browser DOM/styles, console/network/storage, screenshots, and reproducible flows; no source, git, audit, test-output, or prior-report files were used as evidence.
+- Confirmed 10 ranked findings, led by mobile expanded route details being clipped with no scroll path, inconsistent fare-estimate marking, and a fairest-first ordering mismatch.
+- Verified working areas included keyboard autocomplete, legal dialog focus/Escape, share-link restore, diagnostics export/clipboard, offline load/search after SW cache, route leg naming, and focus styles.
+
+## 2026-11-26T08:57:58Z
+
+- Completed black-box live QA on https://zg852.pages.dev at 1440x900 and 375x812 using browser DOM/computed-style/network evidence only; no local source, prior reports, or observations were used for evidence.
+- Confirmed and quantified ten reportable issues: headway double-count in route totals; mobile overlay blocking mode chip and headway checkbox; blank desktop and misleading mobile no-results states; two-bin time heatmap and one-bin fare heatmap versus six-swatch legends; "fairest first" ranking contradiction; share link auto-running an unrun search; route-key colours absent from actual route lines; visual-only interest ratings.
+- Verified clean areas for the coverage summary: all 15 locales translate key strings, Urdu RTL has no horizontal overflow at desktop or mobile, network hosts match Privacy disclosure (first-party, OpenFreeMap tiles/fonts, Photon geocoder), no cookies, service worker active, localStorage keys use hkfair.v2.*, share/legal/saved-people/pin/add-remove/offline flows work, and last-transport-mode guard holds.
+
 ## 2026-11-26T08:39:00Z
 
 - Committed and pushed `d53584d` ("fix: keep Unlimited map visible, label face toggle and rank fare spread") to `main` at `github.com:viscory/zg852.git`: 30 files, 166 insertions, 49 deletions. Pre-existing untracked `audit/` and screenshot artefacts were left out.
