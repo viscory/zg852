@@ -1,3 +1,9 @@
+## 2026-11-26T09:12:43Z
+
+- Implemented and pushed fixes for the actionable QA findings: headway wait no longer double-counts in displayed route legs; mobile Plan layout reserves a CTA dock so chips/checkbox are not covered; mobile no-results hint shows the real failure reason; share links omit a selection when none was made; route key now states colour=person and line style=mode; interest rating bars expose meter semantics without changing the bar-only visual design.
+- After source review, left the time/fare heat scales, "fairest first" composite ordering, and desktop no-results handling unchanged: the first two are intentional absolute scales/ranking rules covered by tests, and the desktop panel already shows a visible error banner outside the results section.
+- Bumped service-worker cache to zg852-v72, added regression tests, updated affected test expectations, and verified npm run lint, npm run build and npm test (173 passed). Committed as 2ecfaa2 and pushed to origin/main.
+
 ## 2026-11-26T09:09:33.891433+00:00
 
 - Completed live black-box QA of https://zg852.pages.dev from fresh browser contexts at desktop 1440x900 and mobile 375x812; reset localStorage/sessionStorage between runs and re-verified findings twice.
