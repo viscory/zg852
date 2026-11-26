@@ -1,4 +1,69 @@
 
+## 2026-11-26T11:58Z — Live black-box QA pass
+- Tested production URL https://zg852.pages.dev only (Chromium 159.0.8154.6), explicit 1440x900 and 375x812/touch; spoofed iPhone Safari UA noted.
+- Main-document ETag stable across session: W/"aa5d38d69e0bcd49cde65257680751f7"; poi-index ETag W/"80baeca9f4e71a8ccde4937ce91251b0".
+- Read in-app Process/Privacy/Terms/Credits dialogs; confirmed bus fares are estimates and headway only charged on interchanges (so those behaviours were not reported as bugs).
+- Re-verified twice with fresh resets: fairest-first ordering, Fare-mode heat-cell drop, zero-people deletion, stale mode-guard status.
+- Produced 10 ranked evidence-backed findings in the chat deliverable; no local source/tests used for findings.
+
+## 2026-11-26T12:06Z — De-curse plan executed, verified and committed
+- Implemented all four workstreams (core logic, UI, build/SW, tests/i18n/docs) plus the two documentation fixes I kept for myself. Final integrated state: `npm run lint` passes (15 catalogues / 204 keys / 207 fallback keys), `npm run build` succeeds, and the full `npm test` suite passes 185/185 against built `public/`.
+- Integration fixes I made after the agents reported: corrected the prepend-only hook to compare the staged blob's *tail* with HEAD (prepending means new + old, not old + new); replaced nine broken synthetic fixture tests in `tests/contradiction-fixes.spec.js` with unit tests of exported policy functions plus one real-data DOM test, and made linked source-module imports share one store instance; fixed the A47X/NA47 fare assertion to compare against the published band cap; removed inline-style strings from `barMarkup` so the production-bundle CSP test still passes; removed a bogus MTR chip prefix assertion; replaced a fixed sleep with a gated Photon response counter; made the interchange helper click Search explicitly after reload.
+- Committed implementation as 861fb6e (46 files, +1539/-599); untracked QA screenshots and audit/ artefacts left untouched. This block is the separate observations commit.
+
+## 2026-11-26T11:41Z — Core and UI workstreams complete; build verified
+- Core agent finished all 19 items (fareKey/predicate/logging helpers, mode-bit table, display-minute reconciliation helper, solver-state codec and real cycle detection, NODE_KIND enum, strict id parsing, WeakMap timers, versioned vectors, single-source slider mapping); app entry is src/app.js, not src/js/app.js, so entries 7/16/17/18 were applied there. It reported byte-identical routing harness output and identical slider mappings.
+- UI agent finished all 20 items (map bounds/teardown/tooltip helpers, WAAPI motion helper, CSS.escape fix, result-row markup split, WeakMap tooltip timers, matchMedia breakpoint owner with html[data-mobile-layout] mapping, invalidateSize instead of fake resize, z-index scale and CSS variable cleanup).
+- Verified the integrated `npm run build` succeeds and emits public/ with 30 precompressed assets; `npx eslint src/js src/app.js scripts` passes; the JS 1024px matchMedia breakpoint matches the CSS @media(max-width:1024px). The core agent's claim that vite.config.mjs resolves to /home/fai/code/src was disproved by a real build.
+- Awaiting the tests/i18n/docs agent before running full lint and the complete suite.
+
+## 2026-11-26T11:37Z — Build-pipeline workstream complete and reviewed
+- The build/scripts agent finished its 16 items: SW self-precache removed and CACHE bumped v74→v75 with named network-first helpers and a real 404 fallback; finalize.mjs no longer patches sw.js; vite/playwright/preview config constants centralised; all build-script magic numbers named and documented; CSV parser, checksum-refresh flow, POI guards and fare URL scoring hardened; audit-sw and ci-workflow specs updated.
+- Agent verified (into /tmp only) that graph/nodes/network/hkbus/route-fares regeneration is byte-identical and MTR output differs only in generatedAt; Python compile and node --check passed.
+- Reviewed the diff: SW source and deployed copy now match, version expectation updated to v75, and the changed offline assertion reflects the intentional 404 fallback. Remaining agents (core logic, UI, tests/docs) still running; integration lint/test deferred until all report.
+
+## 2026-11-26T11:33Z — Execution started: de-curse plan, four parallel workstreams
+- User approved the full plan (all ~95 items, behaviour-preserving policy) and said "execute". Baseline `npm run lint` passed: 15 catalogues, 204 keys, 127 literal keys verified; HEAD b0e92b0.
+- Updated AGENTS.md myself: clarified the prepend-only log wording, removed the stale "202 keys" literal in favour of deriving counts, and removed the obsolete finalize patch-token note because the SW is now deployed verbatim.
+- Dispatched four disjoint implementation agents: (1) core logic src/js config/data/fares/model/util/vectors/state/engine/app/routing; (2) UI map/ui/mobile/styles/index/process; (3) build scripts + SW + configs + audit-sw/ci-workflow specs; (4) i18n + all remaining tests + docs + prepend-only hook script.
+- Agents were forbidden from committing, running full lint/test, touching observations.md, or editing outside their file lists; integration verification and commits remain with me.
+
+## 2026-11-26T11:11Z — Cursed-code Hall of Fame (read-only review)
+- User asked for a humorous top-10 of the sloppiest/strangest/most cursed code, explicitly with no fixes.
+- Dispatched four parallel read-only explore agents (core logic, UI/CSS/HTML, build scripts/config, tests/docs) and independently scanned git history, i18n catalogues, data files, hooks and generated output; collected 70+ candidates.
+- Verified exact file:line snippets for the ten selected entries by reading the source directly; delivered the ranked Hall of Fame in chat with a rapid-fire runner-up list.
+- Highlights: exact fares deliberately relabelled as estimates for visual consistency, largest-remainder minute laundering, negative line numbers as Dijkstra states, a stubbed private MapLibre API, CSS custom property used as a layout oracle, fabricated GTFS speeds, .mdb downloads with a fake curl UA, a build step that surgically patches its own service worker, tests that regex-match source code, and a triple-guarded flip animation.
+- No application code, tests, i18n catalogues or configuration were changed; this log block is the only file edit.
+
+## 2026-11-26T11:18Z — User asked for explicit confirmation of zero findings
+- Confirmed verbally: both the initial and the deeper black-box QA passes on the unchanged v74 build produced ZERO confirmed findings; no fix or code change is warranted.
+
+## 2026-11-26T11:16Z — Deeper follow-up QA ("look harder") on the same v74 build
+- Re-captured identity at end: doc ETag W/"aa5d38d69e0bcd49cde65257680751f7", live SW zg852-v74, app.js/app.css ETags unchanged, installed key zg852-v74 with 39 precached assets. No drift from the 11:05Z run.
+- Expanded coverage: 7 varied search scenarios (fare mode, tolerance min/max, rail-only, bus-only, interests, Central→Kowloon Tong), a systematic 28-row cross-check of row fares/spreads against detail fares/totals, Urdu results state, saved-people save/delete/edit/two-click confirm, pin set + typed replacement, offline SW fetch, all four legal dialogs with real-click focus return, locale persistence, mobile results reachability and 320x568 dialog/CTA fit, and network hosts (clean load: only first-party + tiles.openfreemap.org; typed search adds photon.komoot.io).
+- Still ZERO confirmed findings. Every leg-minute sum, fare chip, spread, and interchange-wait note reconciled; no duplicates, no raw keys, no overflow, no console/page errors.
+- Disproved three candidates by re-verification: (1) the earlier "share link pasted in same tab does not auto-search" was a 500ms wait artifact — same-document hash arrival also runs Search and flips to the detail face by ~5s (verified twice); (2) net::ERR_ABORTED on data JSONs only occurred during my cache-clearing reloads — a clean load returns 200 for all eight data files with zero failures; (3) legal-dialog focus landing on BODY was a programmatic-click artifact — a real click returns focus to the exact [data-legal] opener after Escape.
+- Minimal ideal solution: no code change warranted on v74. If a future report asks for polish, the only subjective candidate is clarifying the "fairest first" results header to name the composite sort, but the exact English string is intentional and test-pinned, so it was not recommended.
+
+## 2026-11-26T11:05Z — Fresh evidence-only black-box QA of live https://zg852.pages.dev (v74)
+- Ran fresh isolated contexts at desktop 1440x900/en, mobile 390x844 touch/en, landscape 852x393, and a 15-catalogue desktop sweep; cleared storage/caches/SW and waited for [data-net=ready] + SW cache settle each time. No source, git, tests or audit files used as evidence.
+- Build identity identical at start and end: doc ETag W/"aa5d38d69e0bcd49cde65257680751f7", live sw.js CACHE='zg852-v74', app.js ETag W/"d58f37bbda959ee894d4efb4a9c820e2", app.css ETag W/"5289358139883c137705bd9200525521", installed key zg852-v74 with 39 precached assets. No mid-session rollout.
+- Result: ZERO confirmed findings. Verified all 7 default routes' leg minutes reconcile to displayed totals, bus fares carry ≈ while MTR fares do not, mobile #flipStage bounds the expanded route card (maxHeight ~394px, scrollHeight 696) and the fare note is reachable by scrolling, all 15 locales apply with ur dir=rtl and no raw keys/overflow, legal dialog focus/Escape, 8-person cap disabled with tooltip, remove+Undo, last-mode rejection, save feedback, beta On/Off + diagnostics, long names exposed via title attributes, and share links (fresh-arrival auto-search/route face/Undo + local-recipient overwrite notice).
+- Notes only: pasting a share link into the same tab (same-document hash navigation) applies the scenario and shows the Undo status but does not auto-run Search/flip faces, unlike a fresh arrival; transient net::ERR_ABORTED on data/hkbus.json / network.json during cache-clearing reloads; headway checkbox on the default no-transfer routes produced no visible wait notes.
+- No application code or tests changed; no screenshots needed (no visual issues).
+
+## 2026-11-26T10:56Z — Rewrote the live black-box QA prompt for speed and accuracy
+- User chose "only rewrite the prompt": no application changes, no commit and no push. Rewrote the prior QA prompt into a reusable version grounded in this session's experience.
+- Key additions: mandatory start/end deployment identity check (cache-busted `/sw.js` CACHE string plus installed cache keys and asset ETags, because document ETag can stay unchanged while app.js changes and the deploy can roll out mid-session); self-contained Playwright scripts because `browser_run_code_unsafe` does not share globals between calls; a live selector/state cheat sheet; explicit waits for SW controller/precache settlement; and a known-non-findings list (8-person cap is disabled with tooltip, last-mode feedback lives in #actionStatus, #clearPoint is not a start clear, plain reload drops results by design, Playwright offline blocks top-level navigation).
+- Kept the original evidence rules, fresh-context resets, twice-verify gate, self-check, report format and no-route-blocking rule.
+
+## 2026-11-26T10:31Z — Fresh evidence-only black-box QA of live https://zg852.pages.dev
+- Ran fresh isolated browser contexts (cleared localStorage/sessionStorage/IndexedDB/SW caches, then reloaded) at desktop 1440x900/en, mobile 375x812 touch/en, 393x852, 852x393 landscape, 375x812 Urdu, and switched all 15 catalogues at desktop. No source, git, tests or audit files used as evidence.
+- IMPORTANT: deployment changed mid-session. Initial loads installed SW cache `zg852-v73` and reproduced the old share-link silent overwrite; a cache-busted fetch of the live `/sw.js` later showed `const CACHE='zg852-v74'`, fresh contexts installed `zg852-v74`, and the share overwrite was then fixed (visible "Shared scenario opened…" + Undo). All candidates were re-verified against the final v74 build; document ETag stayed W/"aa5d38d69e0bcd49cde65257680751f7".
+- Result: ZERO confirmed findings on the final v74 build. Ruled out/share-fixed: silent share overwrite, share reload revert, leg-minute vs total mismatch (all 7 routes reconciled), "silent" 8-person cap (button becomes disabled/dimmed with "You can add up to 8 people." tooltip), last-mode rejection (visible role=status feedback), mobile route-card clipping (bounded scroller; fare note reachable), saved-people delete (two-click confirm), 15-catalogue raw keys/RTL overflow, typed-place/Enter/Escape, pin flow, diagnostics export.
+- Downgraded to Notes: plain reload drops results and shows onboarding copy (share links do restore scenario+selection); interchange-wait note rendered inside the second ride leg though totals are correct; Playwright offline emulation blocks top-level navigation while SW cache serves subresources; 98%-opaque mobile tab bar lets faint text ghost through in landscape.
+- No application code, tests or configuration were changed; screenshots saved under /tmp/opencode/qa/.
+
 ## 2026-11-26T18:14Z — Fix push for the unacceptable live QA findings
 - Fixed three genuinely unacceptable issues only: (1) a shared `#s=` link silently overwrote the recipient's people/settings, (2) a consumed-but-still-present hash re-imported the original link on reload and reverted edits, (3) displayed route leg minutes did not add up to the displayed Total.
 - Share imports now consume the fragment on arrival, back up any edited local scenario, show a 12s non-blocking Undo status, and let Undo restore the backup via reload. Added localized `share.replaced` and `share.undo` across FALLBACK and all 15 catalogues (204 keys).
