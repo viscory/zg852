@@ -54,7 +54,8 @@ export function compute(reveal=false){
     }
     store.sols=sourceResults.map(result=>solve(result.sources,mask,TRAVEL_BUDGET_MINUTES));
   }
-  if(store.sols.some(s=>!s.dist.size)){renderEmpty();showError(t('error.noReach'));return;}
+  if(store.sols.every(s=>!s.dist.size)){renderEmpty();showError(t('error.noReach'));return;}
+  if(store.sols.some(s=>!s.dist.size)){renderEmpty();showError(t('error.someNoReach'));return;}
   const grids=store.sols.map(bestTimes),walkGrids=store.sols.map(walkTimes);
   // If no node is reachable by everyone, the starts are on disconnected
   // networks (for example an outlying island with no modelled ferry). Say so

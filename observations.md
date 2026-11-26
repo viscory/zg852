@@ -1,3 +1,9 @@
+## 2026-11-26T06:43:54Z
+
+- Fixed the 10 live findings at source with the smallest complete diff: whole-minute display fields (`cellToResult`) so spread matches its own totals, heat buckets keyed to the displayed minute, fare-mode cards/detail/cell labels/tooltips showing the fare spread and cell fare, honest error/empty copy, a visible last-mode guard, in-place share-hash application, a sort hint and locale-following pinned labels.
+- `applySharedState(keepHash)` now preserves an in-page pasted hash across reload while boot still clears it; this avoided a regression in the existing share-link suites. Added three i18n keys to the fallback and all 15 catalogues (192 each, English text for non-English locales) and bumped the service worker to `zg852-v70` with its test pin updated.
+- Added `tests/live-findings-fixes.spec.js` with seven DOM-level regressions against built `public/`. `npm run lint` is clean and `npm test` passes 167/167; no local/source-tree serving was used.
+
 ## 2026-11-25T16:09:28Z
 
 - Closed the 10 evidenced contradictions through a shared `src/js/model.js` semantics layer: fairness/fare ranking, heat value, walk-step snapping, gap floors, closest-stop source matching and error-key selection. Rewired engine, routing, map, UI, state and diagnostics to that single definition.

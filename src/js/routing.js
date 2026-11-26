@@ -367,11 +367,14 @@ export function buildCells(grids,tolerance,budget){
 export function cellToResult(cell){
   const lat=store.NODES.lat[cell.node],lon=store.NODES.lon[cell.node],round=v=>Math.round(v*10)/10;
   const preference=cellPreference(cell);
+  // Every display site shows whole minutes. Derive the spread and longest from
+  // those same numbers so the cards can never contradict their own totals.
+  const whole=cell.times.map(Math.round);
   return{
     key:cell.key,node:cell.node,kind:cell.kind,label:cell.label,catKey:cell.keyCat,district:districtFor(lat,lon),lat,lon,
     cellLat:cell.cy*CELL_SIZE+CELL_SIZE/2,cellLon:cell.cx*CELL_SIZE+CELL_SIZE/2,
-    times:cell.times.map(round),
-    fastest:round(cell.fastest),slowest:round(cell.slowest),gap:round(cell.gap),score:round(cell.score),
+    times:whole,
+    fastest:Math.min(...whole),slowest:Math.max(...whole),gap:Math.max(...whole)-Math.min(...whole),score:round(cell.score),
     fitScore:cell.fitScore??round(cell.score-preference),vectorAdjustment:preference,
     fares:cell.fares,maxFare:cell.maxFare,totalFare:cell.totalFare,fareGap:cell.fareGap,
     fareSpread:cell.fareSpread,fareScore:cell.fareScore,fareEstimated:cell.fareEstimated,

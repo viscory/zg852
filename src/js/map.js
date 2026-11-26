@@ -193,9 +193,11 @@ function magneticCell(latlng){
 }
 export function heatColor(cell,budget,metric='time'){
   const value=heatValue(cell,metric);
+  // Labels show whole minutes, so colour the number the user actually sees.
+  const shown=metric==='fare'?value:Math.round(value);
   const ratio=metric==='fare'
-    ? clamp(value/fareHeatMax(),0,1)
-    : clamp(value/Math.max(budget,1),0,1);
+    ? clamp(shown/fareHeatMax(),0,1)
+    : clamp(shown/Math.max(budget,1),0,1);
   return HEAT_COLORS[Math.max(0,Math.min(HEAT_COLORS.length-1,Math.round(ratio*(HEAT_COLORS.length-1))))];
 }
 export function drawCloud(budget){
@@ -220,7 +222,8 @@ export function drawCloud(budget){
     if(!cellNode)return;
     cellNode.setAttribute('tabindex','-1');
     cellNode.setAttribute('role','button');
-    cellNode.setAttribute('aria-label',`${t('map.areaTitle')}: ${minuteText(c.slowest)}`);
+    const fareLabel=metric==='fare'&&isNum(c.maxFare)?`, ${money(c.maxFare)}`:'';
+    cellNode.setAttribute('aria-label',`${t('map.areaTitle')}: ${minuteText(c.slowest)}${fareLabel}`);
     cellNode.setAttribute('data-heat-cell','');
     if(metric==='fare'&&isNum(c.maxFare))cellNode.setAttribute('data-max-fare',String(c.maxFare));
     entries.push({c,node:cellNode});
@@ -292,7 +295,8 @@ export function scheduleCellTooltip(cell,event,delay=700){
   const places=cleanPlaceNames(cellTopNames(cell));
   const district=districtFor(cell.cy*CELL_SIZE+CELL_SIZE/2,cell.cx*CELL_SIZE+CELL_SIZE/2);
   const title=cell.label||places[0]||district||t('map.areaTitle');
-  showRatingTooltip(cell,event,delay,title,t('map.cellTitle'),cellRatings(cell));
+  const fare=store.settings.fairness==='fare'&&isNum(cell.maxFare)?` · ${money(cell.maxFare)}`:'';
+  showRatingTooltip(cell,event,delay,`${title}${fare}`,t('map.cellTitle'),cellRatings(cell));
 }
 function scheduleResultTooltip(result,event,delay=350){
   const ratings=result.ratings||cellRatings(result);
@@ -412,7 +416,8 @@ export function renderSelection(r,active=store.activePeople,fit=false){
   $('detailDistrict').textContent=r.district;
   $('fitGrid').innerHTML=interestRatingMarkup(r);
   $('fitGrid').querySelectorAll('.fit-fill').forEach(fill=>{fill.style.width=`${fill.dataset.width}%`;delete fill.dataset.width;});
-  $('detailSub').textContent=`${t('results.spread',{value:intNum(r.gap)})} ${t('results.longest',{value:intNum(r.slowest)})}`;
+  const spread=store.settings.fairness==='fare'?t('results.fareSpread',{value:money(r.fareGap)}):t('results.spread',{value:intNum(r.gap)});
+  $('detailSub').textContent=`${spread} ${t('results.longest',{value:intNum(r.slowest)})}`;
   const already=r.times.every(value=>value<=0.5);
   $('steps').innerHTML=legCount?r.routes.map((route,j)=>`<div class="step">
     <span class="dot ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span>

@@ -65,6 +65,10 @@ function personForInput(input){
 export function showError(message){
   const el=$('error');el.textContent=message;el.hidden=false;
   const mobile=$('mobileError');if(mobile){mobile.textContent=message;mobile.hidden=false;}
+  const state=$('resultState');
+  // The alert already says why there are no areas; the pre-search prompt would
+  // contradict it.
+  if(state&&!store.results.length)state.hidden=true;
 }
 export function clearError(){
   const el=$('error');el.textContent='';el.hidden=true;
@@ -289,13 +293,13 @@ export function renderResults(active=store.activePeople){
     return;
   }
   state.hidden=true;
-  count.textContent=t('results.areas',{count:store.results.length});
+  count.textContent=`${t('results.areas',{count:store.results.length})} · ${t('results.sortHint')}`;
   syncMobileResults('ready',active);
   // Never switch mobile panes from a recompute: only explicit navigation or
   // selecting a result may move the user out of the pane they are editing.
   list.innerHTML=store.results.map((r,i)=>`<div role="listitem"><button class="result-row" type="button" data-index="${i}" aria-label="${esc(`${t('results.selectTitle')}: ${r.label}`)}">
     <span class="result-head"><b>${esc(r.label)}</b><span class="tag">${esc(t('cat.'+r.catKey))}</span><span class="district">${esc(r.district)}</span></span>
-    <span class="result-times"><span>${esc(t('results.spread',{value:intNum(r.gap)}))}</span><span>${esc(t('results.longest',{value:intNum(r.slowest)}))}</span></span>
+    <span class="result-times"><span>${esc(store.settings.fairness==='fare'?t('results.fareSpread',{value:money(r.fareGap)}):t('results.spread',{value:intNum(r.gap)}))}</span><span>${esc(t('results.longest',{value:intNum(r.slowest)}))}</span></span>
     <span class="result-people">${r.routes.map((route,j)=>`<span class="result-person"><span class="avatar ${avatarClass(j)}">${esc(initialsFor(displayName(active[j],j)))}</span><span class="person-name">${esc(displayName(active[j],j))}</span>${fareMarkup(route)}</span>`).join('')}</span>
   </button></div>`).join('');
   list.querySelectorAll('.result-row').forEach(row=>{row.onclick=()=>selectResult(Number(row.dataset.index),active,true);});
@@ -543,6 +547,14 @@ function isDefaultPersonName(person,idx){
 // the user typed. Cards are left in place so an in-progress query, its
 // suggestions and focus all survive the locale switch.
 export function refreshTranslatedNames(){
+  store.people.forEach(person=>{
+    const origin=person.origin;
+    if(origin?.source!=='pin'||!origin.district)return;
+    const previous=origin.label;
+    origin.label=`${t('map.pinnedPoint')} · ${origin.district}`;
+    const input=document.querySelector(`.card[data-id="${person.id}"] .start-input`);
+    if(input&&document.activeElement!==input&&input.value===previous)input.value=origin.label;
+  });
   document.querySelectorAll('.card').forEach(card=>{
     const person=store.people.find(p=>p.id===card.dataset.id);if(!person)return;
     const idx=store.people.indexOf(person);

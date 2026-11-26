@@ -205,12 +205,12 @@ function clearShareHash(){
   try{history.replaceState(null,'',location.pathname+location.search);}
   catch(err){console.error(err);}
 }
-export function applySharedState(){
+export function applySharedState(keepHash=false){
   if(!location.hash.startsWith('#s='))return false;
   const state=readHashState();
-  if(!state){flagShareError('share.invalid');clearShareHash();return false;}
+  if(!state){flagShareError('share.invalid');if(!keepHash)clearShareHash();return false;}
   const sharedPeople=state.people.map(normalizePerson).filter(Boolean);
-  if(!sharedPeople.length){flagShareError('share.invalid');clearShareHash();return false;}
+  if(!sharedPeople.length){flagShareError('share.invalid');if(!keepHash)clearShareHash();return false;}
   const needTwo=sharedPeople.length<2;
   store.people=sharedPeople;
   const modes=Array.isArray(state.settings?.modes)?state.settings.modes.filter(m=>m==='rail'||m==='bus'):null;
@@ -221,7 +221,9 @@ export function applySharedState(){
   store.seq=nextSeq(store.people);
   save();
   saveSelection();
-  clearShareHash();
+  // A hash pasted into an open page must survive a reload; boot still removes
+  // it once the scenario has been restored.
+  if(!keepHash)clearShareHash();
   if(needTwo)flagShareError('error.needTwo');
   return true;
 }

@@ -54,7 +54,7 @@ test('the results heading counts only the displayed top areas', async ({ page })
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   const rows = await page.locator('.result-row').count();
-  await expect(page.locator('#nres')).toHaveText(`Top ${rows} areas`);
+  await expect(page.locator('#nres')).toHaveText(`Top ${rows} areas · fairest first`);
 });
 
 test('a selected area is named after the stop its routes actually use', async ({ page, context }) => {

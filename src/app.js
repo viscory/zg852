@@ -96,7 +96,7 @@ document.querySelectorAll('dialog').forEach(dialog=>{
 document.querySelectorAll('.legal-button[data-legal]').forEach(button=>{button.onclick=()=>openLegal(button.dataset.legal);});
 document.querySelectorAll('.chip').forEach(chip=>chip.onclick=()=>{
   const on=chip.getAttribute('aria-pressed')==='true';
-  if(on&&document.querySelectorAll('.chip[aria-pressed="true"]').length<=1)return;
+  if(on&&document.querySelectorAll('.chip[aria-pressed="true"]').length<=1){showError(t('error.noMode'));return;}
   chip.setAttribute('aria-pressed',String(!on));
   clearError();readSettingsFromDom();
 });
@@ -113,6 +113,11 @@ $('betaBadge').onclick=()=>setBetaEnabled(!betaVectorsEnabled());
 $('mobileBeta')?.addEventListener('click',()=>setBetaEnabled(!betaVectorsEnabled()));
 document.querySelectorAll('[data-vector]').forEach(input=>{input.oninput=readSettingsFromDom;});
 $('locale').onchange=e=>changeLocale(e.target.value);
+window.addEventListener('hashchange',()=>{
+  if(!location.hash.startsWith('#s=')||!applySharedState(true))return;
+  applySettingsToDom();renderCards();drawOrigins();
+  if(store.people.length>=2)triggerSearch(!isMobileLayout());
+});
 $('swapFace').onclick=()=>setSidebarFace(store.sidebarFace==='people'?'detail':'people');
 $('jumpSettings')?.addEventListener('click',()=>{
   const heading=$('optionsHeading');
