@@ -1,3 +1,7 @@
+## 2026-11-27T12:01Z — Saved-people filter no longer lies about an empty library
+- Fixed the confirmed severity-5 library finding at source. renderDirectoryList() now distinguishes a genuinely empty saved-people list (people.libraryEmpty) from a filter with no matches (new people.libraryNoMatches: "No saved people match this search. Clear the search to see everyone."); openDirectory() clears #directorySearch on every open, so neither Escape nor #libraryClose carries a stale query into the next dialog session.
+- Added the new key to FALLBACK and all 15 catalogues in one pass; i18n check passed with 198 keys per catalogue and 201 fallback keys. Bumped SW cache v86 to v87.
+- Regression in tests/ui-fixes.spec.js filters to a non-matching query, asserts the new no-match copy (and not the false empty copy), then closes via Escape and via #libraryClose and checks the reopened field is blank with all two rows restored. npm run lint clean; CI=true npm test passed 214/214.
 ## 2026-11-27T11:22Z — Merged, shipped and verified live
 - Integrated origin/main's two commits (displayed-fare heat scale, updated legend refresh, data-consistency checks) into the three-fix round. Kept that displayed-fare ceiling and added the logarithmic mapping on top; resolved the engine drawCloud/legend refresh, SW cache and fare-heat test conflicts. SW cache is now v86 (past origin/main's v85).
 - npm run lint clean; CI=true npm test passed 213/213 against built public/ with no flakes. Merged and pushed main (63b04f6); CI run 45989392100 passed test and deploy.
