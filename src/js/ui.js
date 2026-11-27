@@ -1,7 +1,7 @@
 import { LETTERS,VECTOR_KEYS,FAIRNESS_METRICS,activeFairnessMetric,travelTolerance,fareTolerance,isUnboundedTolerance,toleranceFromSlider,sliderPositionForTolerance,MAX_PEOPLE,SEARCH_LIMIT,WALK_TOLERANCE_MAX,WALK_STEP_MIN } from './config.js';
 import { store } from './store.js';
 import { snapWalkMinutes } from './model.js';
-import { $,esc,icon,initialsFor,avatarClass,clone } from './util.js';
+import { $,esc,icon,initialsFor,avatarClass,clone,isNum } from './util.js';
 import { t,tp,intNum,minuteText } from './i18n.js';
 import { normalizeVectors,vectorLabel,betaVectorsEnabled } from './vectors.js';
 import { syncScrollShadows } from './scroll.js';
@@ -331,7 +331,9 @@ export function isUnboundedReady(){
 }
 export function applyUnboundedUi(){
   const ready=isUnboundedReady();
-  if(!ready&&store.pointSelection)store.pointSelection=null;
+  // A pinned point can be restored from a share link before results exist.
+  // Keep it pending; the banner is gated by `ready` below, never by deleting
+  // the selection itself.
   if(!store.unbounded)hidePointNotice();
   const pin=$('pinBanner');
   const pinning=Boolean(store.pinTarget)||Boolean(pin&&!pin.hidden);
@@ -425,7 +427,11 @@ function resultHeadMarkup(r){
   return `<span class="result-head"><b>${esc(r.label)}</b><span class="tag">${esc(t('cat.'+r.catKey))}</span><span class="district">${esc(r.district)}</span></span>`;
 }
 function resultTimesMarkup(r){
-  return `<span class="result-times"><span>${esc(store.settings.fairness==='fare'?t('results.fareSpread',{value:money(r.fareGap)}):t('results.spread',{value:intNum(r.gap)}))}</span><span>${esc(t('results.longest',{value:intNum(r.slowest)}))}</span></span>`;
+  // A result without a finite fare gap (e.g. a time-mode cell seen during the
+  // metric debounce) must not paint "Fare spread HK$NaN". Show its time spread.
+  const fare=store.settings.fairness==='fare'&&isNum(r.fareGap);
+  const spread=fare?t('results.fareSpread',{value:money(r.fareGap)}):t('results.spread',{value:intNum(r.gap)});
+  return `<span class="result-times"><span>${esc(spread)}</span><span>${esc(t('results.longest',{value:intNum(r.slowest)}))}</span></span>`;
 }
 function resultRowMarkup(r,i,active){
   return `<div role="listitem"><button class="result-row" type="button" data-index="${i}" aria-label="${esc(`${t('results.selectTitle')}: ${r.label}`)}">
@@ -469,8 +475,23 @@ export function renderEmpty(){
   clearMapOutput();
   renderResults();
 }
+// A skeleton clears the results before the new ones arrive. Remember the
+// current choice by stable identity so applySelection() can restore it even
+// when the recomputed rows are byte-identical to the old ones.
+function snapshotSelection(){
+  const sel=store.selection;
+  if(!sel)return null;
+  if(sel.kind==='result'){
+    const result=store.results[store.selected]||store.results[sel.index];
+    return {kind:'result',index:sel.index,key:result?.key,node:result?.node,lat:result?.lat,lon:result?.lon};
+  }
+  if(sel.kind==='cell')return {kind:'cell',key:sel.key,node:sel.node,lat:sel.lat,lon:sel.lon};
+  if(sel.kind==='point')return {kind:'point',lat:sel.lat,lon:sel.lon,node:sel.node};
+  return null;
+}
 export function renderSkeleton(){
   clearError();
+  store.recomputeSelection=snapshotSelection();
   clearMapOutput();
   const state=$('resultState'),count=$('nres');
   if(state){state.textContent=t('options.searching');state.hidden=false;}

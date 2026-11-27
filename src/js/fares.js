@@ -1,6 +1,29 @@
 import { FARE_HEAT_FALLBACK_MAX,LIGHT_RAIL_FARES } from './config.js';
 import { store } from './store.js';
-import { isNum } from './util.js';
+import { isNum,round1,round2 } from './util.js';
+
+// One aggregation for every published fare summary, used by the fare-mode
+// engine and by free-point picks. An empty or malformed route list yields
+// finite zeros rather than Infinity/NaN, which used to render as "HK$NaN".
+export function fareSummary(routes){
+  const values=(routes||[]).map(route=>{
+    const value=route?.fares?.total;
+    return isNum(value)?value:0;
+  });
+  if(!values.length)return {
+    fares:[],minFare:0,maxFare:0,totalFare:0,meanFare:0,fareGap:0,fareSpread:0,fareScore:0,estimated:false,
+  };
+  const minFare=Math.min(...values),maxFare=Math.max(...values);
+  const totalFare=round1(values.reduce((sum,value)=>sum+value,0));
+  const meanFare=round2(totalFare/values.length);
+  const fareGap=round1(maxFare-minFare);
+  const fareSpread=round2(fareGap/Math.max(meanFare,1));
+  const fareScore=round1(totalFare+Math.min(fareGap,totalFare));
+  return {
+    fares:values,minFare,maxFare,totalFare,meanFare,fareGap,fareSpread,fareScore,
+    estimated:(routes||[]).some(route=>route?.fares?.estimated),
+  };
+}
 
 // Adult Octopus fares are looked up from the bundled MTR station-pair matrix,
 // not recomputed from line distance. The matrix keys use our station node ids.

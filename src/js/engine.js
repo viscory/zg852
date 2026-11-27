@@ -5,6 +5,7 @@ import { compareAreaRank,fairnessTolerance,noFitErrorKey,noReachErrorKey } from 
 import { t,applyStaticText } from './i18n.js';
 import { districtFor,loadNetwork } from './data.js';
 import { cellFitScore } from './vectors.js';
+import { fareSummary } from './fares.js';
 import { sourcesFor,solve,bestTimes,walkTimes,walkBudget,buildCells,prepareRoutes,cellToResult,legLabel,SOURCE_NO_STOP,SOURCE_WRONG_MODE,SOURCE_OUTSIDE_WALK } from './routing.js';
 import { save } from './state.js';
 import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,refreshTranslatedNames,setWorking,setSidebarFace,applyUnboundedUi,hasPendingOrigins,showLoading } from './ui.js';
@@ -100,18 +101,10 @@ export function compute(reveal=false){
       if(!cached){
         const probe=cellToResult(cell);
         prepareRoutes(probe,store.activePeople);
-        const fares=probe.routes.map(route=>Number(route.fares?.total)||0);
-        const minFare=Math.min(...fares),maxFare=Math.max(...fares);
-        const totalFare=Math.round(fares.reduce((sum,value)=>sum+value,0)*10)/10;
-        const meanFare=Math.round((totalFare/fares.length)*100)/100;
-        const fareGap=Math.round((maxFare-minFare)*10)/10;
         // Relative spread uses the typical fare as its denominator. The old
         // min-fare denominator rejected walk+transit pairs and doubled the gap
         // in the score for anyone who walked.
-        const fareSpread=Math.round((fareGap/Math.max(meanFare,1))*100)/100;
-        const fareScore=Math.round((totalFare+Math.min(fareGap,totalFare))*10)/10;
-        cached={fares,minFare,maxFare,totalFare,meanFare,fareGap,fareSpread,fareScore,
-          estimated:probe.routes.some(route=>route.fares?.estimated)};
+        cached=fareSummary(probe.routes);
         store.costCache.set(cell.key,cached);
       }
       if(!fareUnbounded&&cached.fareGap>Math.max(cached.meanFare*fareLimit,FARE_GAP_FLOOR))continue;

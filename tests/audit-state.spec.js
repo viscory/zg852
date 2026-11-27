@@ -227,6 +227,27 @@ test('a shared pinned point survives reload', async ({ page }) => {
   await expect(page.locator('.point-pin')).toHaveCount(1);
 });
 
+test('a shared free point on a listed area stays a point and can be cleared', async ({ page }) => {
+  await page.goto('/');
+  const state = await sharedScenario(page, {
+    locale: 'en',
+    tolerance: 3.05,
+    selected: { kind: 'point', node: 394, lat: 22.33469, lon: 114.23049 },
+  });
+  const url = await makeShareUrl(page, state);
+  await page.goto(url);
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+
+  // Node 394 is also a listed area ("Anderson Road"). It must not be collapsed
+  // into that row: the pin keeps its own title, banner and Clear button.
+  await expect(page.locator('#detailTitle')).toHaveText('Pinned point');
+  await expect(page.locator('#pointBanner')).toBeVisible();
+  await page.locator('#clearPoint').click();
+  await expect(page.locator('#pointBanner')).toBeHidden();
+  await expect(page.locator('#detailTitle')).not.toHaveText('Pinned point');
+});
+
 test('a pinned point shows the MTR route to Yuen Long', async ({ page }) => {
   await page.goto('/');
   const point = await page.evaluate(async () => {

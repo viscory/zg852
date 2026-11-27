@@ -53,6 +53,24 @@ test('a chosen result is persisted and restored after a reload', async ({ page }
   await expect(page.locator('#detail')).toBeVisible();
 });
 
+test('mode and beta toggles keep the chosen result when rows do not change', async ({ page }) => {
+  await openApp(page);
+  await search(page);
+  await page.locator('.result-row').nth(3).click();
+  const title = await page.locator('#detailTitle').innerText();
+  expect(title).toBeTruthy();
+
+  await page.locator('.chip[data-mode="lightRail"]').click();
+  await expect.poll(() => page.locator('#goLabel').textContent()).toBe('Find fair areas');
+  await expect(page.locator('.result-row.selected')).toHaveCount(1);
+  await expect(page.locator('#detailTitle')).toHaveText(title);
+
+  await page.locator('#betaBadge').click();
+  await expect.poll(() => page.locator('#goLabel').textContent()).toBe('Find fair areas');
+  await expect(page.locator('.result-row.selected')).toHaveCount(1);
+  await expect(page.locator('#detailTitle')).toHaveText(title);
+});
+
 test('keyboard focus on a heat cell shows its rating tooltip and blur hides it', async ({ page }) => {
   await openApp(page);
   await search(page);

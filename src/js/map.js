@@ -10,7 +10,7 @@ import { t,intNum,minuteText } from './i18n.js';
 import { cellTopNames,cellRatings,cellVector,cellCount,cellPreference,overallRating } from './vectors.js';
 import { prepareRoutes,legLabel,shownMinutes,fareMarkup,money,cellToResult,interchangeWaitText,walkBudget } from './routing.js';
 import { routeLink,mtrLineCode,districtFor } from './data.js';
-import { fareHeatMax } from './fares.js';
+import { fareHeatMax,fareSummary } from './fares.js';
 import { displayName,saveSelection } from './state.js';
 import { isMobileLayout,showMobileRoute } from './mobile.js';
 import { markSelectedResult,setPinOrigin,setLabel,setSidebarFace,showPointNotice,clearPointNotice,applyUnboundedUi } from './ui.js';
@@ -142,6 +142,7 @@ export function revealMap(){
 }
 export function clearMapOutput(){
   store.results=[];
+  store.selectedDetail=null;
   store.cloudCells=[];
   store.selection={kind:'result',index:0};
   store.selected=0;
@@ -406,6 +407,16 @@ export function selectCell(cell){
 export function applySelection(active=store.activePeople){
   if(store.sharedSelection){
     const shared=store.sharedSelection;
+    // A shared free point must stay a point. Matching it to a result by node
+    // or coordinate would show that area's label and hide the pin banner,
+    // leaving the Clear button nested in a hidden ancestor.
+    if(shared.kind==='point'&&store.unbounded&&isNum(shared.lat)&&isNum(shared.lon)){
+      store.sharedSelection=null;
+      store.selection={kind:'point',lat:shared.lat,lon:shared.lon,node:shared.node};
+      store.pointSelection={lat:shared.lat,lon:shared.lon,node:shared.node,label:t('map.pinnedPoint')};
+      selectPoint(shared.lat,shared.lon);
+      return;
+    }
     let index=-1;
     if(shared.kind==='result'&&Number.isFinite(Number(shared.index)))index=clamp(Math.round(Number(shared.index)),0,Math.max(0,store.results.length-1));
     else index=store.results.findIndex(result=>resultMatches(result,shared));
@@ -413,6 +424,28 @@ export function applySelection(active=store.activePeople){
     const cell=store.cloudCells.find(candidate=>resultMatches({key:candidate.key,node:candidate.node,lat:store.NODES.lat[candidate.node],lon:store.NODES.lon[candidate.node]},shared));
     if(cell){clearStalePointSelection();store.selection={kind:'cell',key:cell.key,node:cell.node};store.sharedSelection=null;persistSelection();renderSelection(buildResultFromCell(cell,active),active);return;}
     store.sharedSelection=null;
+  }
+  // A search skeleton clears the selection before new results arrive. Restore
+  // the captured identity first, by key/node when possible so an unchanged
+  // result set keeps the area the user actually chose.
+  const pending=store.recomputeSelection;
+  if(pending){
+    store.recomputeSelection=null;
+    if(pending.kind==='point'&&store.unbounded&&isNum(pending.lat)&&isNum(pending.lon)){
+      store.selection={kind:'point',lat:pending.lat,lon:pending.lon,node:pending.node};
+      store.pointSelection={lat:pending.lat,lon:pending.lon,node:pending.node,label:t('map.pinnedPoint')};
+      selectPoint(pending.lat,pending.lon);
+      return;
+    }
+    if(pending.kind==='result'){
+      const restored=store.results.find(result=>resultMatches(result,pending))||store.results[pending.index];
+      if(restored){selectResult(store.results.indexOf(restored),active);return;}
+    }
+    if(pending.kind==='cell'){
+      const cell=store.cloudCells.find(candidate=>candidate.key===pending.key||
+        (Number.isFinite(pending.node)&&candidate.node===pending.node));
+      if(cell){store.selection={kind:'cell',key:cell.key,node:cell.node};renderSelection(buildResultFromCell(cell,active),active);return;}
+    }
   }
   if(store.selection?.kind==='point'){
     if(store.unbounded&&Number.isFinite(store.selection.lat)&&Number.isFinite(store.selection.lon)){
@@ -461,6 +494,9 @@ function fitTargetsForSelection(r,active,fit,unbounded){
 }
 export function renderSelection(r,active=store.activePeople,fit=false){
   if(!r)return;
+  // Keep the exact result on screen (a pinned point is not in store.results)
+  // so diagnostics can describe what the detail panel actually shows.
+  store.selectedDetail=r;
   const index=store.results.findIndex(result=>resultMatches(result,r));
   store.selected=index;
   markSelectedResult();
@@ -490,7 +526,10 @@ export function renderSelection(r,active=store.activePeople,fit=false){
   $('detailDistrict').textContent=r.district;
   $('fitGrid').innerHTML=interestRatingMarkup(r);
   applyBarWidths($('fitGrid'));
-  const spread=store.settings.fairness==='fare'?t('results.fareSpread',{value:money(r.fareGap)}):t('results.spread',{value:intNum(r.gap)});
+  // Fall back to the time spread when a result has no finite fare gap; money()
+  // would otherwise turn undefined into "HK$NaN".
+  const fare=store.settings.fairness==='fare'&&isNum(r.fareGap);
+  const spread=fare?t('results.fareSpread',{value:money(r.fareGap)}):t('results.spread',{value:intNum(r.gap)});
   $('detailSub').textContent=`${spread} ${t('results.longest',{value:intNum(r.slowest)})}`;
   // "Already there" is a structural fact: every person snapped to the target
   // cell and therefore has zero legs. Read it from the leg structure rather
@@ -546,7 +585,9 @@ export function selectPoint(lat,lon){
   if(nearest<0){
     // A point within walking range of stops nobody can all reach is a walk
     // failure; a point with no mutually reachable stop is a reach failure.
-    // Neither quotes a travel budget, because Unlimited mode has none.
+    // Neither quotes a travel budget, because Unlimited mode has none. A
+    // rejected pin must not leave a restored banner behind.
+    store.pointSelection=null;
     showPointNotice(t(walkOnlyRejected?'error.pointWalkLimit':'error.pointOutOfReach'));
     return;
   }
@@ -563,6 +604,12 @@ export function selectPoint(lat,lon){
     fit:cellPreference(poiCell),vector:cellVector(poiCell),count:cellCount(poiCell),ratings:cellRatings(poiCell),rating:overallRating(poiCell),poiKey:poiCell.key,
   };
   prepareRoutes(result,store.activePeople);
+  // A pinned point is a result too: give it a real, finite fare summary so
+  // fare-mode cards never render money(undefined) as "HK$NaN".
+  const fares=fareSummary(result.routes);
+  result.fares=fares.fares;result.minFare=fares.minFare;result.maxFare=fares.maxFare;
+  result.totalFare=fares.totalFare;result.meanFare=fares.meanFare;result.fareGap=fares.fareGap;
+  result.fareSpread=fares.fareSpread;result.fareScore=fares.fareScore;result.fareEstimated=fares.estimated;
   store.selection={kind:'point',lat,lon,node:nearest};
   store.pointSelection={lat,lon,node:nearest,label};
   store.sharedSelection=null;

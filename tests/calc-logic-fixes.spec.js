@@ -343,7 +343,10 @@ test('Airport Express result uses the official bundled fare', async ({ page }) =
     else expect(published.has(leg.fare)).toBe(false);
   }
   expect(ael.some(leg => !leg.fareEstimated && published.has(leg.fare))).toBe(true);
-  expect(ael.some(leg => leg.fareEstimated)).toBe(true);
+  // With no travel cap the selected point may use AEL for only one person;
+  // the bundled station-pair fare covers that leg, so an estimated leg is no
+  // longer guaranteed.
+  expect(ael.length).toBeGreaterThan(0);
 });
 
 test('light-rail-only mode keeps real light-rail stops as candidate origins', async () => {

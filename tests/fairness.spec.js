@@ -117,6 +117,11 @@ test('fare Unlimited keeps the heat map as reference and allows a map point', as
   const map = await page.locator('#map').boundingBox();
   await page.touchscreen.tap(map.x + map.width / 2, map.y + map.height / 2);
   await expect(page.locator('#pointBanner')).toBeVisible();
+  await expect(page.locator('#detailTitle')).toHaveText('Pinned point');
+  // A pinned point is a result with a real fare summary, never HK$NaN.
+  const detail = await page.locator('#detailSub').innerText();
+  expect(detail).toMatch(/Fare spread HK\$\d/);
+  expect(detail).not.toContain('NaN');
 });
 
 test('fare fairness and its tolerance persist across reloads', async ({ page }) => {

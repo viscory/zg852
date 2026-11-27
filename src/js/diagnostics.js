@@ -69,7 +69,13 @@ function areaFacts(result){
 
 export function diagnosticData(){
   const selectedIndex=store.selection?.kind==='result'?Number(store.selection.index):store.selected;
-  const selected=store.results?.[selectedIndex]||null;
+  // A pinned free point has its own result object on screen. Export the
+  // matching area too, so diagnostics still describe the selected itinerary.
+  const point=store.selection?.kind==='point'?store.selection:null;
+  const pointMatch=point?store.results?.find(result=>result.node===point.node||
+    (Number.isFinite(result.lat)&&Number.isFinite(result.lon)&&
+     Math.abs(result.lat-point.lat)<1e-5&&Math.abs(result.lon-point.lon)<1e-5)):null;
+  const selected=store.results?.[selectedIndex]||store.selectedDetail||pointMatch||null;
   const tolerance=Number(store.settings.tolerance)||0;
   const fareTolerance=Number(store.settings.fareTolerance)||0;
   return{

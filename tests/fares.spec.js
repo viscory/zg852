@@ -76,7 +76,10 @@ test('routes show looked-up MTR fares instead of distance-band estimates', async
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await expect(page.locator('#error')).toBeHidden();
-  await expect(page.locator('#detailTitle')).toContainText('Lok Ma Chau');
+  // A shared free point is restored as a pin, not collapsed into whichever
+  // listed area happens to sit at the same node.
+  await expect(page.locator('#detailTitle')).toContainText('Pinned point');
+  await expect(page.locator('#pointBanner')).toBeVisible();
 
   // Derive the expected chips from the bundled station-pair table rather than
   // pinning literal fares or an obsolete distance-band number in the test.
