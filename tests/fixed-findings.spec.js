@@ -48,25 +48,25 @@ test('metric copy follows the two fairness modes the UI exposes', async ({ page 
   expect(process).not.toContain('Only travel time is compared');
 });
 
-test('fare heat scale covers every published fare, including Airport Express', async ({ page }) => {
+test('fare heat scale follows displayed fares, not an unpublished Airport Express outlier', async ({ page }) => {
   const fares = JSON.parse(readFileSync(join(__dirname, '..', 'static/data/mtr-fares.json'), 'utf8'));
-  let maxFare = 0;
+  let publishedMax = 0;
   for (const table of [fares.fares, fares.aelFares]) {
-    for (const value of Object.values(table || {})) if (value > maxFare) maxFare = value;
+    for (const value of Object.values(table || {})) if (value > publishedMax) publishedMax = value;
   }
-  const expectedTop = Math.ceil(maxFare);
-  expect(expectedTop).toBeGreaterThan(25);
+  const publishedTop = Math.ceil(publishedMax);
 
   await page.goto('/');
-  const [airport, hongKong] = await nodeOrigins(page, ['Airport', 'Hong Kong']);
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  const [kowloonBay, chaiWan] = await nodeOrigins(page, ['Kowloon Bay', 'Chai Wan']);
   const state = {
     v: 1,
     people: [
-      { id: 'p1', name: 'A', origin: airport, walkMinutes: 20 },
-      { id: 'p2', name: 'B', origin: hongKong, walkMinutes: 20 },
+      { id: 'p1', name: 'A', origin: kowloonBay, walkMinutes: 20 },
+      { id: 'p2', name: 'B', origin: chaiWan, walkMinutes: 20 },
     ],
-    // Time tolerance is unlimited so every time-feasible AEL cell stays in the
-    // fare-ranked pool; fare tolerance stays bounded so the heat map is shown.
+    // Unlimited tolerances keep every time-feasible cell in the fare-ranked
+    // pool, so the scale is driven by the cells the map actually paints.
     settings: { modes: ['rail', 'bus'], fairness: 'fare', tolerance: 3.05, fareTolerance: 3, includeHeadway: true },
     locale: 'en',
     selected: { kind: 'result', index: 0 },
@@ -75,29 +75,31 @@ test('fare heat scale covers every published fare, including Airport Express', a
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
 
-  await expect(page.locator('#legendFareScale')).toBeVisible();
-  await expect(page.locator('#legendFareScale')).toHaveText(`HK$0–HK$${expectedTop}`);
-
   const cells = await page.locator('path.heat-cell').evaluateAll(elements => elements.map(element => ({
     fare: Number(element.getAttribute('data-max-fare') || 'NaN'),
     fill: element.getAttribute('fill'),
   })));
-  // Every cell must use the colour its fare earns on the published logarithmic
-  // scale; checking all cells proves the old HK$25 cap cannot flatten a high fare.
+  expect(cells.length).toBeGreaterThan(0);
+  const displayedTop = Math.ceil(Math.max(...cells.map(cell => cell.fare)));
+  expect(displayedTop).toBeGreaterThan(0);
+  // The published HK$120 Airport Express fare is not part of this scenario;
+  // it must not push every ordinary HK$4-16 cell into one swatch.
+  expect(displayedTop).toBeLessThan(publishedTop);
+
+  await expect(page.locator('#legendFareScale')).toBeVisible();
+  await expect(page.locator('#legendFareScale')).toHaveText(`HK$0–HK$${displayedTop}`);
+
   const { HEAT_COLORS } = await loadSourceModule('config.js');
   const { heatRatio } = await loadSourceModule('model.js');
   const fills = new Set();
-  let sawAboveOldCap = false;
-  expect(cells.length).toBeGreaterThan(0);
   for (const cell of cells) {
     expect(Number.isFinite(cell.fare) && cell.fare >= 0).toBe(true);
-    const ratio = heatRatio(cell.fare, expectedTop);
+    // Colours follow the shared logarithmic mapping on the displayed scale.
+    const ratio = heatRatio(cell.fare, displayedTop);
     expect(cell.fill).toBe(HEAT_COLORS[Math.round(ratio * (HEAT_COLORS.length - 1))]);
     fills.add(cell.fill);
-    if (cell.fare > 25) sawAboveOldCap = true;
   }
   expect(fills.size).toBeGreaterThan(1);
-  expect(sawAboveOldCap).toBe(true);
 });
 
 test('non-bus ride legs never claim to open a bus route', async ({ page }) => {

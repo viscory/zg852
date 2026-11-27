@@ -12,10 +12,11 @@ export function nodePriority(kind){return KIND_PRIORITY.get(kind)??3;}
 export function catKey(priority){return PRIORITY_LABEL.get(priority)??'bus';}
 // hkbus.json has one positional slot per network line; nulls are alignment for
 // lines without a published route page, so the line index maps straight there.
-// The parallel hkbus-meta.json records each slot's status (ok, fallback, etc.).
-// The app filters out the generic search URL, which is exactly the value used
-// for every "fallback" status slot, so the status is effectively honoured
-// through the URL value rather than read directly.
+// The parallel build-time hkbus-meta.json records each slot's status
+// (ok, fallback with a reason, or not-a-bus-line) but is pruned from public/,
+// so the app never reads it. The app filters out the generic search URL, which
+// is exactly the value emitted for every "fallback" slot; the status is
+// honoured through the URL value alone.
 export const HKBUS_URL_MISSING=null;
 export function hkbusUrl(lineIndex){return store.HKBUS_URLS?.[lineIndex]??HKBUS_URL_MISSING;}
 // One resolver for every route chip: a link is only offered when the bundled
@@ -84,7 +85,6 @@ export async function loadFares(){
   if(store.MTR_FARES)return store.MTR_FARES;
   store.MTR_FARES=await fetchJson('data/mtr-fares.json','MTR fares');
   if(!store.MTR_FARES?.fares||!store.MTR_FARES?.nodeStation)throw new Error('MTR fare data is invalid');
-  store.fareHeatMax=null;
   // The bus/minibus/ferry snapshot is optional: a missing table must degrade
   // to an explicitly flagged estimate, not break the app or hide MTR fares.
   try{store.ROUTE_FARES=await fetchJson('data/route-fares.json','Route fares');}

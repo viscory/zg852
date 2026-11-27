@@ -36,9 +36,16 @@ test('copy states the real targets, floors and diagnostics export', async ({ pag
   await expect(page.locator('#toleranceHelp')).toContainText('HK$1');
 
   const en = await (await page.request.get('i18n/en.json')).json();
-  for (const key of ['results.preferenceUp', 'results.preferenceDown', 'results.preferenceNone']) {
-    expect(en).not.toHaveProperty(key);
-  }
+  // Interest ratings are informational: a rated area must rank identically to
+  // the same area without ratings. This replaces the old assertion that three
+  // deleted preference keys were still absent.
+  const { loadSourceModule } = require('./source-modules');
+  const { compareAreaRank, areaRank } = await loadSourceModule('model.js');
+  const plain = { key: 'x', fitScore: 12, shownSlowest: 30, shownGap: 8 };
+  const rated = { ...plain, fit: 9, rating: 100, ratings: { food: 10 } };
+  expect(areaRank(plain)).toEqual(areaRank(rated));
+  expect(compareAreaRank(plain, rated)).toBe(0);
+  expect(en['options.interestsHelp']).toContain('do not change ranking');
 
   await page.locator('#betaBadge').click();
   await expect(page.locator('.beta-disclosure')).toBeVisible();
@@ -54,9 +61,8 @@ test('no-JavaScript fallback copy matches the English catalogue', async ({ page 
   for (const key of ['map.areaHint', 'map.vectorKey', 'map.recenterKey', 'options.interestsHelp', 'beta.diagnosticsHelp', 'results.fareNote', 'results.walkPreference']) {
     expect(html, `${key} must appear verbatim in the fallback page`).toContain(en[key]);
   }
-  for (const stale of ['Tap a red area', 'prefer includes, avoid discounts', 'starts stay put', 'Preferences can make nearby interests count']) {
-    expect(html, `stale fallback copy "${stale}"`).not.toContain(stale);
-  }
+  // The byte-for-byte per-key comparison in the test below already fails on
+  // any stale literal, so no list of banned old phrases is needed here.
 });
 
 test('no-JavaScript fallbacks match the English catalogue except two documented shorter labels', async ({ page }) => {
@@ -102,7 +108,15 @@ test('no-JavaScript fallbacks match the English catalogue except two documented 
     return found;
   }, html);
 
-  expect(fallbacks.length, 'index.html must expose literal fallbacks').toBeGreaterThan(100);
+  // Derive the expected key set from an independent pass over the same built
+  // markup instead of pinning an arbitrary "more than 100" count.
+  const keysInMarkup = await page.evaluate(markup => {
+    const doc = new DOMParser().parseFromString(markup, 'text/html');
+    const attrs = ['data-i18n', 'data-i18n-placeholder', 'data-i18n-aria-label', 'data-i18n-title', 'data-i18n-tooltip'];
+    return [...new Set([...doc.querySelectorAll(attrs.map(attr => `[${attr}]`).join(','))]
+      .flatMap(el => attrs.map(attr => el.getAttribute(attr)).filter(Boolean)))];
+  }, html);
+  expect(new Set(fallbacks.map(entry => entry.key))).toEqual(new Set(keysInMarkup));
   const seen = new Set(fallbacks.map(entry => entry.key));
   for (const key of shorterLabels) {
     expect([...seen], `${key} allowlisted but no literal fallback found`).toContain(key);

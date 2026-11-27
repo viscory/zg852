@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const { readFileSync } = require('node:fs');
+const { loadSourceModules } = require('./source-modules');
 
 async function makeShareUrl(page, state) {
   return page.evaluate(value => {
@@ -108,14 +109,34 @@ test('bundled MTR fare tables have no zero fare between different stations', () 
   }
 });
 
-test('every bundled route fare declares its source', () => {
+test('bundled route fares carry a real provenance marker, including tie-break picks', () => {
   const fares = JSON.parse(readFileSync('static/data/route-fares.json', 'utf8'));
   const keys = Object.keys(fares.fares);
   expect(keys.length).toBeGreaterThan(0);
+  expect(fares).not.toHaveProperty('note', expect.stringContaining('td-full-fare'));
+  const allowed = new Set(['td-full-fare', 'td-full-fare-tiebreak']);
   for (const key of keys) {
     expect(Object.prototype.hasOwnProperty.call(fares.fareSources, key), `route fare ${key} should have a fareSources entry`).toBe(true);
-    expect(fares.fareSources[key], `route fare ${key} should name a real source`).toBeTruthy();
+    expect(allowed.has(fares.fareSources[key]), `route fare ${key} has unknown source ${fares.fareSources[key]}`).toBe(true);
   }
+  // The higher-fare tie-break is a real policy; the shipped snapshot must not
+  // launder its selections as ordinary published fares (regression for v83).
+  expect(Object.values(fares.fareSources)).toContain('td-full-fare-tiebreak');
+});
+
+test('fare heat scale follows displayed cells, not the published snapshot', async () => {
+  const [{ fareHeatMax }, { store }, { FARE_HEAT_FALLBACK_MAX }] =
+    await loadSourceModules(['fares.js', 'store.js', 'config.js']);
+  // An Airport Express pair in the snapshot must not set the scale.
+  store.MTR_FARES = { fares: { a: 60.8 }, aelFares: { b: 120 } };
+  store.cloudCells = [{ maxFare: 8.1 }, { maxFare: 11.4 }];
+  expect(fareHeatMax()).toBe(12);
+  // A new search changes the scale immediately: there is no stale cache.
+  store.cloudCells = [{ maxFare: 55.2 }];
+  expect(fareHeatMax()).toBe(56);
+  // Before any search the documented fallback applies.
+  store.cloudCells = [];
+  expect(fareHeatMax()).toBe(FARE_HEAT_FALLBACK_MAX);
 });
 
 test('MTR CSV parser handles quoted fields offline and rejects missing headers', async () => {
