@@ -1,4 +1,4 @@
-import { LETTERS,TRAVEL_BUDGET_MINUTES,isUnboundedTolerance } from './config.js';
+import { LETTERS,TRAVEL_BUDGET_MINUTES,isUnboundedTolerance,ROUNDING_SCALES } from './config.js';
 import { store } from './store.js';
 import { heatValue,rankInputs } from './model.js';
 import { displayName,copyText } from './state.js';
@@ -25,7 +25,7 @@ function legFacts(leg,person){
     toNode:toIndex,
     fromStop:Number.isInteger(fromIndex)?store.NODES?.names?.[fromIndex]??null:null,
     toStop:Number.isInteger(toIndex)?store.NODES?.names?.[toIndex]??null:null,
-    minutes:Math.round((leg.minutes||0)*10)/10,
+    minutes:Math.round((leg.minutes||0)*ROUNDING_SCALES.minutes)/ROUNDING_SCALES.minutes,
     stopCount:leg.stopCount||0,
     interchangeWait:leg.interchangeWait||0,
     fare:leg.fare||0,
@@ -80,12 +80,13 @@ export function diagnosticData(){
       fairness:store.settings.fairness==='fare'?'fare':'time',
       modes:store.settings.modes||[],
       tolerance,
-      tolerancePercent:Math.round(tolerance*100),
+      tolerancePercent:Math.round(tolerance*ROUNDING_SCALES.percent),
       toleranceLimited:!isUnboundedTolerance(tolerance),
       fareTolerance,
-      fareTolerancePercent:Math.round(fareTolerance*100),
+      fareTolerancePercent:Math.round(fareTolerance*ROUNDING_SCALES.percent),
       fareToleranceLimited:!isUnboundedTolerance(fareTolerance),
       travelBudgetMinutes:TRAVEL_BUDGET_MINUTES,
+      travelBudgetUnbounded:true,
       unbounded:!!store.unbounded,
       includeHeadway:store.settings.includeHeadway!==false,
       beta:store.settings.beta||null,

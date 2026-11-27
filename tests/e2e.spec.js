@@ -103,7 +103,7 @@ async function openInterchangeScenario(page) {
     };
     return {
       v: 1,
-      people: ['Tsuen Wan', 'Sha Tin'].map((name, i) => ({
+      people: ['Tsuen Wan', 'Tai Wai'].map((name, i) => ({
         id: `p${i + 1}`, name: ['A', 'B'][i], origin: origin(name), walkMinutes: 20,
       })),
       settings: { modes: ['rail'], fairness: 'time', tolerance: 3.05, includeHeadway: true },
@@ -383,7 +383,7 @@ test('interchange waits are charged only after the first transit leg', async ({ 
 });
 
 test('displayed route legs reconcile with the total when headway is shown', async ({ page }) => {
-  // The real Tsuen Wan / Sha Tin scenario needs a line change for at least one
+  // The real Tsuen Wan / Tai Wai scenario needs a line change for at least one
   // person, so at least one step has a headway wait to reconcile.
   await openInterchangeScenario(page);
   await expect(page.locator('#includeHeadway')).toBeChecked();
@@ -804,8 +804,8 @@ test('diagnostics dump downloads a timestamped JSON file and copies it', async (
   expect(file.settings.modes).toEqual(['rail', 'bus']);
   expect(file.settings.tolerance).toBeGreaterThan(0);
   expect(file.settings.fareTolerance).toBeGreaterThan(0);
-  const { TRAVEL_BUDGET_MINUTES } = await loadSourceModule('config.js');
-  expect(file.settings.travelBudgetMinutes).toBe(TRAVEL_BUDGET_MINUTES);
+  expect(file.settings.travelBudgetMinutes).toBeNull();
+  expect(file.settings.travelBudgetUnbounded).toBe(true);
   expect(file.settings.includeHeadway).toBe(true);
   expect(file.settings.toleranceLimited).toBe(true);
   expect(file.settings.unbounded).toBe(false);

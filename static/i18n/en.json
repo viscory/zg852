@@ -192,7 +192,7 @@
   "map.fairFare": "Fair area, darker means cheaper fares",
   "beta.diagnosticsHelp": "Beta also shows a Diagnostics button in the footer. It downloads and copies your names, start places, routes, fares, settings, the current URL and the areas shown on the map.",
   "options.toleranceHelp": "A target has a floor: 8 min at stations, 5 min at other stops, HK$1 for fares.",
-  "error.noCommonArea": "Your starts reach the network, but no area is reachable by everyone within {budget} minutes.",
+  "error.noCommonArea": "Your starts reach the network, but no area is reachable by everyone.",
   "results.noFitTolerance": "No areas fit this tolerance. Increase it.",
   "results.header": "Top {count} areas · ordered by fit",
   "people.removed": "Removed {name}.",

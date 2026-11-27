@@ -1,4 +1,4 @@
-import { PERSON_COLORS,WALK_SPEED_KMH,WALK_DETOUR } from './config.js';
+import { PERSON_COLORS,WALK_SPEED_KMH,WALK_DETOUR,ROUNDING_SCALES,EARTH_RADIUS_M,SHARED_CONSTANTS } from './config.js';
 
 export const $=id=>document.getElementById(id);
 export const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -9,19 +9,19 @@ export const avatarClass=i=>`person-${i%PERSON_COLORS.length}`;
 export const clamp=(v,lo,hi,fallback)=>Number.isFinite(v)?Math.min(hi,Math.max(lo,v)):fallback;
 export const isNum=v=>typeof v==='number'&&Number.isFinite(v);
 export const clone=v=>JSON.parse(JSON.stringify(v));
-export function round1(value){return Math.round(value*10)/10;}
-export function round2(value){return Math.round(value*100)/100;}
+export function round1(value){return Math.round(value*ROUNDING_SCALES.minutes)/ROUNDING_SCALES.minutes;}
+export function round2(value){return Math.round(value*ROUNDING_SCALES.percent)/ROUNDING_SCALES.percent;}
 export function haversine(lat1,lon1,lat2,lon2){
   const r=Math.PI/180,dlat=(lat2-lat1)*r,dlon=(lon2-lon1)*r;
   const a=Math.sin(dlat/2)**2+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dlon/2)**2;
-  return 2*6371000*Math.asin(Math.sqrt(a));
+  return 2*EARTH_RADIUS_M*Math.asin(Math.sqrt(a));
 }
 // Access walks use this extra minute so a very short first hop does not round
 // away to zero and the detour estimate's sub-minute error does not give the
 // start a free hop. The terminal walk to a pinned point is computed from raw
 // metres instead, without this buffer.
 export const WALK_ROUNDING_BUFFER_MIN=1;
-export function walkMinutes(metres){return metres/1000/WALK_SPEED_KMH*60*WALK_DETOUR+WALK_ROUNDING_BUFFER_MIN;}
+export function walkMinutes(metres){return metres/SHARED_CONSTANTS.metresPerKm/WALK_SPEED_KMH*SHARED_CONSTANTS.secondsPerMinute*WALK_DETOUR+WALK_ROUNDING_BUFFER_MIN;}
 export function decodeBase64Url(value){
   const base64=String(value).replace(/-/g,'+').replace(/_/g,'/');
   const padded=base64+'='.repeat((4-base64.length%4)%4);

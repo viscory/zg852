@@ -229,8 +229,7 @@ test('no-results card explains the failure instead of repeating setup instructio
   await page.locator('#suggest-p2 .suggestion').first().click();
   await page.locator('#go').click();
   await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'results');
-  const { TRAVEL_BUDGET_MINUTES } = await loadSourceModule('config.js');
-  await expect(page.locator('#mobileEmptyHint')).toContainText(`${TRAVEL_BUDGET_MINUTES} minutes`);
+  await expect(page.locator('#mobileEmptyHint')).not.toContainText('minutes');
   await expect(page.locator('#mobileEmptyHint')).not.toContainText('Set up who is meeting');
 });
 

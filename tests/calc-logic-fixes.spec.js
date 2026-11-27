@@ -168,8 +168,9 @@ test('fare ranking sorts by the fare spread shown on the card', async () => {
 // of collapsing into the darkest bucket, while the endpoints stay pinned.
 test('heat colour ratios follow a logarithmic scale', async () => {
   const { heatRatio } = await loadSourceModule('model.js');
-  const { TRAVEL_BUDGET_MINUTES } = await loadSourceModule('config.js');
-  const ceiling = TRAVEL_BUDGET_MINUTES;
+  // The app now derives the ceiling from the cells it draws; this test only
+  // checks the mapping itself against a finite demonstration ceiling.
+  const ceiling = 150;
   expect(heatRatio(15, ceiling)).toBeCloseTo(Math.log1p(15) / Math.log1p(ceiling), 10);
   expect(heatRatio(15, ceiling)).toBeGreaterThan(15 / ceiling); // not linear
   expect(heatRatio(0, ceiling)).toBe(0);
@@ -179,11 +180,12 @@ test('heat colour ratios follow a logarithmic scale', async () => {
   expect(new Set(swatches).size).toBeGreaterThan(3);
 });
 
-// Unlimited mode removes the travel cap: areas whose journeys run past the
-// bounded budget must still be published when the cap is Infinity.
-test('an unbounded travel cap keeps areas past the bounded budget', async () => {
-  const [{ TRAVEL_BUDGET_MINUTES }, routing, { store }] = await loadSourceModules(
-    ['config.js', 'routing.js', 'store.js'], STUBS
+// No travel cap: areas whose journeys run past any finite comparison ceiling
+// must still be published when the cap is Infinity.
+test('no travel cap keeps areas past a finite comparison ceiling', async () => {
+  const demoCap = 150;
+  const [routing, { store }] = await loadSourceModules(
+    ['routing.js', 'store.js'], STUBS
   );
   store.NODES = {
     names: ['near', 'far'], kind: [1, 1],
@@ -191,11 +193,33 @@ test('an unbounded travel cap keeps areas past the bounded budget', async () => 
   };
   store.surface = [0, 1];
   store.POI = null;
-  const grids = [[10, TRAVEL_BUDGET_MINUTES + 30], [12, TRAVEL_BUDGET_MINUTES + 30]];
-  const bounded = routing.buildCells(grids, 3.05, TRAVEL_BUDGET_MINUTES).map(cell => cell.label);
+  const grids = [[10, demoCap + 30], [12, demoCap + 30]];
+  const bounded = routing.buildCells(grids, 3.05, demoCap).map(cell => cell.label);
   const unbounded = routing.buildCells(grids, 3.05, Infinity).map(cell => cell.label);
   expect(bounded).toEqual(['near']);
   expect(unbounded).toEqual(['near', 'far']);
+});
+
+// No-drop builder: every consecutive stop pair survives, every line keeps its
+// edge count aligned, and the provenance report records estimates rather than
+// silent losses. The restored Central-Cheung Chau ferry is a concrete witness.
+test('the graph keeps every timed hop and records its provenance', () => {
+  const network = json('network.json');
+  const report = json('build-report.json');
+  expect(report.policy).toBe('no-drop');
+  expect(report.counts.droppedEdges).toBe(0);
+  expect(report.counts.skippedTrips).toBe(0);
+  for (const line of network.lines) expect(line.e.length).toBe(line.s.length - 1);
+  const ferry = network.lines.find(line => line.l === '7005');
+  expect(ferry).toBeTruthy();
+  expect(ferry.c).toBe(2);
+  expect(ferry.s.length).toBeGreaterThan(1);
+  expect(ferry.e.every(value => Number.isFinite(value) && value > 0)).toBe(true);
+  // Estimated durations and isolated-pier walk links are flagged, not dropped.
+  expect(network.lines.some(line => line.t === 1)).toBe(true);
+  expect(network.walk.some(edge => edge.length > 3)).toBe(true);
+  expect(report.counts.estimatedTrips).toBeGreaterThan(0);
+  expect(report.counts.isolatedPiers).toBeGreaterThan(0);
 });
 
 // Finding 10: stale AEL fallbacks are gone, AEL uses the bundled matrix, light

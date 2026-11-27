@@ -1,4 +1,4 @@
-import { HK_BBOX_STR,HK_CENTER,KEY } from './config.js';
+import { HK_BBOX_STR,HK_CENTER,KEY,SEARCH_LIMIT,DEDUPE_RADIUS_M } from './config.js';
 import { store } from './store.js';
 import { isNum,haversine } from './util.js';
 import { t } from './i18n.js';
@@ -11,7 +11,7 @@ export function saveGeoCache(){
   try{localStorage.setItem(KEY.geocache,JSON.stringify(Object.fromEntries(Object.entries(store.geoCache).slice(-60))));}catch(e){/* Caching is an optimisation; persistence failures must not break search. */}
 }
 export function normLabel(value){return value.toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}]+/gu,' ').trim();}
-export function dedupePlaces(entries,limit=8){
+export function dedupePlaces(entries,limit=SEARCH_LIMIT){
   const out=[];
   for(const entry of entries){
     // Identity is a stable OSM id where one exists; otherwise an exact
@@ -20,7 +20,7 @@ export function dedupePlaces(entries,limit=8){
     const identity=entry.osm?.type&&entry.osm?.id
       ?`osm:${entry.osm.type}:${entry.osm.id}`:`label:${key}`;
     const duplicate=out.find(existing=>existing.identity===identity||
-      (key===existing.key&&haversine(entry.lat,entry.lon,existing.lat,existing.lon)<160));
+      (key===existing.key&&haversine(entry.lat,entry.lon,existing.lat,existing.lon)<DEDUPE_RADIUS_M));
     if(duplicate){duplicate.count++;continue;}
     out.push({...entry,key,identity,count:1});
     if(out.length>=limit)break;
@@ -53,7 +53,7 @@ export async function photonSearch(q,signal){
   if(store.geoCache[key])return store.geoCache[key];
   const url=new URL('https://photon.komoot.io/api/');
   url.searchParams.set('q',q);
-  url.searchParams.set('limit','8');
+  url.searchParams.set('limit',String(SEARCH_LIMIT));
   url.searchParams.set('lang',photonLang());
   url.searchParams.set('bbox',HK_BBOX_STR);
   url.searchParams.set('lat',String(HK_CENTER.lat));

@@ -22,81 +22,75 @@ import zipfile
 from bisect import bisect_left, bisect_right
 from collections import Counter, defaultdict
 
+from _constants import load_constants
+
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(BASE, "static", "data")
 RAW = os.path.join(DATA, "raw")
 FEED = os.path.join(RAW, "hk-community-gtfs.zip")
 OUT = os.path.join(DATA, "graph.json")
+REPORT = os.path.join(DATA, "build-report.json")
 
 
 # ---------------------------------------------------------------------------
 # CONSTANTS - modelling assumptions, NOT measurements.
 #
-# Provenance: these values were hand-tuned when the graph exporter was written
-# to compensate for gaps in the GTFS feed (no walk links, no interchange
-# timings, and rail clocks stored at a flat speed). They are *not* surveyed
-# distances or observed timings. Every literal below is preserved at its
-# historical value; the only intentional departure from the locally generated
-# graph.json (gitignored, no committed baseline) is the narrow detected-hop
-# repair in adjust_edges().
+# Every value comes from config/constants.json, the canonical file shared with
+# the browser bundle. The old walk-neighbour and wait caps are deliberately
+# absent: no timed hop or nearby stop is dropped, and published headways are
+# used in full. Provenance is documented in config/CONSTANTS.md.
 # ---------------------------------------------------------------------------
 
-# Walking model: pace and detour are assumptions; radius/neighbours bound the
-# generated walk graph.
-WALK_SPEED_KMH = 4.5
-WALK_DETOUR = 1.3
-WALK_RADIUS_M = 400
-WALK_NEIGHBOURS = 6
+C = load_constants()
+SHARED, G = C["shared"], C["graph"]
+METRES_PER_KM, SECONDS_PER_MINUTE = SHARED["metresPerKm"], SHARED["secondsPerMinute"]
+EARTH_RADIUS_M = SHARED["earthRadiusM"]
 
-# Riding/waiting model: headway cap and the fallback used when a trip publishes
-# no frequency row. Boarding penalties are mode weights, not measured waits.
-MAX_WAIT_MIN = 20.0
-DEFAULT_HALF_HEADWAY_MIN = 7.5
-BOARD_PENALTY = {"rail": 1.0, "bus": 2.0, "ferry": 2.0, "lightRail": 1.0}
-CAT_CODE = {"rail": 0, "bus": 1, "ferry": 2, "lightRail": 3}
+WALK_SPEED_KMH = G["walkSpeedKmh"]
+WALK_DETOUR = G["walkDetour"]
+WALK_RADIUS_M = G["walkRadiusM"]
+ISOLATED_PIER_RADIUS_M = G["isolatedPierRadiusM"]
+DEFAULT_HALF_HEADWAY_MIN = G["defaultHalfHeadwayMin"]
+BOARD_PENALTY = G["boardPenalty"]
+CAT_CODE = G["catCode"]
 
-# Geometry: tolerances for shape simplification and for snapping a stop onto
-# its trip shape, plus the spatial-hash cell used to find walk neighbours.
-SHAPE_TOLERANCE_M = 30.0
-SHAPE_SNAP_M = 400.0
-CELL_SIZE_DEG = 0.005
+SHAPE_TOLERANCE_M = G["shapeToleranceM"]
+SHAPE_SNAP_M = G["shapeSnapM"]
+CELL_SIZE_DEG = G["cellSizeDeg"]
 
-# Interchange friction: heuristic extra minutes credited to the busiest MTR
-# interchanges and to platform/exit transfers. Not measured dwell times.
-BIG_INTERCHANGES = {"ADM": 2.0, "CEN": 1.5, "MOK": 1.0, "KOT": 1.0, "TSY": 0.5, "TAW": 0.5}
-PLATFORM_EXIT_BASE_MIN = 1.2
-PLATFORM_STATION_BASE_MIN = 1.5
-PLATFORM_PLATFORM_BASE_MIN = 1.5
-PLATFORM_COUNT_OFFSET = 2
-PLATFORM_PENALTY_CAP = 2.0
-PLATFORM_PENALTY_RATE = 0.25
-PLATFORM_PLATFORM_PENALTY_CAP = 2.5
-PLATFORM_PLATFORM_PENALTY_RATE = 0.35
-LINE_COUNT_RATE = 0.4
-LINE_COUNT_OFFSET = 1
-INTERCHANGE_EXIT_WEIGHT = 0.5
-INTERCHANGE_STATION_WEIGHT = 0.5
-INTERCHANGE_PLATFORM_WEIGHT = 0.5
+BIG_INTERCHANGES = G["bigInterchanges"]
+PLATFORM_EXIT_BASE_MIN = G["platformExitBaseMin"]
+PLATFORM_STATION_BASE_MIN = G["platformStationBaseMin"]
+PLATFORM_PLATFORM_BASE_MIN = G["platformPlatformBaseMin"]
+PLATFORM_COUNT_OFFSET = G["platformCountOffset"]
+PLATFORM_PENALTY_CAP = G["platformPenaltyCap"]
+PLATFORM_PENALTY_RATE = G["platformPenaltyRate"]
+PLATFORM_PLATFORM_PENALTY_CAP = G["platformPlatformPenaltyCap"]
+PLATFORM_PLATFORM_PENALTY_RATE = G["platformPlatformPenaltyRate"]
+LINE_COUNT_RATE = G["lineCountRate"]
+LINE_COUNT_OFFSET = G["lineCountOffset"]
+INTERCHANGE_EXIT_WEIGHT = G["interchangeExitWeight"]
+INTERCHANGE_STATION_WEIGHT = G["interchangeStationWeight"]
+INTERCHANGE_PLATFORM_WEIGHT = G["interchangePlatformWeight"]
 
-# Feed-clock repair: some rail hops are encoded at a flat 45 km/h and layovers
-# appear as rides. These thresholds/speeds are assumptions used to spot and
-# correct those cases; 1000 (m per km) and 60 (s per min) are unit conversions.
-LONG_HOP_M = 3000
-ASSUMED_RAIL_KMH = 45
-CORRECTED_RAIL_KMH = 80
-FLAT_SPEED_TOLERANCE_MIN = 0.4
-SHORT_HOP_M = 800
-LAYOVER_MIN_MINUTES = 15
-SHORT_HOP_KMH = 12
-MIN_HOP_MINUTES = 1
-LAYOVER_RATIO = 2
+LONG_HOP_M = G["longHopM"]
+ASSUMED_RAIL_KMH = G["assumedRailKmh"]
+CORRECTED_RAIL_KMH = G["correctedRailKmh"]
+FLAT_SPEED_TOLERANCE_MIN = G["flatSpeedToleranceMin"]
+SHORT_HOP_M = G["shortHopM"]
+LAYOVER_MIN_MINUTES = G["layoverMinMinutes"]
+SHORT_HOP_KMH = G["shortHopKmh"]
+MIN_HOP_MINUTES = G["edgeMinMinutes"]
+LAYOVER_RATIO = G["layoverRatio"]
+ESTIMATED_SPEEDS_KMH = G["estimatedSpeedsKmh"]
 
 
 def to_minutes(text):
     if not text:
         return None
     parts = text.split(":")
-    return int(parts[0]) * 60 + int(parts[1]) + int(parts[2]) / 60
+    return (int(parts[0]) * SECONDS_PER_MINUTE + int(parts[1])
+            + int(parts[2]) / SECONDS_PER_MINUTE)
 
 
 def haversine_xy(lat1, lon1, lat2, lon2):
@@ -104,7 +98,7 @@ def haversine_xy(lat1, lon1, lat2, lon2):
     lat2, lon2 = math.radians(lat2), math.radians(lon2)
     dlat, dlon = lat2 - lat1, lon2 - lon1
     h = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
-    return 2 * 6371000 * math.asin(math.sqrt(h))
+    return 2 * EARTH_RADIUS_M * math.asin(math.sqrt(h))
 
 
 def haversine(a, b):
@@ -117,7 +111,19 @@ def read_table(zf, name):
 
 
 def walk_minutes(a, b, base=0.0):
-    return round(haversine(a, b) / 1000 / WALK_SPEED_KMH * 60 * WALK_DETOUR + base, 2)
+    return round(haversine(a, b) / METRES_PER_KM / WALK_SPEED_KMH * SECONDS_PER_MINUTE
+                 * WALK_DETOUR + base, 2)
+
+
+def estimate_hop_minutes(a, b, d1, d2, speed_kmh):
+    """Flagged duration for a hop with no usable clock time."""
+    if d1 is not None and d2 is not None and d2 > d1:
+        metres, source = d2 - d1, "shape_dist_traveled"
+    else:
+        metres, source = haversine(a, b), "haversine"
+    minutes = round(max(MIN_HOP_MINUTES,
+                        metres / METRES_PER_KM / speed_kmh * SECONDS_PER_MINUTE), 2)
+    return minutes, source
 
 
 def resolve(stop_id, stops, nodes):
@@ -282,10 +288,15 @@ def segment_geometry(shape, d0, d1, start, end):
 
 
 def main():
-    # Counts of data we deliberately discard; reported at the end so the loss
-    # is visible instead of silent.
+    # No-drop policy: every timed hop and every nearby stop becomes an edge.
+    # These counters record repairs and estimates instead of silent losses.
     skipped_trips = 0
     dropped_edges = 0
+    repaired_hops = []
+    estimated_trips = []
+    estimated_walk = []
+    isolated_piers = []
+    unresolvable_stops = []
     shape_stats = Counter()
     with zipfile.ZipFile(FEED) as zf:
         stops = {}
@@ -349,7 +360,7 @@ def main():
         for row in read_table(zf, "frequencies.txt"):
             start = to_minutes(row["start_time"])
             end = to_minutes(row["end_time"])
-            headway = int(row["headway_secs"]) / 60
+            headway = int(row["headway_secs"]) / SECONDS_PER_MINUTE
             if headway <= 0 or start is None or end is None or end <= start:
                 continue
             duration = end - start
@@ -364,6 +375,7 @@ def main():
             seq = int(row["stop_sequence"])
             node = resolve(row["stop_id"], stops, nodes)
             if node is None:
+                unresolvable_stops.append({"stop": row["stop_id"], "trip": tid})
                 continue
             dep = to_minutes(row["departure_time"]) or to_minutes(row["arrival_time"])
             try:
@@ -376,11 +388,13 @@ def main():
         pattern_waits = defaultdict(list)
         pattern_shapes = defaultdict(Counter)
         pattern_shape_distances = {}
+        estimated_patterns = set()
         for tid, records in trip_pattern.items():
             records.sort()
             node_seq = [node for _, node, _, _ in records]
-            times = [t for _, _, t, _ in records if t is not None]
-            if len(node_seq) < 2 or len(times) != len(records):
+            times = [t for _, _, t, _ in records]
+            distances = [d for _, _, _, d in records]
+            if len(node_seq) < 2:
                 skipped_trips += 1
                 continue
             pattern = tuple(node_seq)
@@ -389,23 +403,44 @@ def main():
             if shape_id:
                 key = (route, pattern, shape_id)
                 pattern_shapes[(route, pattern)][shape_id] += 1
-                candidate = tuple(d for _, _, _, d in records)
+                candidate = tuple(distances)
                 previous = pattern_shape_distances.get(key)
                 if previous is None or sum(d is None for d in candidate) < sum(d is None for d in previous):
                     pattern_shape_distances[key] = candidate
             weighted = headways.get(tid)
             if weighted and weighted[1] > 0:
                 average_headway = weighted[0] / weighted[1]
-                half_headway = min(average_headway, MAX_WAIT_MIN) / 2
+                half_headway = average_headway / 2  # published wait, uncapped
             else:
                 half_headway = DEFAULT_HALF_HEADWAY_MIN
             pattern_waits[route].append((pattern, half_headway))
+            cat = route_cat.get(route, "bus")
+            speed = ESTIMATED_SPEEDS_KMH.get(cat, ESTIMATED_SPEEDS_KMH["bus"])
+            needs_estimate = any(t is None for t in times)
+            if needs_estimate:
+                estimated_patterns.add((route, pattern))
+                estimated_trips.append({"trip": tid, "route": route, "reason": "blank stop time"})
             for i in range(len(node_seq) - 1):
-                dt = times[i + 1] - times[i]
-                if 0 < dt < 60:
+                a, b = times[i], times[i + 1]
+                if a is not None and b is not None:
+                    dt = b - a
+                    if dt <= 0:
+                        repaired_hops.append({
+                            "trip": tid, "route": route, "hop": i,
+                            "minutes": dt, "repair": "edgeMinMinutes",
+                        })
+                        estimated_patterns.add((route, pattern))
+                        dt = MIN_HOP_MINUTES
                     pattern_edges[(route, pattern)][i].append(dt)
-                else:
-                    dropped_edges += 1
+                    continue
+                dt, source = estimate_hop_minutes(
+                    nodes[node_seq[i]], nodes[node_seq[i + 1]],
+                    distances[i], distances[i + 1], speed)
+                estimated_trips.append({
+                    "trip": tid, "route": route, "hop": i,
+                    "minutes": dt, "source": source,
+                })
+                pattern_edges[(route, pattern)][i].append(dt)
 
         pattern_rep_shape = {
             key: max(counts.items(), key=lambda item: (item[1], item[0]))[0]
@@ -426,6 +461,7 @@ def main():
             "wait": round(BOARD_PENALTY[cat], 2),
             "stops": list(pattern),
             "edges": [round(statistics.median(vals), 2) for _, vals in sorted(edge_map.items())],
+            "estimatedTime": 1 if (route, pattern) in estimated_patterns else 0,
         }
         shape_id = pattern_rep_shape.get((route, pattern))
         shape = shapes.get(shape_id)
@@ -480,7 +516,27 @@ def main():
                     if d <= WALK_RADIUS_M:
                         nearby.append((d, other))
         nearby.sort()
-        for d, other in nearby[:WALK_NEIGHBOURS]:
+        if not nearby:
+            # Piers and other isolated stops keep one nearest candidate inside
+            # a named, wider radius; that link is flagged as estimated.
+            extended = []
+            for dx in range(-3, 4):
+                for dy in range(-3, 4):
+                    for other in cells.get((cx + dx, cy + dy), []):
+                        if other == nid:
+                            continue
+                        d = haversine(n, nodes[other])
+                        if d <= ISOLATED_PIER_RADIUS_M:
+                            extended.append((d, other))
+            extended.sort()
+            if extended:
+                d, other = extended[0]
+                walk.append([nid, other, walk_minutes(n, nodes[other]), 1])
+                isolated_piers.append({
+                    "node": nid, "name": n["name"], "neighbour": other,
+                    "metres": round(d, 2), "radiusM": ISOLATED_PIER_RADIUS_M,
+                })
+        for d, other in nearby:
             walk.append([nid, other, walk_minutes(n, nodes[other])])
 
     def interchange_bonus(station):
@@ -522,10 +578,33 @@ def main():
 
     export_client(nodes, lines, walk, line_geometry, route_long_name)
 
+    report = {
+        "version": 1,
+        "policy": "no-drop",
+        "walkRadiusM": WALK_RADIUS_M,
+        "isolatedPierRadiusM": ISOLATED_PIER_RADIUS_M,
+        "counts": {
+            "nodes": len(nodes), "lines": len(lines), "walkEdges": len(walk),
+            "droppedEdges": dropped_edges, "skippedTrips": skipped_trips,
+            "repairedHops": len(repaired_hops), "estimatedTrips": len(estimated_trips),
+            "isolatedPiers": len(isolated_piers),
+            "unresolvableStops": len(unresolvable_stops),
+        },
+        "repairedHops": repaired_hops,
+        "estimatedTrips": estimated_trips,
+        "isolatedPiers": isolated_piers,
+        "unresolvableStops": unresolvable_stops,
+        "shapeStats": dict(shape_stats),
+    }
+    with open(REPORT, "w", encoding="utf-8") as fh:
+        json.dump(report, fh, separators=(",", ":"), ensure_ascii=False)
+
     print(f"nodes={len(nodes)} platforms={sum(map(len, station_platforms.values()))} "
           f"exits={sum(map(len, station_exits.values()))} lines={len(lines)} "
           f"walk_edges={len(walk)} size={os.path.getsize(OUT)/1e6:.1f}MB")
     print(f"dropped_edges={dropped_edges} skipped_trips={skipped_trips} "
+          f"repaired_hops={len(repaired_hops)} estimated_trips={len(estimated_trips)} "
+          f"isolated_piers={len(isolated_piers)} "
           f"unused_shape_rows={shape_stats['unused_shape_rows']} "
           f"unparseable_shape_rows={shape_stats['unparseable_shape_rows']}")
 
@@ -600,10 +679,12 @@ def export_client(nodes, lines, walk, line_geometry, route_long_name):
         "kind": [kinds.get(nodes[n]["type"], 0) for n in order],
         "st": [1 if nodes[n]["station"] else 0 for n in order],
     }
+    # Keep the historical short label: the fare and hkbus generators match on
+    # it, so changing labels here would silently mis-key their positional data.
     line_data = []
     for lid, line in lines.items():
         label = line_label(lid)
-        line_data.append({
+        row = {
             "l": label,
             "n": display_name(route_long_name.get(lid.split("#")[0], ""), label),
             "c": CAT_CODE[line["cat"]],
@@ -612,8 +693,12 @@ def export_client(nodes, lines, walk, line_geometry, route_long_name):
             "s": [index[n] for n in line["stops"]],
             "e": line["edges"],
             "g": line_geometry[lid],
-        })
-    walk_data = [[index[a], index[b], t] for a, b, t in walk]
+        }
+        if line.get("estimatedTime"):
+            row["t"] = 1
+        line_data.append(row)
+    walk_data = [[index[w[0]], index[w[1]], w[2]] + (list(w[3:]) if len(w) > 3 else [])
+                 for w in walk]
     with open(os.path.join(DATA, "nodes.json"), "w", encoding="utf-8") as fh:
         json.dump(node_data, fh, separators=(",", ":"), ensure_ascii=False)
     with open(os.path.join(DATA, "network.json"), "w", encoding="utf-8") as fh:

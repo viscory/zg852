@@ -268,8 +268,10 @@ def main():
         print(f'low-score fare matches ({len(low_score)}; app uses ≈ band estimates): {summary}')
 
     if unmatched:
+        # Under the no-drop policy a route with no published fare row is not a
+        # reason to lose the line: the app shows a flagged ≈ band estimate.
         summary = ', '.join(f'{label} (line {index})' for index, label in unmatched)
-        raise SystemExit(f'unmatched route numbers ({len(unmatched)}): {summary}')
+        print(f'unmatched route fares ({len(unmatched)}; app uses band estimates): {summary}')
 
     sorted_fares = dict(sorted(fares.items(), key=lambda item: int(item[0])))
     output = {
@@ -280,6 +282,7 @@ def main():
             'field': 'FULL_FARE (adult full route fare)',
             'lastUpdated': last_updated.isoformat() if last_updated else '',
             'unit': 'HKD',
+            'unmatchedRoutes': [f'{label} (line {index})' for index, label in unmatched],
         },
         'fares': sorted_fares,
         # Sibling of `fares`: the app consumes `fares`, so adding a key is

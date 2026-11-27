@@ -2,7 +2,7 @@ import * as L from 'leaflet';
 import { maplibreGL } from '@maplibre/maplibre-gl-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,WALK_SPEED_KMH,WALK_DETOUR } from './config.js';
+import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,WALK_SPEED_KMH,WALK_DETOUR,RANKING_WEIGHTS,TAP_SNAP_RADIUS } from './config.js';
 import { store } from './store.js';
 import { heatValue,heatRatio } from './model.js';
 import { $,esc,clamp,isNum,icon,initialsFor,avatarClass,haversine } from './util.js';
@@ -19,8 +19,7 @@ import { markSelectedResult,setPinOrigin,setLabel,setSidebarFace,showPointNotice
 // finite corners. They keep the old one-world pan restriction (viscosity 1)
 // without relying on ±Infinity coordinates.
 const WEB_MERCATOR_BOUNDS=[[85.05,-180],[-85.05,180]];
-// A tap only snaps to a heat cell within this many layer pixels of its centre.
-const TAP_SNAP_RADIUS=56;
+// A tap only snaps to a heat cell within the canonical layer-pixel radius.
 
 export const CLEAN_STYLE={
   version:8,
@@ -541,7 +540,7 @@ export function selectPoint(lat,lon){
     const distance=haversine(lat,lon,store.NODES.lat[index],store.NODES.lon[index]);
     const walk=approachMinutes(distance);
     if(times.some((_,person)=>walk>walkLimits[person]+1e-9)){walkOnlyRejected=true;continue;}
-    const score=distance+Math.max(...times)*10;
+    const score=distance+Math.max(...times)*RANKING_WEIGHTS.time;
     if(score<bestScore){bestScore=score;nearest=index;}
   }
   if(nearest<0){
@@ -560,7 +559,7 @@ export function selectPoint(lat,lon){
     key:`point:${round(lat)},${round(lon)}`,node:nearest,label,
     district:districtFor(lat,lon),lat,lon,cellLat:lat,cellLon:lon,
     times,fastest:round(fastest),slowest:round(slowest),gap:round(slowest-fastest),
-    score:round(slowest*2),point:{lat,lon},
+    score:round(slowest*RANKING_WEIGHTS.spread),point:{lat,lon},
     fit:cellPreference(poiCell),vector:cellVector(poiCell),count:cellCount(poiCell),ratings:cellRatings(poiCell),rating:overallRating(poiCell),poiKey:poiCell.key,
   };
   prepareRoutes(result,store.activePeople);

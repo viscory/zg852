@@ -1,4 +1,4 @@
-import { RAIL_FARE_BANDS,BUS_FARE_BANDS,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE,WALK_SPEED_KMH,WALK_DETOUR,lineCategoryBit } from './config.js';
+import { RAIL_FARE_BANDS,BUS_FARE_BANDS,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE,WALK_SPEED_KMH,WALK_DETOUR,NODE_KINDS,SHARED_CONSTANTS,lineCategoryBit } from './config.js';
 import { railFare,aelFareForNodes,lightRailFare,isEstimatedFare,warnOnce } from './fares.js';
 import { store } from './store.js';
 import { isNum,haversine,walkMinutes,round1,esc } from './util.js';
@@ -148,7 +148,7 @@ export function isWalkState(line){return line<0;}
 export function isFreshState(line){return line===FRESH;}
 export function isBoardedState(line){return line===BOARDED;}
 
-export function solve(sources,mask,maxTime=180){
+export function solve(sources,mask,maxTime=Infinity){
   // FRESH is on foot before any boarding, BOARDED is on foot after alighting,
   // and a non-negative line code means riding that line.
   const include=store.settings.includeHeadway!==false;
@@ -197,7 +197,8 @@ export function walkTimes(sol){
 // modesMask separately. Light-rail stops share kind 4 with bus stops, so a
 // light-rail-only start must include kind 4 or every real light-rail stop is
 // discarded before routing. No companion ride mode is enabled by this list.
-const MODE_NODE_KINDS={rail:[1,3],lightRail:[1,2,3,4],bus:[4],ferry:[1,3,4]};
+const {station,platform,exit,bus:busKind}=NODE_KINDS;
+const MODE_NODE_KINDS={rail:[station,exit],lightRail:[station,platform,exit,busKind],bus:[busKind],ferry:[station,exit,busKind]};
 function singleMode(){
   const modes=store.settings.modes||[];
   return modes.length===1?modes[0]:null;
@@ -219,7 +220,7 @@ export const SOURCE_WRONG_MODE='wrong-mode';
 export const SOURCE_OUTSIDE_WALK='outside-walk';
 function sourceGroup(node){
   const kind=store.NODES.kind[node],name=String(store.NODES.names[node]||'');
-  if(kind===1||kind===2||kind===3){
+  if(kind===NODE_KINDS.station||kind===NODE_KINDS.platform||kind===NODE_KINDS.exit){
     const marker=name.indexOf(' · ');
     return `rail:${marker<0?name:name.slice(0,marker)}`;
   }
@@ -401,7 +402,7 @@ export function describe(sol,origin,target,walkMinutes=WALK_STEP_DEFAULT,targetP
       const pointCoord=[targetPoint.lat,targetPoint.lon];
       const distance=haversine(nodeCoord[0],nodeCoord[1],pointCoord[0],pointCoord[1]);
       if(distance>1){
-        const minutes=distance/1000/WALK_SPEED_KMH*60*WALK_DETOUR;
+        const minutes=distance/SHARED_CONSTANTS.metresPerKm/WALK_SPEED_KMH*SHARED_CONSTANTS.secondsPerMinute*WALK_DETOUR;
         const finalWalk={mode:'walk',line:'',minutes,coords:[nodeCoord,pointCoord],from:stopName(store.NODES.names[target]),to:t('map.pinnedPoint'),fromNode:target,toNode:target,stopCount:0};
         finalWalk.text=t('route.walkTo',{time:minuteText(minutes),to:t('map.pinnedPoint')});
         legs.push(finalWalk);

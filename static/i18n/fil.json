@@ -192,7 +192,7 @@
   "map.fairFare": "Patas na lugar, mas madilim ang mas murang pamasahe",
   "beta.diagnosticsHelp": "Nagpapakita rin ang Beta ng Diagnostics button sa footer. Dina-download at kinokopya nito ang inyong mga pangalan, panimulang lugar, ruta, pamasahe, setting, kasalukuyang URL at mga lugar sa mapa.",
   "options.toleranceHelp": "May pinakamababa ang target: 8 min sa mga estasyon, 5 min sa ibang hintuan, HK$1 sa pamasahe.",
-  "error.noCommonArea": "Lahat ng panimulang lugar ay nakakonekta sa network, ngunit walang lugar na maaabot ng lahat sa loob ng {budget} minuto.",
+  "error.noCommonArea": "Naabot ng inyong mga panimulan ang network, pero walang lugar na naaabot ng lahat.",
   "results.noFitTolerance": "Walang lugar na sakto sa tolerance na ito. Taasan ito.",
   "results.header": "Unang {count} lugar · nakaayos ayon sa angkop",
   "people.removed": "Tinanggal ang {name}.",

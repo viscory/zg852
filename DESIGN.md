@@ -12,8 +12,8 @@ This section is the truth for the current build. Everything below it is history,
 - The sidebar footer has the legal links plus a Beta-gated Diagnostics button (`#exportDiagnostics`) and its `#diagStatus` output; there is no attribution or inspiration note.
 - The empty state uses `#goPlan`.
 - The results count reads "Top {count} areas": only seven result rows are listed while up to 600 cells are drawn.
-- Bounded searches use a fixed 150-minute travel cap. Unlimited mode removes that cap entirely, so a journey may take as long as the reachable network allows; the only remaining pin rejection is the per-person final-walk tolerance.
-- Heat colours use a logarithmic scale: against the travel budget in bounded mode, against the slowest visible cell in Unlimited mode (no budget), and against the fare snapshot max in Fare mode.
+- Searches have no travel-time cap: journeys may take as long as the reachable network allows. The only remaining pin rejection is the per-person final-walk tolerance.
+- Heat colours use a logarithmic scale: against the slowest visible cell for time, and against the largest displayed fare in Fare mode.
 
 ## History — superseded
 
@@ -59,7 +59,7 @@ Unchanged from earlier critiques: per-person walk tolerance, whole-minute times 
 
 ### 2026-11-23 Interchange-only headway waits (History — superseded)
 
-The wait model now has two parts. Each line in `network.json` carries `w`, a fixed boarding penalty (one minute on rail, two minutes on bus), and `h`, the duration-weighted average headway across the operating day, halved and capped at a sensible maximum. The solver charges `w` at every boarding, including the first. It charges `h` only when a ride is boarded after another transit leg — an interchange. The first transit boarding pays no headway wait because the traveller can time themselves rather than arrive at a random point in the headway. A leg therefore shows both its fixed boarding penalty and, after an interchange, its `interchangeWait` in minutes.
+The wait model now has two parts. Each line in `network.json` carries `w`, a fixed boarding penalty (one minute on rail, two minutes on bus), and `h`, the full duration-weighted average headway across the operating day, halved with no cap (an infrequent inter-island ferry can contribute a 720-minute half-headway). The solver charges `w` at every boarding, including the first. It charges `h` only when a ride is boarded after another transit leg — an interchange. The first transit boarding pays no headway wait because the traveller can time themselves rather than arrive at a random point in the headway. A leg therefore shows both its fixed boarding penalty and, after an interchange, its `interchangeWait` in minutes.
 
 Ride legs carry `interchangeWait` (0 for a first boarding). The route detail shows a whole-minute note such as `Interchange wait 4 min` in the leg's `.leg-meta`, and `rideLegText()` adds the same note to the leg tooltip. Waiting time is shown separately and excluded from leg minutes; every displayed minute remains a whole number. (superseded — the earlier claim that waiting time was included in the leg's minute total is incorrect in current build.)
 

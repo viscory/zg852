@@ -1,4 +1,4 @@
-import { MAX_CLOUD_CELLS,RECOMPUTE_DELAY,TRAVEL_BUDGET_MINUTES,RESULTS_LIMIT,FARE_GAP_FLOOR,activeFairnessMetric,travelTolerance,fareTolerance,isUnboundedTolerance,modesMask } from './config.js';
+import { MAX_CLOUD_CELLS,RECOMPUTE_DELAY,RESULTS_LIMIT,FARE_GAP_FLOOR,activeFairnessMetric,travelTolerance,fareTolerance,isUnboundedTolerance,modesMask } from './config.js';
 import { store } from './store.js';
 import { compareAreaRank,fairnessTolerance,noFitErrorKey,noReachErrorKey } from './model.js';
 
@@ -18,9 +18,9 @@ const SOURCE_ERROR_KEYS={
 // Interest preferences are informational: ordering uses only the displayed
 // ranking inputs, never a preference adjustment.
 const rankCells = cells => cells.map(cell=>({cell,fitScore:cellFitScore(cell)})).sort((a,b)=>compareAreaRank(a,b,'time'));
-// The cap used for routing and cell feasibility. Unlimited mode deliberately
-// has no ceiling so a journey can run as long as the network allows.
-export const currentTravelCap=()=>store.unbounded?Infinity:TRAVEL_BUDGET_MINUTES;
+// No travel-time cap anywhere: journeys may take as long as the timetable
+// allows. Kept as a function so every consumer shares one definition.
+export const currentTravelCap=()=>Infinity;
 
 export function compute(reveal=false){
   clearError();
@@ -41,12 +41,11 @@ export function compute(reveal=false){
   if(!store.unbounded)store.pointSelection=null;
   applyUnboundedUi();
   save();
-  // Unlimited mode removes the travel cap entirely: Dijkstra runs to the whole
-  // reachable network and a journey may take as long as the timetable allows.
-  // Bounded mode keeps the fixed cap. The cap is part of the cache key so
-  // switching modes always resolves instead of reusing capped distances.
+  // Dijkstra runs to the whole reachable network; there is no time cap to
+  // invalidate, but the solved cap is part of the cache key so a future policy
+  // change cannot silently reuse capped distances.
   const travelCap=currentTravelCap();
-  const solveKey=`${mask}:${store.unbounded?'unbounded':travelCap}:${store.activePeople.map(p=>{const o=p.origin;return o.kind==='node'?`n${o.node}`:`c${o.lat},${o.lon}`;}).join('|')}:h${store.settings.includeHeadway===false?0:1}`;
+  const solveKey=`${mask}:${travelCap}:${store.activePeople.map(p=>{const o=p.origin;return o.kind==='node'?`n${o.node}`:`c${o.lat},${o.lon}`;}).join('|')}:h${store.settings.includeHeadway===false?0:1}`;
   if(store.solveKey!==solveKey){
     store.solveKey=solveKey;
     const sourceResults=store.activePeople.map(p=>sourcesFor(p.origin,travelCap));
@@ -191,7 +190,7 @@ export function rerender(){
   // Keep cards (and any in-progress input) in place; refresh their translated
   // labels in place instead of rebuilding them.
   refreshTranslatedNames();
-  if(store.results.length){renderResults(store.activePeople);drawOrigins(store.activePeople);drawCloud(TRAVEL_BUDGET_MINUTES);applySelection(store.activePeople);}
+  if(store.results.length){renderResults(store.activePeople);drawOrigins(store.activePeople);drawCloud(currentTravelCap());applySelection(store.activePeople);}
   else renderEmpty();
   renderDirectoryList();
 }

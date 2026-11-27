@@ -192,7 +192,7 @@
   "map.fairFare": "Area adil, makin gelap makin murah tarifnya",
   "beta.diagnosticsHelp": "Beta juga menampilkan tombol Diagnostics di footer. Tombol ini mengunduh dan menyalin nama, titik awal, rute, tarif, pengaturan, URL saat ini, dan area yang ditampilkan di peta.",
   "options.toleranceHelp": "Target memiliki batas bawah: 8 menit di stasiun, 5 menit di halte lain, HK$1 untuk tarif.",
-  "error.noCommonArea": "Semua titik awal terhubung ke jaringan, tetapi tidak ada area yang dapat dicapai semua orang dalam {budget} menit.",
+  "error.noCommonArea": "Titik awal Anda menjangkau jaringan, tetapi tidak ada area yang dapat dijangkau semua orang.",
   "results.noFitTolerance": "Tidak ada area yang sesuai dengan toleransi ini. Naikkan toleransi.",
   "results.header": "{count} area teratas · diurutkan berdasarkan kecocokan",
   "people.removed": "{name} dihapus.",

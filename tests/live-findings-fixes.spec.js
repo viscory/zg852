@@ -181,6 +181,36 @@ test('a failed search shows the real error instead of the pre-search prompt', as
   await expect(page.locator('#resultState')).toBeHidden();
 });
 
+test('a ferry-only search reaches Cheung Chau with uncapped headways', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  const [allway, cheungChau] = await Promise.all([
+    nodeOrigin(page, 'Allway Gardens'),
+    nodeOrigin(page, 'Cheung Chau Ferry Pier at San Hing Praya Street'),
+  ]);
+  const url = await shareUrl(page, {
+    v: 1,
+    people: [
+      { id: 'p1', name: 'A', origin: allway, walkMinutes: 20 },
+      { id: 'p2', name: 'B', origin: cheungChau, walkMinutes: 20 },
+    ],
+    settings: { ...settings, modes: ['ferry'], tolerance: 3.05 },
+    selected: { kind: 'result', index: 0 },
+    locale: 'en',
+  });
+  await page.goto(url);
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('#steps .ride-leg.route-ferry').first()).toContainText('7005');
+  await expect(page.locator('#steps .interchange-wait').first()).toContainText('Interchange wait');
+
+  // The published 1,440-minute Mui Wo-Cheung Chau headway is no longer capped.
+  const network = JSON.parse(readFileSync(join(__dirname, '..', 'static', 'data', 'network.json'), 'utf8'));
+  const interIsland = network.lines.find(line => line.l === '7000009');
+  expect(interIsland).toBeTruthy();
+  expect(interIsland.h).toBeGreaterThan(100);
+});
+
 test('Unlimited shows the ranked areas and still picks any point under them', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');

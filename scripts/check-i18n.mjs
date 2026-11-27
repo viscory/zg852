@@ -87,24 +87,22 @@ if (!en) {
       errors.push(`FALLBACK keys absent from en.json (not reviewed plural bases): ${list(fallbackOnlyKeys)}`);
     }
 
-    // 2d. Copy that quotes the travel budget must interpolate {budget}, which
-    // t() fills from TRAVEL_BUDGET_MINUTES. A frozen numeral silently goes
-    // stale the next time the budget changes, so forbid any other digit.
-    // Unlimited-mode copy must NOT quote a budget: that mode has no time cap.
-    const BUDGET_KEYS = ['error.noCommonArea'];
-    for (const key of BUDGET_KEYS) {
-      const checkBudgetCopy = (label, value) => {
+    // 2d. Journeys are unbounded, so no copy may quote a travel budget or a
+    // minute limit. Keep the guard on the messages that used to do so.
+    const UNBOUNDED_KEYS = ['error.noCommonArea', 'error.pointOutOfReach'];
+    for (const key of UNBOUNDED_KEYS) {
+      const checkUnboundedCopy = (label, value) => {
         if (typeof value !== 'string') {
           errors.push(`${label}: "${key}" is missing`);
-        } else if (!value.includes('{budget}')) {
-          errors.push(`${label}: "${key}" must use the {budget} placeholder`);
-        } else if (/\p{Nd}/u.test(value.replaceAll('{budget}', ''))) {
+        } else if (value.includes('{budget}')) {
+          errors.push(`${label}: "${key}" must not quote a travel budget`);
+        } else if (/\p{Nd}/u.test(value)) {
           errors.push(`${label}: "${key}" contains a hard-coded number`);
         }
       };
-      checkBudgetCopy('FALLBACK', FALLBACK[key]);
+      checkUnboundedCopy('FALLBACK', FALLBACK[key]);
       for (const [file, catalog] of catalogs) {
-        checkBudgetCopy(`static/i18n/${file}`, catalog[key]);
+        checkUnboundedCopy(`static/i18n/${file}`, catalog[key]);
       }
     }
 
@@ -195,7 +193,7 @@ if (!en) {
     }
 
     if (!errors.length) {
-      console.log(`i18n check passed: ${catalogFiles.length} catalogues, ${enKeys.length} keys each, ${Object.keys(FALLBACK).length} fallback keys, ${used.size} literal keys verified, no dead keys, no untranslated copy in the reviewed key set (${REQUIRED_TRANSLATION_KEYS.length} keys), FALLBACK values match en.json for shared keys, ${BUDGET_KEYS.length} budget strings interpolate {budget}.`);
+      console.log(`i18n check passed: ${catalogFiles.length} catalogues, ${enKeys.length} keys each, ${Object.keys(FALLBACK).length} fallback keys, ${used.size} literal keys verified, no dead keys, no untranslated copy in the reviewed key set (${REQUIRED_TRANSLATION_KEYS.length} keys), FALLBACK values match en.json for shared keys, ${UNBOUNDED_KEYS.length} unbounded copy strings quote no budget.`);
     }
   }
 }

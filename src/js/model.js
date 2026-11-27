@@ -1,15 +1,11 @@
-import { travelTolerance, fareTolerance } from './config.js';
+import { travelTolerance, fareTolerance, GAP_FLOOR_STATION_MIN, GAP_FLOOR_STOP_MIN, WALK_STEP_MIN, WALK_STEP_MAX, WALK_STEP_DEFAULT } from './config.js';
 import { clamp } from './util.js';
 
 // One definition of the rules the interface describes. Ranking, colouring,
 // matching and messages import from here so a hidden factor cannot creep back
 // into one consumer without changing the rule that every other consumer uses.
 
-export const GAP_FLOOR_STATION_MIN = 8;
-export const GAP_FLOOR_STOP_MIN = 5;
-export const WALK_STEP_MIN = 5;
-export const WALK_STEP_MAX = 60;
-export const WALK_STEP_DEFAULT = 20;
+export { GAP_FLOOR_STATION_MIN, GAP_FLOOR_STOP_MIN, WALK_STEP_MIN, WALK_STEP_MAX, WALK_STEP_DEFAULT };
 
 export function snapWalkMinutes(value){
   const n = Number(value);

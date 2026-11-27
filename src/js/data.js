@@ -1,11 +1,11 @@
-import { MTR_LINE_COLORS,MTR_LINE_DEFAULT_COLOR } from './config.js';
+import { MTR_LINE_COLORS,MTR_LINE_DEFAULT_COLOR,NODE_KINDS } from './config.js';
 import { store } from './store.js';
 import { isNum,haversine } from './util.js';
 import { t } from './i18n.js';
 
 // Node kinds come from nodes.json. The mapping below is the single source of
 // truth for both exact-name tie-breaks and the visible place-category tag.
-export const NODE_KIND=Object.freeze({STATION:1,EXIT:3,BUS_STOP:4});
+export const NODE_KIND=Object.freeze({STATION:NODE_KINDS.station,EXIT:NODE_KINDS.exit,BUS_STOP:NODE_KINDS.bus});
 const KIND_PRIORITY=new Map([[NODE_KIND.STATION,0],[NODE_KIND.EXIT,1],[NODE_KIND.BUS_STOP,2]]);
 const PRIORITY_LABEL=new Map([[0,'station'],[1,'exit'],[2,'bus']]);
 export function nodePriority(kind){return KIND_PRIORITY.get(kind)??3;}

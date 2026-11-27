@@ -1,4 +1,4 @@
-import { LETTERS,VECTOR_KEYS,FAIRNESS_METRICS,activeFairnessMetric,travelTolerance,fareTolerance,isUnboundedTolerance,toleranceFromSlider,sliderPositionForTolerance } from './config.js';
+import { LETTERS,VECTOR_KEYS,FAIRNESS_METRICS,activeFairnessMetric,travelTolerance,fareTolerance,isUnboundedTolerance,toleranceFromSlider,sliderPositionForTolerance,MAX_PEOPLE,SEARCH_LIMIT,WALK_TOLERANCE_MAX,WALK_STEP_MIN } from './config.js';
 import { store } from './store.js';
 import { snapWalkMinutes } from './model.js';
 import { $,esc,icon,initialsFor,avatarClass,clone } from './util.js';
@@ -198,7 +198,7 @@ function resolveTypedOrigin(input,{announce=true,global=true}={}){
     state.query='';clearTypedError(input);return true;
   }
   const key=normLabel(typed);
-  const local=searchPlaces(typed,8).filter(place=>place.kind==='local'&&normLabel(place.label)===key);
+  const local=searchPlaces(typed,SEARCH_LIMIT).filter(place=>place.kind==='local'&&normLabel(place.label)===key);
   const displayed=state.options||[];
   let matches=displayed.filter(place=>normLabel(place.label)===key);
   if(!matches.length)matches=displayed.filter(place=>normLabel(place.label).includes(key));
@@ -589,7 +589,7 @@ export function makeCard(person){
     <label for="walk-${id}">${esc(t('people.walkTolerance'))}</label>
     <span class="value" id="walk-${id}-val">${esc(minuteText(person.walkMinutes))}</span>
   </div>
-  <input type="range" id="walk-${id}" data-walk min="0" max="60" step="5" value="${person.walkMinutes}">
+  <input type="range" id="walk-${id}" data-walk min="0" max="${WALK_TOLERANCE_MAX}" step="${WALK_STEP_MIN}" value="${person.walkMinutes}">
   <div class="suggestions" id="suggest-${id}" role="listbox" hidden></div>`;
   $('cards').appendChild(card);
   // CSS.escape() output is an identifier escape, not a string escape, so it
@@ -622,7 +622,7 @@ export function makeCard(person){
       input.setAttribute('aria-expanded','false');input.removeAttribute('aria-activedescendant');
       return;
     }
-    const local=dedupePlaces(searchPlaces(q,8),8);
+    const local=dedupePlaces(searchPlaces(q,SEARCH_LIMIT),SEARCH_LIMIT);
     renderSuggestions(sug,local,person,input,false,false,cancelSearch);
     if(q.length<3&&![...q].some(ch=>ch.charCodeAt(0)>127))return;
     const mine=++requestSeq;
@@ -672,7 +672,7 @@ export function refreshMeta(){
   const countLabel=$('countLabel');if(countLabel)countLabel.textContent=tp('people.count',store.people.length);
   const add=$('add');
   if(add){
-    const atMax=store.people.length>=8,key=atMax?'people.max':'people.add';
+    const atMax=store.people.length>=MAX_PEOPLE,key=atMax?'people.max':'people.add';
     add.disabled=atMax;
     add.dataset.i18nTooltip=key;add.dataset.i18nAriaLabel=key;
     setLabel(add,t(key));
@@ -801,7 +801,7 @@ export function deleteDirectoryPerson(id){
 }
 export function addDirectoryPerson(profile){
   if(!profile)return false;
-  if(store.people.length>=8){
+  if(store.people.length>=MAX_PEOPLE){
     const message=t('people.max');showDirectoryError(message);showError(message);return false;
   }
   clearDirectoryError();
@@ -814,7 +814,7 @@ export function editDirectoryPerson(profile){
   let person=store.people.find(p=>p.directoryId===profile.id);
   if(!person){
     // Editing a profile that is not on the board would add a ninth person.
-    if(store.people.length>=8){
+    if(store.people.length>=MAX_PEOPLE){
       const message=t('people.max');showDirectoryError(message);showError(message);return false;
     }
     if(!addDirectoryPerson(profile))return false;

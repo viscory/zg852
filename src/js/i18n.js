@@ -1,4 +1,4 @@
-import { LOCALES,RTL_LOCALES,KEY,TRAVEL_BUDGET_MINUTES } from './config.js';
+import { LOCALES,RTL_LOCALES,KEY } from './config.js';
 import { store } from './store.js';
 import { $ } from './util.js';
 import { save } from './state.js';
@@ -15,7 +15,7 @@ export const FALLBACK={
   'route.rideLeg':'{mode} {line}: {from} → {to}, {stops}, {time}','route.stops':'{from} → {to}','route.busLink':'Open the closest matching bus route on HK Bus ETA','route.walkLeg':'Walk {time}','route.walkTo':'Walk {time} to {to}','route.interchangeWait':'Interchange wait {value}','route.stopCount':'stop','route.stopCount_one':'{count} stop','route.stopCount_other':'{count} stops','route.already':'Already there','route.unreachable':'Unreachable',
   'mode.walk':'Walk','mode.rail':'MTR','mode.bus':'Bus','mode.ferry':'Ferry','mode.lightRail':'Light rail','unit.min':'min','unit.min_one':'min','unit.min_other':'min',
   'cat.station':'MTR station','cat.exit':'MTR exit','cat.bus':'bus stop',
-  'error.missingOrigins':'Choose a start place for every person.','error.needTwo':'Add at least two people with a start place.','error.noMode':'Enable at least one transport mode.','error.noNearby':'A start place has no nearby transit stop.','error.noNearbyMode':'No nearby stop is available for the selected travel modes.','error.noReach':'No start place reaches the network.','error.someNoReach':'One or more start places cannot reach the transit network.','error.noCommonArea':'Your starts reach the network, but no area is reachable by everyone within {budget} minutes.','error.pointOutOfReach':'That point cannot be reached by everyone.','error.pointWalkLimit':'That point needs a final walk longer than someone\'s walk tolerance.','error.searchFailed':'The search failed: {message}','error.timetableFailed':'Could not load the timetable: {message}','error.mapFailed':'The map failed to start. Search still works. {message}',
+  'error.missingOrigins':'Choose a start place for every person.','error.needTwo':'Add at least two people with a start place.','error.noMode':'Enable at least one transport mode.','error.noNearby':'A start place has no nearby transit stop.','error.noNearbyMode':'No nearby stop is available for the selected travel modes.','error.noReach':'No start place reaches the network.','error.someNoReach':'One or more start places cannot reach the transit network.','error.noCommonArea':'Your starts reach the network, but no area is reachable by everyone.','error.pointOutOfReach':'That point cannot be reached by everyone.','error.pointWalkLimit':'That point needs a final walk longer than someone\'s walk tolerance.','error.searchFailed':'The search failed: {message}','error.timetableFailed':'Could not load the timetable: {message}','error.mapFailed':'The map failed to start. Search still works. {message}',
   'search.unavailable':'Place search is unavailable. Pick a transit stop or use a map pin.','search.none':'No places match. Pick a transit stop or use a map pin.','search.selectSuggestion':'Choose a suggestion or use a map pin for this start place.',
   'tag.station':'station','tag.exit':'exit','tag.bus':'bus','tag.address':'address','tag.place':'place','tag.city':'city',
   'place.unnamed':'Unnamed place','place.stops':'stops','place.stops_one':'{count} stop','place.stops_other':'{count} stops','district.unknown':'Hong Kong',
@@ -26,13 +26,12 @@ export const FALLBACK={
   'vector.off':'Off','vector.avoid':'Avoid {value}','vector.prefer':'Prefer {value}','vector.avoidStrong':'Strong avoid','vector.preferStrong':'Strong prefer','vector.food':'Food','vector.drinks':'Drinks','vector.activities':'Activities','vector.culture':'Culture','vector.outdoors':'Outdoors','vector.shopping':'Shopping','vector.ratings':'Interest ratings',
   'legal.title':'Legal and project information','legal.privacy':'Privacy','legal.terms':'Terms','legal.credits':'Credits','legal.process':'Process','legal.close':'Close','legal.loading':'Loading','legal.failed':'Could not load this document.','legal.englishOnly':'This document is available in English only.','legal.summaryPrivacy':'Summary: Your people and settings stay on this device. Place search and map tiles contact third-party providers; share links reveal the scenario in the URL. There is no account, analytics, or app backend.','legal.summaryTerms':'Summary: Results are estimates, not navigation or professional advice. Check official operator information before travelling. The app is provided as is; you control what you enter and share.','legal.summaryCredits':'Summary: Map data comes from OpenStreetMap, tiles from OpenFreeMap, search from Photon, and fares from MTR open data. Application code is MIT licensed.','legal.summaryProcess':'Summary: Starts are matched to nearby stops, local routing computes travel times, and areas are sorted by a stored fit score built from the displayed longest and spread, with those displayed values as tie-breaks (fare mode sorts by the displayed fare gap). MTR fares use published adult Octopus values where available, bus and ferry fares are the published full-route adult fares, and ≈ marks a distance-band estimate when a lookup is missing.',
 };
-// Copy that quotes the travel budget uses {budget}; the value is derived here
-// so a catalogue can never freeze a stale number. An explicit var still wins.
+// No copy quotes a travel budget any more: journeys are unbounded. Explicit
+// interpolation variables still work for other values (counts, names, fares).
 export function t(key,vars={}){
   const source=store.I18N[store.locale]||store.EN;
   let value=source[key]??store.EN[key]??FALLBACK[key]??key;
-  const allVars={budget:intNum(TRAVEL_BUDGET_MINUTES),...vars};
-  for(const [k,v] of Object.entries(allVars))value=value.replaceAll(`{${k}}`,String(v));
+  for(const [k,v] of Object.entries(vars))value=value.replaceAll(`{${k}}`,String(v));
   return value;
 }
 const numberFormats=new Map(),intFormats=new Map(),pluralRules=new Map();

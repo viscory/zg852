@@ -1,4 +1,4 @@
-import { LOCALES,KEY } from './js/config.js';
+import { LOCALES,KEY,MIN_PEOPLE,MAX_PEOPLE,WALK_STEP_DEFAULT } from './js/config.js';
 import { store } from './js/store.js';
 import { $ } from './js/util.js';
 import { t,ensureCatalog,detectLocale,setDocumentLocale,changeLocale,applyStaticText } from './js/i18n.js';
@@ -80,7 +80,7 @@ async function init(){
     showLoading('loading.timetable');
     loadNetwork().then(()=>{
       hideLoading();
-      if(sharedScenario&&store.people.length>=2){
+      if(sharedScenario&&store.people.length>=MIN_PEOPLE){
         setMobileView('map');
         // Open the mobile route face when the shared search actually renders
         // results instead of after a guessed delay. Subscribing before the
@@ -100,7 +100,7 @@ async function init(){
   }
 }
 
-$('add').onclick=()=>{if(store.people.length<8){store.people.push({id:`p${store.seq++}`,name:'',origin:null,walkMinutes:20});commitPeople();}};
+$('add').onclick=()=>{if(store.people.length<MAX_PEOPLE){store.people.push({id:`p${store.seq++}`,name:'',origin:null,walkMinutes:WALK_STEP_DEFAULT});commitPeople();}};
 $('library').onclick=openDirectory;
 $('libraryClose').onclick=()=>closeDialog($('peopleDialog'));
 $('loadingRetry').onclick=()=>location.reload();
@@ -148,7 +148,7 @@ $('locale').onchange=e=>changeLocale(e.target.value);
 window.addEventListener('hashchange',()=>{
   if(!location.hash.startsWith('#s=')||!applySharedState())return;
   applySettingsToDom();renderCards();drawOrigins();
-  if(store.people.length>=2)triggerSearch(!isMobileLayout());
+  if(store.people.length>=MIN_PEOPLE)triggerSearch(!isMobileLayout());
 });
 $('swapFace').onclick=()=>setSidebarFace(store.sidebarFace==='people'?'detail':'people');
 $('jumpSettings')?.addEventListener('click',()=>{

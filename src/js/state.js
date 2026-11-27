@@ -1,4 +1,4 @@
-import { LOCALES,KEY,LETTERS,HK_BBOX,FAIRNESS_METRICS,FAIRNESS_DEFAULT,travelTolerance,fareTolerance } from './config.js';
+import { LOCALES,KEY,LETTERS,HK_BBOX,FAIRNESS_METRICS,FAIRNESS_DEFAULT,travelTolerance,fareTolerance,MIN_PEOPLE,WALK_STEP_DEFAULT } from './config.js';
 import { store } from './store.js';
 import { snapWalkMinutes } from './model.js';
 import { isNum,clone,decodeBase64Url,encodeBase64Url,$ } from './util.js';
@@ -128,7 +128,7 @@ export function normalizePerson(raw,i){
 export function defaultPeople(){
   return ['Tsuen Wan','North Point'].map((name,i)=>{
     const node=findExact(name);
-    return{id:`p${i+1}`,name:'',walkMinutes:20,origin:node==null?null:{kind:'node',node,label:store.NODES.names[node],lat:store.NODES.lat[node],lon:store.NODES.lon[node],district:districtFor(store.NODES.lat[node],store.NODES.lon[node])}};
+    return{id:`p${i+1}`,name:'',walkMinutes:WALK_STEP_DEFAULT,origin:node==null?null:{kind:'node',node,label:store.NODES.names[node],lat:store.NODES.lat[node],lon:store.NODES.lon[node],district:districtFor(store.NODES.lat[node],store.NODES.lon[node])}};
   }).filter(p=>p.origin);
 }
 export function save(){
@@ -158,7 +158,7 @@ export function restoreState(){
   if(!loaded){
     try{
       const raw=parseStored(readStorage(KEY.oldLoc));
-      if(Array.isArray(raw)&&raw.length){store.people=raw.map((l,i)=>({id:`p${i+1}`,name:'',walkMinutes:20,origin:l.i!=null&&store.NODES&&l.i<store.NODES.names.length?{kind:'node',node:l.i,label:l.name,lat:l.lat,lon:l.lon}:null})).filter(p=>p.origin);loaded=store.people.length>0;}
+      if(Array.isArray(raw)&&raw.length){store.people=raw.map((l,i)=>({id:`p${i+1}`,name:'',walkMinutes:WALK_STEP_DEFAULT,origin:l.i!=null&&store.NODES&&l.i<store.NODES.names.length?{kind:'node',node:l.i,label:l.name,lat:l.lat,lon:l.lon}:null})).filter(p=>p.origin);loaded=store.people.length>0;}
     }catch(err){console.error(err);}
   }
   if(!loaded||store.people.length<1)store.people=defaultPeople();
@@ -281,7 +281,7 @@ export function applySharedState(){
   if(!sharedPeople.length){flagShareError('share.invalid');clearShareHash();return false;}
   const replacing=hasLocalScenario();
   if(replacing)backupLocalScenario();
-  const needTwo=sharedPeople.length<2;
+  const needTwo=sharedPeople.length<MIN_PEOPLE;
   store.people=sharedPeople;
   // Share links must restore every enabled mode, not just rail and bus,
   // otherwise lightRail and ferry selections silently disappear on import.

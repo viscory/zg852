@@ -192,7 +192,7 @@
   "map.fairFare": "Faires Gebiet, dunkler bedeutet günstigere Fahrpreise",
   "beta.diagnosticsHelp": "Beta zeigt außerdem eine Diagnostics-Schaltfläche in der Fußzeile. Sie lädt Ihre Namen, Startpunkte, Routen, Preise, Einstellungen, die aktuelle URL und die auf der Karte angezeigten Bereiche herunter und kopiert sie.",
   "options.toleranceHelp": "Für ein Ziel gilt ein Mindestwert: 8 Min. an Bahnhöfen, 5 Min. an anderen Haltestellen, HK$1 bei Fahrpreisen.",
-  "error.noCommonArea": "Alle Startpunkte erreichen das Netz, aber es gibt kein Gebiet, das alle innerhalb von {budget} Minuten erreichen können.",
+  "error.noCommonArea": "Eure Startpunkte erreichen das Netz, aber kein Ort ist für alle erreichbar.",
   "results.noFitTolerance": "Kein Gebiet passt zu dieser Toleranz. Erhöhe sie.",
   "results.header": "Top {count} Gebiete · nach Passung sortiert",
   "people.removed": "{name} wurde entfernt.",

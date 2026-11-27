@@ -192,7 +192,7 @@
   "map.fairFare": "公平なエリア、色が濃いほど運賃が安い",
   "beta.diagnosticsHelp": "ベータ版ではフッターに診断ボタンが表示されます。名前、出発地、ルート、運賃、設定、現在の URL、地図上のエリアをダウンロードしてコピーします。",
   "options.toleranceHelp": "目標には下限があります。駅では8分、その他の停留所では5分、運賃はHK$1です。",
-  "error.noCommonArea": "すべての出発地は交通網に接続されていますが、全員が{budget}分以内に到達できる場所がありません。",
+  "error.noCommonArea": "出発地は路線網に接続していますが、全員が到達できる場所はありません。",
   "results.noFitTolerance": "この許容範囲に合う地域はありません。許容範囲を広げてください。",
   "results.header": "上位 {count} 件のエリア · 適合度順",
   "people.removed": "{name}を削除しました。",

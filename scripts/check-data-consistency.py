@@ -70,6 +70,21 @@ def main():
     if not isinstance(metro, dict) or not isinstance(metro.get('source'), dict):
         errors.append('mtr-fares.json: missing source field')
 
+    # The no-drop builder must publish its provenance, and that provenance must
+    # record no unexplained loss of timed hops, stops or nearby walk links.
+    report = load('build-report.json')
+    if report.get('policy') != 'no-drop':
+        errors.append('build-report.json: policy is not no-drop')
+    counts = report.get('counts', {})
+    for key in ('droppedEdges', 'skippedTrips', 'unresolvableStops'):
+        if counts.get(key, 0) > 0:
+            errors.append(f'build-report.json: unexplained {key}={counts[key]}')
+    network = load('network.json')
+    if counts.get('lines') != len(network.get('lines', [])):
+        errors.append('build-report.json: line count disagrees with network.json')
+    if counts.get('walkEdges') != len(network.get('walk', [])):
+        errors.append('build-report.json: walk edge count disagrees with network.json')
+
     if errors:
         for error in errors:
             print(f'data consistency: {error}')

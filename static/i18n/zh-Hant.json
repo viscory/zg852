@@ -192,7 +192,7 @@
   "map.fairFare": "公平區域，顏色越深代表車費越便宜",
   "beta.diagnosticsHelp": "Beta 亦會在頁尾顯示診斷按鈕，下載並複製你的姓名、起點、路線、票價、設定、目前網址及地圖上顯示的區域。",
   "options.toleranceHelp": "目標設有下限：車站為 8 分鐘，其他站點為 5 分鐘，車費為 HK$1。",
-  "error.noCommonArea": "各出發地都能連上交通網絡，但沒有所有人都能在{budget}分鐘內抵達的地區。",
+  "error.noCommonArea": "你的出發地已接入網路，但沒有所有人都可達的區域。",
   "results.noFitTolerance": "沒有符合此容差的區域。請提高容差。",
   "results.header": "前 {count} 個區域 · 按契合度排序",
   "people.removed": "已移除{name}。",

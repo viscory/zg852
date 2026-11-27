@@ -54,6 +54,23 @@ def main():
         return issues
     nodes = json.load(open(nodes_path, encoding="utf-8"))
     net = json.load(open(net_path, encoding="utf-8"))
+    report_path = os.path.join(DATA, "build-report.json")
+    if not os.path.exists(report_path):
+        print("ISSUE missing build-report.json provenance")
+        issues += 1
+    else:
+        report = json.load(open(report_path, encoding="utf-8"))
+        counts = report.get("counts", {})
+        if report.get("policy") != "no-drop":
+            print("ISSUE build-report policy is not no-drop")
+            issues += 1
+        for key in ("droppedEdges", "skippedTrips", "unresolvableStops"):
+            if counts.get(key, 0) > 0:
+                print(f"ISSUE build-report records {key}={counts[key]}")
+                issues += 1
+        if counts.get("lines") != len(net["lines"]) or counts.get("walkEdges") != len(net["walk"]):
+            print("ISSUE build-report counts disagree with network.json")
+            issues += 1
     names, lats, lons, kinds = nodes["names"], nodes["lat"], nodes["lon"], nodes["kind"]
 
     stations = {}

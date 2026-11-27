@@ -18,27 +18,46 @@ const { pathToFileURL } = require('node:url');
 const sourceDir = path.join(__dirname, '..', 'src', 'js');
 const cache = new Map();
 
+// config.js imports the canonical JSON constants file. Vite bundles that
+// import in the browser; Node needs an ESM stand-in, so supply one from the
+// real JSON once and rewrite the relative specifier into the temp tree.
+const constantSpecifier = '../../config/constants.json';
+const DEFAULT_STUBS = {
+  [constantSpecifier]: `export default ${fs.readFileSync(
+    path.join(__dirname, '..', 'config', 'constants.json'), 'utf8')};`,
+};
+
 // `stubs` maps a relative module name to ESM source used instead of the real
 // file. Browser-only modules imported but never called by a pure function can
 // be stubbed so Node can import the module under test.
 function loadSourceModules(names, stubs = {}) {
+  const allStubs = { ...DEFAULT_STUBS, ...stubs };
   const cacheKey = names.join(',') + JSON.stringify(stubs);
   if (cache.has(cacheKey)) return Promise.resolve(cache.get(cacheKey));
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zg852-esm-'));
   const seen = new Set();
+  for (const spec of Object.keys(allStubs).filter(name => name.endsWith('.json'))) {
+    const relative = spec.replace(/^(\.\.\/)+/, '').replace(/\.json$/, '.js');
+    const target = path.join(tempDir, relative.replace(/\.js$/, '.mjs'));
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, allStubs[spec]);
+    seen.add(relative);
+  }
   const copy = relative => {
     if (seen.has(relative)) return;
     seen.add(relative);
     const absolute = path.join(sourceDir, relative);
-    const source = Object.prototype.hasOwnProperty.call(stubs, relative)
-      ? stubs[relative]
+    const source = Object.prototype.hasOwnProperty.call(allStubs, relative)
+      ? allStubs[relative]
       : fs.readFileSync(absolute, 'utf8')
-        .replace(/['"](\.\.?\/[^'"]+\.js)['"]/g, quote => quote.replace(/\.js(['"])$/, '.mjs$1'));
+        .replace(/['"](\.\.?\/[^'"]+\.js)['"]/g, quote => quote.replace(/\.js(['"])$/, '.mjs$1'))
+        .replace(/(['"])(\.\.?\/[^'"]+\.json)\1/g, (_, quote, spec) =>
+          `${quote}./${spec.replace(/^(\.\.\/)+/, '').replace(/\.json$/, '.mjs')}${quote}`);
     const target = path.join(tempDir, relative.replace(/\.js$/, '.mjs'));
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, source);
     for (const match of source.matchAll(/['"](\.\.?\/[^'"]+\.mjs)['"]/g)) {
-      copy(path.normalize(match[1]).replace(/\.mjs$/, '.js'));
+      copy(path.normalize(match[1]).replace(/^\.\//, '').replace(/\.mjs$/, '.js'));
     }
   };
   try {

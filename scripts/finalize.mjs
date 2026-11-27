@@ -125,7 +125,7 @@ const headers = `/*
 // so they are pruned here rather than deployed. The markdown legal/attribution
 // sources are likewise not copied into public/; the app links the built HTML
 // pages instead.
-const deployedDataFiles = new Set(['nodes.json', 'network.json', 'districts.json', 'poi-index.json', 'hkbus.json', 'mtr-fares.json', 'route-fares.json']);
+const deployedDataFiles = new Set(['nodes.json', 'network.json', 'districts.json', 'poi-index.json', 'hkbus.json', 'mtr-fares.json', 'route-fares.json', 'build-report.json']);
 const dataDir = join(out, 'data');
 for (const entry of await readdir(dataDir)) {
   if (!deployedDataFiles.has(entry)) await rm(join(dataDir, entry), { recursive: true, force: true });
@@ -177,6 +177,15 @@ const swDeployedPath = join(out, 'sw.js');
 if (!existsSync(swDeployedPath)) throw new Error('public/sw.js missing: Vite must copy static/sw.js verbatim');
 if (readFileSync(swDeployedPath, 'utf8') !== readFileSync(swSourcePath, 'utf8')) {
   throw new Error('public/sw.js diverges from static/sw.js; fix the Vite copy step instead of patching the worker');
+}
+const constants = JSON.parse(readFileSync(join(root, 'config', 'constants.json'), 'utf8'));
+const expectedCache = `const CACHE='zg852-v${constants.sw.cacheVersion}'`;
+if (!readFileSync(swSourcePath, 'utf8').startsWith(expectedCache)) {
+  throw new Error(`static/sw.js CACHE must be ${expectedCache}; config/constants.json is canonical`);
+}
+const swAssets = constants.sw.assets;
+if (!swAssets.every(asset => readFileSync(swSourcePath, 'utf8').includes(`'${asset}'`))) {
+  throw new Error('static/sw.js asset list diverges from config/constants.json');
 }
 
 // The preview-config.js tag is authored in each source page before
