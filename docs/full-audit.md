@@ -1,3 +1,5 @@
+> ## Historical snapshot — superseded — findings below are dated and may no longer reflect current behaviour; for present-day facts read `static/sw.js`, `static/i18n/en.json`, `src/js/`, and `tests/`.
+
 # Full qualitative audit — PC and mobile
 
 Date: 2026-11-24  

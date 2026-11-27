@@ -55,10 +55,10 @@ export function routeFares(route){
   };
   const flushLightRail=()=>{
     if(lrLegs.length){
-      // describe() counts stopCount as intermediate stops, so N ride edges on
-      // one leg give stopCount = N-1. The chart counts boarding and alighting
-      // stops too: sum(stopCount) + number of legs + 1.
-      const stops=lrStops+lrLegs.length+1;
+      // describe() increments stopCount on every ride edge after the first
+      // ride state of a leg, so N ride edges give stopCount = N. The chart
+      // counts the boarding and alighting stops too: sum(stopCount) + legs.
+      const stops=lrStops+lrLegs.length;
       const fare=round1(lightRailFare(stops));
       lightRail+=fare;
       for(const leg of lrLegs)leg.fare=fare;

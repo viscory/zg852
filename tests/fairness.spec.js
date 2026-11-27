@@ -1,5 +1,10 @@
 const { test, expect, devices } = require('@playwright/test');
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
 const { sliderPosition } = require('./helpers');
+
+// Copy comes from the English i18n catalogue, not from literals in this spec.
+const en = JSON.parse(readFileSync(join(__dirname, '..', 'static', 'i18n', 'en.json'), 'utf8'));
 
 test.use({ ...devices['iPhone 15'], browserName: 'chromium' });
 
@@ -31,7 +36,7 @@ test('the tolerance slider is linear to 100%, logarithmic to 300%, then Unlimite
   await expect(page.locator('#tolerance')).toHaveAttribute('min', '1');
   await expect(page.locator('#tolerance')).toHaveAttribute('max', '201');
   await expect(page.locator('#tolerance')).toHaveAttribute('step', '1');
-  await expect(page.locator('#tolerance ~ .slider-row.ends span').last()).toHaveText('Unlimited');
+  await expect(page.locator('#tolerance ~ .slider-row.ends span').last()).toHaveText(en['options.unbounded']);
 
   await setTolerance(page, await sliderPosition(0.05));
   await expect(page.locator('#tolerance')).toHaveValue('1');
@@ -61,19 +66,19 @@ test('the tolerance slider is linear to 100%, logarithmic to 300%, then Unlimite
 
   await setTolerance(page, await sliderPosition(3.05));
   await expect(page.locator('#tolerance')).toHaveValue('201');
-  await expect(page.locator('#tolval')).toHaveText('Unlimited');
+  await expect(page.locator('#tolval')).toHaveText(en['options.unbounded']);
 });
 
 test('the Fairness toggle switches labels and legend without losing each tolerance', async ({ page }) => {
   await expect(page.locator('#fairnessToggle [data-fairness="time"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#tolval')).toHaveText('10%');
-  await expect(page.locator('#legendFairText')).toHaveText('Fair area, darker means shorter travel time');
+  await expect(page.locator('#legendFairText')).toHaveText(en['map.fairArea']);
 
   await page.locator('#fairnessToggle [data-fairness="fare"]').click();
   await expect(page.locator('#fairnessToggle [data-fairness="fare"]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#toleranceLabel')).toHaveText('Target fare difference');
+  await expect(page.locator('#toleranceLabel')).toHaveText(en['options.fareTolerance']);
   await expect(page.locator('#tolval')).toHaveText('25%');
-  await expect(page.locator('#legendFairText')).toHaveText('Fair area, darker means cheaper fares');
+  await expect(page.locator('#legendFairText')).toHaveText(en['map.fairFare']);
 
   await setTolerance(page, await sliderPosition(0.40));
   await expect(page.locator('#tolval')).toHaveText('40%');
@@ -89,7 +94,7 @@ test('fare mode ranks results by the displayed fare spread', async ({ page }) =>
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
-  await expect(page.locator('#legendFairText')).toHaveText('Fair area, darker means cheaper fares');
+  await expect(page.locator('#legendFairText')).toHaveText(en['map.fairFare']);
 
   const spreads = await page.locator('.result-row').evaluateAll(rows => rows.map(row => {
     const label = row.querySelector('.result-times > span')?.textContent || '';
@@ -103,7 +108,7 @@ test('fare mode ranks results by the displayed fare spread', async ({ page }) =>
 test('fare Unlimited keeps the heat map as reference and allows a map point', async ({ page }) => {
   await page.locator('#fairnessToggle [data-fairness="fare"]').click();
   await setTolerance(page, await sliderPosition(3.05));
-  await expect(page.locator('#tolval')).toHaveText('Unlimited');
+  await expect(page.locator('#tolval')).toHaveText(en['options.unbounded']);
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await page.locator('#mobileTabbar [data-mobile-view="map"]').click();

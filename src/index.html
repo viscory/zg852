@@ -149,7 +149,7 @@
         <span class="icon icon-close" aria-hidden="true"></span>
       </button>
     </div>
-    <div class="unbounded-hint" id="unboundedHint" hidden data-i18n="map.pickAnywhere">Unlimited mode is on: tap anywhere on the map to choose a meeting point. The 90-minute travel limit still applies.</div>
+    <div class="unbounded-hint" id="unboundedHint" hidden data-i18n="map.pickAnywhere">Unlimited mode is on: tap the map to choose the nearest reachable stop as a meeting point. The 90-minute travel limit still applies.</div>
     <div class="map-tooltip" id="mapTooltip" role="tooltip" hidden></div>
     <div class="legend disclosure open" id="mapLegend">
       <button class="legend-head disclosure-head" id="legendToggle" type="button" aria-expanded="true" aria-controls="legendBody">
@@ -159,14 +159,14 @@
         <div class="legend-body">
         <div class="cloud-key"><span class="swatch h6"></span><span class="swatch h5"></span><span class="swatch h4"></span><span class="swatch h3"></span><span class="swatch h2"></span><span class="swatch h1"></span> <span id="legendFairText" data-i18n="map.fairArea">Fair area, darker means shorter travel time</span><span class="fare-scale" id="legendFareScale" hidden></span></div>
         <div class="route-key">
-          <span data-i18n="map.routeKey">Route key</span><span class="route-key-help" data-i18n="map.routeKeyHelp">Colour = person · line style = mode</span>
+          <span data-i18n="map.routeKey">Route key</span><span class="route-key-help" data-i18n="map.routeKeyHelp">Colour = person · dotted walk, dashed bus, solid rail</span>
           <span class="key-line route-walk"></span><span data-i18n="map.walkKey">Walk</span>
           <span class="key-line route-rail"></span><span data-i18n="map.railKey">MTR</span>
           <span class="key-line route-bus"></span><span data-i18n="map.busKey">Bus</span>
         </div>
         <div class="vector-key" id="legendVectorKey" hidden><span class="icon icon-landmark" aria-hidden="true"></span><span data-i18n="map.vectorKey">Interests: ratings only; preferences do not change ranking</span></div>
         <div class="pin-key"><span class="icon icon-map-pin" aria-hidden="true"></span><span data-i18n="map.pinKey">Pin: tap pin, then tap map</span></div>
-        <div class="recenter-key"><span class="icon icon-scan" aria-hidden="true"></span><span data-i18n="map.recenterKey">Recenter fits the shown areas and routes</span></div>
+        <div class="recenter-key"><span class="icon icon-scan" aria-hidden="true"></span><span data-i18n="map.recenterKey">Recenter fits the shown routes and selected point</span></div>
         </div>
       </div>
     </div>

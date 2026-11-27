@@ -129,6 +129,10 @@ test('an unbounded tap before Search reports that data is still loading without 
   expect(snapshot.bannerHidden).toBe(true);
   expect(snapshot.detailHidden).toBe(true);
   expect(snapshot.pins).toBe(0);
+  // #error is display:none on this mobile profile; the shared live region is
+  // what the user actually sees, so assert its visible feedback as well.
+  await expect(page.locator('#mobileError')).toBeVisible();
+  await expect(page.locator('#mobileError')).toHaveText('The timetable is still loading.');
   await page.locator('#mobileTabbar [data-mobile-view="plan"]').click();
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);

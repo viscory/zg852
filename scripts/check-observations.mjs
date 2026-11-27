@@ -54,3 +54,10 @@ if (staged.length <= head.length || !staged.subarray(staged.length - head.length
   console.error(`pre-commit: ${file} is prepend-only; new blocks go at the top and existing blocks must not be removed, reordered, or edited.`);
   process.exit(1);
 }
+
+// The byte-tail check alone would accept arbitrary bytes at the top. Require
+// the newly prepended region to open with a timestamped block heading.
+if (!/^## \d{4}-\d{2}-\d{2}/.test(staged.subarray(0, staged.length - head.length).toString('utf8'))) {
+  console.error(`pre-commit: new blocks in ${file} must start with a '## YYYY-MM-DD...' timestamped heading.`);
+  process.exit(1);
+}

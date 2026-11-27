@@ -6,8 +6,8 @@
 
 ## Current status
 
-- Service-worker cache: `zg852-v78` (`static/sw.js:1`).
-- English catalogue: 196 keys (`static/i18n/en.json`).
+- Service-worker cache: `zg852-v80` (`static/sw.js:1`).
+- English catalogue: 197 keys (`static/i18n/en.json`).
 - Current implementation lives in `src/js/`; current behaviour is verified by the Playwright suite in `tests/`.
 - Everything below this section is the historical snapshot taken on **23 November 2026**.
 

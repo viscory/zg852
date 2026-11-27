@@ -3,13 +3,11 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 
 const root = join(__dirname, '..');
-// Parse the package manifest, not the workflow text: the CI commands must be
-// declared as runnable scripts or removing one silently breaks the pipeline.
+// Inspect package.json only: this proves the named scripts are declared with
+// the expected commands, not that any CI workflow actually invokes them.
 const SCRIPTS = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts;
 
-test('package.json declares runnable lint, build, test and deploy scripts', () => {
-  // CI invokes these script names; assert each exists and runs the tool it
-  // claims to run. The comments above are not an oracle for CI execution.
+test('package.json declares lint, build, test and deploy scripts', () => {
   for (const name of ['lint', 'build', 'test', 'pages:deploy']) {
     expect(Object.prototype.hasOwnProperty.call(SCRIPTS, name), `${name} script should exist`).toBe(true);
   }

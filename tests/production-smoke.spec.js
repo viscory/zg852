@@ -13,6 +13,9 @@ async function installedCacheName(page) {
   return versioned[0];
 }
 
+// Reviewed allowlist of key namespaces used by this check. It is a best-effort
+// guard against raw keys leaking into the scanned body text, not a guarantee
+// that no raw key appears anywhere in the app.
 const RAW_KEY = /\b(app|people|options|results|map|route|legal|vector|status|error|unit|tag|cat|mode|share|beta|search|place|district|note|locale)\.[A-Za-z][A-Za-z0-9]*/;
 
 function isLocal(url) {

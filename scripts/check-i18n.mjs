@@ -24,10 +24,8 @@ const pluralBases = new Set(['route.stopCount', 'unit.min', 'place.stops']);
 // These prefixes are assembled at runtime (e.g. t('cat.'+key)), not literal keys.
 const dynamicFamilies = ['cat.', 'mode.', 'vector.', 'legal.', 'tag.'];
 const keyPattern = /^[A-Za-z][A-Za-z0-9-]*\.[A-Za-z0-9_-]+$/;
-// Reviewed allowlist: proper nouns and brand names are legitimately identical
-// across catalogues, so an identical value is not an English leak.
-const PROPER_NOUN_KEYS = new Set(['options.rail', 'map.railKey', 'mode.rail', 'beta.badge', 'locale.label']);
-// Small explicit set of live copy that must be translated in every catalogue.
+// Small reviewed set of live copy that must be translated in every catalogue.
+// This is a reviewed key set, not a claim about all keys in en.json.
 const REQUIRED_TRANSLATION_KEYS = [
   'results.fareSpread', 'error.someNoReach', 'results.header', 'map.areaHint', 'beta.diagnosticsHelp'
 ];
@@ -155,12 +153,11 @@ if (!en) {
       );
       if (dead.length) errors.push(`Unused i18n keys in en.json (dead keys): ${list(dead)}`);
 
-      // 5. UNTRANSLATED LIVE COPY. Flag values byte-identical to English for
-      // the reviewed set of strings that must be translated in every locale.
+      // 5. UNTRANSLATED COPY IN THE REVIEWED KEY SET. Flag values byte-identical
+      // to English for this small reviewed set only; other keys are not checked.
       for (const [file, catalog] of catalogs) {
         if (file === 'en.json') continue;
         for (const key of REQUIRED_TRANSLATION_KEYS) {
-          if (PROPER_NOUN_KEYS.has(key)) continue;
           if (Object.prototype.hasOwnProperty.call(catalog, key) && catalog[key] === en[key]) {
             errors.push(`static/i18n/${file}: "${key}" is untranslated (identical to en.json)`);
           }
@@ -169,7 +166,7 @@ if (!en) {
     }
 
     if (!errors.length) {
-      console.log(`i18n check passed: ${catalogFiles.length} catalogues, ${enKeys.length} keys each, ${Object.keys(FALLBACK).length} fallback keys, ${used.size} literal keys verified, no dead keys, no untranslated live copy, FALLBACK values match en.json.`);
+      console.log(`i18n check passed: ${catalogFiles.length} catalogues, ${enKeys.length} keys each, ${Object.keys(FALLBACK).length} fallback keys, ${used.size} literal keys verified, no dead keys, no untranslated copy in the reviewed key set (${REQUIRED_TRANSLATION_KEYS.length} keys), FALLBACK values match en.json.`);
     }
   }
 }

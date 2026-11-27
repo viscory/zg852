@@ -110,11 +110,14 @@ const alias = {
 };
 const canonical = name => alias[name] || name;
 
-// Stations reviewed as legitimately absent from BOTH MTR feeds belong here.
-// The list is empty today: every station in nodes.json matches once the alias
-// map above is applied. A *new* unmatched station is data drift and must fail
-// the build instead of silently emitting a partial fare matrix.
-const REVIEWED_UNMATCHED_STATIONS = new Set();
+// Stations reviewed as legitimately absent from the metro station-pair feed
+// belong here. Airport, AsiaWorld-Expo and Hong Kong are AEL stations: their
+// city pairs are not published in the metro matrix (Airport Express has its
+// own fare table), so none of them has a metro stationId. The AEL check below
+// already exempts them; listing them here makes that reviewed exception
+// explicit rather than implicit. A *new* unmatched station is data drift and
+// must fail the build instead of silently emitting a partial fare matrix.
+const REVIEWED_UNMATCHED_STATIONS = new Set(['Airport', 'AsiaWorld-Expo', 'Hong Kong']);
 
 const stripSuffix = name => {
   const value = String(name || '');

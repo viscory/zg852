@@ -539,7 +539,9 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   .leaflet-control-attribution{position:relative;bottom:0;font-size:10px!important;line-height:1.2;padding:2px 6px!important;max-width:calc(100vw - 16px)}
   .leaflet-control-attribution a{display:inline-flex;align-items:center;min-height:32px}
   .leaflet-bottom.leaflet-right .leaflet-control-attribution{margin-right:60px}
-  #mapIssue{display:none}
+  /* Keep the translated map-issue attribution link reachable on mobile, but
+     compact it so it does not add a full-height tap row to the attribution. */
+  #mapIssue{display:inline-flex;min-height:0;font-size:inherit;line-height:1.2}
   .leaflet-control-zoom a,.leaflet-control .map-recenter{width:44px!important;height:44px!important;line-height:44px!important}
   .leaflet-bottom.leaflet-right{bottom:0;transform:none}
   body.mobile-route-open .leaflet-bottom.leaflet-right{bottom:calc(var(--route-card-h, 44dvh) + 8px);transition:bottom .18s ease}

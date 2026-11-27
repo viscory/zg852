@@ -6,7 +6,7 @@ This section is the truth for the current build. Everything below it is history,
 
 - There is one global Time/Fare toggle in the Parameters panel.
 - Interest preferences are informational only and do NOT affect ranking.
-- Results are ordered by the displayed spread: the slowest trip plus the gap.
+- Results lead with a stored fit score (whole-minute longest + spread), then the displayed longest and spread as tie-breaks; Fare mode leads with the displayed fare gap then highest fare.
 - Fare mode computes fares for all time-feasible cells.
 - Interchange wait is shown as a separate note and is NOT included in leg minutes.
 - The sidebar footer has legal links only; there is no attribution or inspiration note.

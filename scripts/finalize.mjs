@@ -131,6 +131,28 @@ for (const entry of await readdir(dataDir)) {
   if (!deployedDataFiles.has(entry)) await rm(join(dataDir, entry), { recursive: true, force: true });
 }
 
+// Route fares are keyed by the index of the matching network.json line, and
+// hkbus.json is the parallel bus snapshot. Detect drift at build time instead
+// of shipping fares attached to the wrong line.
+const networkData = JSON.parse(readFileSync(join(dataDir, 'network.json'), 'utf8'));
+const hkbusData = JSON.parse(readFileSync(join(dataDir, 'hkbus.json'), 'utf8'));
+const lineCount = networkData.lines.length;
+if (!Array.isArray(hkbusData) || hkbusData.length !== lineCount) {
+  throw new Error(`data alignment: hkbus.json has ${hkbusData.length} entries but network.json has ${lineCount} lines`);
+}
+const routeFaresData = JSON.parse(readFileSync(join(dataDir, 'route-fares.json'), 'utf8'));
+for (const mapName of ['fares', 'fareSources']) {
+  const map = routeFaresData[mapName];
+  if (!map || typeof map !== 'object' || Array.isArray(map)) {
+    throw new Error(`data alignment: route-fares.json.${mapName} is missing or not a map`);
+  }
+  for (const index of Object.keys(map)) {
+    if (!/^(0|[1-9]\d*)$/.test(index) || Number(index) >= lineCount) {
+      throw new Error(`data alignment: route-fares.json.${mapName} key ${index} is not a network.json line index (< ${lineCount})`);
+    }
+  }
+}
+
 // maplibre-gl resolves its worker relative to the bundle URL, so the worker
 // file must sit next to app.js at the site root.
 const workerSource = join(root, 'node_modules', 'maplibre-gl', 'dist', 'maplibre-gl-worker.mjs');

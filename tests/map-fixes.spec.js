@@ -130,6 +130,8 @@ test('travel time wins even when a bus stop beats an MTR exit', async ({ page })
   // faster. Node kind no longer breaks ties; the visible times do. One wildcard route keeps
   // the node list and timetable in sync; separate routes can race and let the
   // real timetable load against only four synthetic nodes.
+  // Synthetic first-party fixture only: this proves the ranking policy (travel
+  // time beats node kind), not behaviour with real transit data.
   const line = (l, n, c, s, e) => ({ l, n, c, w: 0, h: 0, s, e, g: [] });
   const stubs = {
     'nodes.json': {

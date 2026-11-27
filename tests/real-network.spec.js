@@ -1,11 +1,11 @@
 const { test, expect } = require('@playwright/test');
 
 // This is the intentionally unstubbed suite: it never calls page.route() and
-// verifies what the app actually does against the real tile and geocoder
-// services. The other suites stub those hosts to keep their fixtures
-// deterministic; this suite is the only real-network coverage and runs in CI.
+// verifies real tiles plus the app's built-in local-search path. No start
+// field is typed into here, so no geocoder request (e.g. Photon) is exercised;
+// geocoder behaviour is covered by the deterministic stubs in other suites.
 test.describe('real network', () => {
-  test('a clean load renders real tiles, a real search renders heat cells, and only expected hosts are contacted', async ({ page }) => {
+  test('a clean load renders real tiles, a local search renders heat cells, and only expected hosts are contacted', async ({ page }) => {
     const baseURL = test.info().project.use?.baseURL || process.env.TEST_BASE_URL || 'http://127.0.0.1:8765';
     const firstParty = new URL(baseURL).host;
     const tilesHost = 'tiles.openfreemap.org';
@@ -30,9 +30,9 @@ test.describe('real network', () => {
     await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
     await expect(page.locator('path.heat-cell').first()).toBeVisible();
 
-    // A real search must not contact any host beyond first-party and tiles.
+    // The local search must not contact any host beyond first-party and tiles.
     // Geocoder behaviour is covered by the other suites with deterministic
-    // responses; this suite only asserts the real tile/search path.
+    // responses; this suite only asserts real tiles and the local-search path.
     expect([...hosts].filter(host => host !== firstParty && host !== tilesHost)).toEqual([]);
   });
 });

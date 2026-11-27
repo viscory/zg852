@@ -1,6 +1,8 @@
-const { test, expect } = require('@playwright/test');
+const { test, expect, devices } = require('@playwright/test');
 
-test.use({ launchOptions: { args: ['--disable-webgl', '--disable-webgl2', '--disable-gpu'] } });
+// The shared error live region is only rendered at mobile breakpoints, so this
+// suite uses the mobile profile while forcing map startup to fail.
+test.use({ ...devices['iPhone 15'], browserName: 'chromium', launchOptions: { args: ['--disable-webgl', '--disable-webgl2', '--disable-gpu'] } });
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/sw.js', route => route.abort());
@@ -24,6 +26,9 @@ async function pickStation(page, index, name) {
 
 test('search still lists areas when the map cannot start', async ({ page }) => {
   await expect(page.locator('#error')).toContainText('The map failed to start');
+  // #error is display:none on mobile; assert the user-visible live region too.
+  await expect(page.locator('#mobileError')).toBeVisible();
+  await expect(page.locator('#mobileError')).toContainText('The map failed to start');
   await pickStation(page, 0, 'Central');
   await pickStation(page, 1, 'Sha Tin');
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);

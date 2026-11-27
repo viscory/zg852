@@ -187,6 +187,12 @@ def main():
     # that should silently disappear from the snapshot. Collect them and fail
     # the build so the mismatch is reviewed rather than published as a gap.
     unmatched = []
+    # Candidates can also be present but too weak to identify one fare (their
+    # scores fall below the threshold and the fares disagree). Those used to be
+    # dropped silently; report them so the loss is visible. The app has no
+    # snapshot fare for these lines and falls back to a distance band, which
+    # it marks as an estimate (≈) in the UI.
+    low_score = []
     for index, line in enumerate(network['lines']):
         if line['c'] not in (1, 2):
             continue
@@ -217,8 +223,17 @@ def main():
             if best is None or score > best[0] or (score == best[0] and fare > best[1]):
                 best = (score, fare)
         # An unmatched ambiguous route number is not evidence for any one fare.
-        if best and (best[0] >= MATCH_SCORE_THRESHOLD or len({fare for fare, _ in candidates}) == 1):
+        accepted = best and (best[0] >= MATCH_SCORE_THRESHOLD
+                             or len({fare for fare, _ in candidates}) == 1)
+        if accepted:
             fares[str(index)] = best[1]
+        else:
+            low_score.append((index, label, best[0] if best else 0))
+
+    if low_score:
+        summary = ', '.join(f'{label} (line {index}, score {score:g})'
+                            for index, label, score in low_score)
+        print(f'low-score fare matches ({len(low_score)}; app uses ≈ band estimates): {summary}')
 
     if unmatched:
         summary = ', '.join(f'{label} (line {index})' for index, label in unmatched)

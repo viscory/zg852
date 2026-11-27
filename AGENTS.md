@@ -14,7 +14,7 @@
 
 - Scope: when asked to "fix push" after a report, implement **every** numbered finding, add focused regressions, rebuild/verify, then commit and push. Do not re-run the report unless asked.
 - Tests may stub or fixture third-party services (such as Photon and map tiles) for determinism, but no test may fabricate app data, assert source text with regexes, use invented pixel zones, or use fixed sleeps as synchronisation; behavioural assertions only. The real-network suite is the only place live third-party hosts are exercised.
-- Do **not** add, remove, or narrow `page.route(...)` handlers to make tests pass. Leave every existing test route and network path reachable; never block a route as a shortcut.
+- Do **not** add, remove, or narrow `page.route(...)` handlers to make tests pass. Leave every existing test route and network path reachable; never block a route as a shortcut. Fault-injection tests must use a fresh browser context rather than re-registering an existing `page.route(...)` handler.
 
 ### First 10 minutes: inventory in parallel
 
@@ -28,7 +28,7 @@
 - Add shared UI hooks once (`#actionStatus` live region, `#betaBadgeState` span) and reuse them for all feedback/state findings instead of one-off markup per bug.
 - For any new i18n key, update `src/js/i18n.js` FALLBACK **and** all 15 `static/i18n/*.json` catalogues in one pass; `npm run i18n:check` is the gate.
 - When catalogue keys change, derive expected counts in `tests/e2e.spec.js` from the English catalogue instead of hard-coding a number.
-- When cached assets change, bump `CACHE` in `static/sw.js` and update the expected version in `tests/audit-sw.spec.js`. The service worker is copied verbatim, so edit `static/sw.js` directly; no build-script patch token exists.
+- When cached assets change, bump `CACHE` in `static/sw.js`. The SW test reads the installed cache name from CacheStorage at runtime, so there is no expected-version literal to update. The service worker is copied verbatim, so edit `static/sw.js` directly; no build-script patch token exists.
 - Add regressions to the spec that already owns the area (`tests/live-findings-fixes.spec.js`, `tests/mobile.spec.js`) instead of creating a new suite.
 
 ### Known time sinks on this codebase

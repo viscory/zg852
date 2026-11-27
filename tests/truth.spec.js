@@ -59,6 +59,55 @@ test('no-JavaScript fallback copy matches the English catalogue', async ({ page 
   }
 });
 
+test('every no-JavaScript fallback in index.html matches the English catalogue', async ({ page }) => {
+  const html = readFileSync('src/index.html', 'utf8');
+  const en = JSON.parse(readFileSync('static/i18n/en.json', 'utf8'));
+  // Reviewed exceptions: these no-JS labels are deliberately shorter than the
+  // full translated tooltip/aria text and are not stale translations.
+  const shorterLabels = new Set(['legal.title', 'diag.help']);
+
+  // Parse the markup with the browser DOM parser so the comparison is
+  // attribute-to-value rather than a regex over implementation strings.
+  const fallbacks = await page.evaluate(markup => {
+    const doc = new DOMParser().parseFromString(markup, 'text/html');
+    const sources = [
+      ['data-i18n', [null]],
+      ['data-i18n-placeholder', ['placeholder']],
+      ['data-i18n-aria-label', ['aria-label']],
+      ['data-i18n-title', ['title']],
+      ['data-i18n-tooltip', ['data-tooltip', 'title']],
+    ];
+    const found = [];
+    const selector = sources.map(([attr]) => `[${attr}]`).join(', ');
+    for (const el of doc.querySelectorAll(selector)) {
+      for (const [keyAttr, fallbackAttrs] of sources) {
+        const key = el.getAttribute(keyAttr);
+        if (!key) continue;
+        for (const fallbackAttr of fallbackAttrs) {
+          const literal = fallbackAttr === null
+            ? (el.children.length ? null : (el.textContent || '').trim())
+            : el.getAttribute(fallbackAttr);
+          if (literal === null) continue;
+          found.push({ key, source: fallbackAttr || 'text', literal });
+          break;
+        }
+      }
+    }
+    return found;
+  }, html);
+
+  expect(fallbacks.length, 'index.html must expose literal fallbacks').toBeGreaterThan(100);
+  const seen = new Set(fallbacks.map(entry => entry.key));
+  for (const key of shorterLabels) {
+    expect([...seen], `${key} allowlisted but no literal fallback found`).toContain(key);
+  }
+  for (const { key, source, literal } of fallbacks) {
+    expect(en[key], `en.json is missing ${key}`).toBeDefined();
+    if (shorterLabels.has(key)) continue;
+    expect(literal, `${key} ${source} fallback must equal en.json`).toBe(en[key]);
+  }
+});
+
 test('the privacy page discloses every localStorage key the app uses', async () => {
   const { loadSourceModule } = require('./source-modules');
   const { KEY } = await loadSourceModule('config.js');

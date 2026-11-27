@@ -125,23 +125,27 @@ def resolve(stop_id, stops, nodes):
     return stop_id if stop_id in nodes else None
 
 
-def read_shapes(zf, wanted):
+def read_shapes(zf, wanted, stats=None):
     """Read only the shapes used by exported lines, keyed by shape_id.
 
     Each value is a pair of parallel lists: cumulative distances (metres) and
-    [lat, lon] points quantised to the same precision as nodes.json.
+    [lat, lon] points quantised to the same precision as nodes.json. Rows we
+    deliberately skip are counted in ``stats`` so the build reports the loss.
     """
     points = defaultdict(list)
     if not wanted:
         return {}
+    stats = stats if stats is not None else Counter()
     for row in read_table(zf, "shapes.txt"):
         sid = row["shape_id"]
         if sid not in wanted:
+            stats["unused_shape_rows"] += 1
             continue
         try:
             lat, lon = round(float(row["shape_pt_lat"]), 5), round(float(row["shape_pt_lon"]), 5)
             seq = int(row["shape_pt_sequence"])
         except (KeyError, TypeError, ValueError):
+            stats["unparseable_shape_rows"] += 1
             continue
         try:
             dist = float(row["shape_dist_traveled"])
@@ -279,6 +283,7 @@ def main():
     # is visible instead of silent.
     skipped_trips = 0
     dropped_edges = 0
+    shape_stats = Counter()
     with zipfile.ZipFile(FEED) as zf:
         stops = {}
         for row in read_table(zf, "stops.txt"):
@@ -403,7 +408,7 @@ def main():
             key: max(counts.items(), key=lambda item: (item[1], item[0]))[0]
             for key, counts in pattern_shapes.items()
         }
-        shapes = read_shapes(zf, set(pattern_rep_shape.values()))
+        shapes = read_shapes(zf, set(pattern_rep_shape.values()), shape_stats)
 
     lines = {}
     line_geometry = {}
@@ -517,7 +522,9 @@ def main():
     print(f"nodes={len(nodes)} platforms={sum(map(len, station_platforms.values()))} "
           f"exits={sum(map(len, station_exits.values()))} lines={len(lines)} "
           f"walk_edges={len(walk)} size={os.path.getsize(OUT)/1e6:.1f}MB")
-    print(f"dropped_edges={dropped_edges} skipped_trips={skipped_trips}")
+    print(f"dropped_edges={dropped_edges} skipped_trips={skipped_trips} "
+          f"unused_shape_rows={shape_stats['unused_shape_rows']} "
+          f"unparseable_shape_rows={shape_stats['unparseable_shape_rows']}")
 
 
 def station_name(node):

@@ -89,6 +89,9 @@ HIERARCHY_CATEGORY = {
 # Overture has two reviewed taxonomy fields (value maps above). Nothing here
 # inspects description prose. A source/value absent from this map is not
 # silently bucketed: it is reported by the build (see uncategorised handling).
+# A feed's fixed category is only a proxy for the venue: a liquor-licence feed
+# row can be a restaurant, and the same venue can appear in several sources.
+# Counts below are per source row, not deduplicated places.
 CATEGORY_BY_SOURCE_FIELD = {
     'fehd_rl': 'food',
     'fehd_ll': 'drinks',
@@ -212,10 +215,16 @@ class Index:
         # structured category or coordinate was missing. Both fail the build.
         self.uncategorised = []
         self.coordinate_failures = []
+        # Rows dropped here because their coordinates were unparseable or
+        # outside the HK bounding box (as opposed to an unknown category).
+        self.coordinate_drops = 0
 
     def add(self, lat, lon, category, name, source):
         lat, lon = floats(lat), floats(lon)
-        if category not in CATEGORIES or not in_bounds(lat, lon):
+        coords_ok = in_bounds(lat, lon)
+        if not coords_ok:
+            self.coordinate_drops += 1
+        if category not in CATEGORIES or not coords_ok:
             return
         key = cell_key(lat, lon)
         cell = self.cells.setdefault(key, {'v': {}, 'n': {}, 'top': {}})
@@ -344,7 +353,8 @@ def main():
     result = index.build()
     with open(args.output, 'w', encoding='utf-8') as handle:
         json.dump(result, handle, ensure_ascii=False, separators=(',', ':'))
-    print(f'{args.output}: {len(result["cells"])} cells, {sum(result["totals"].values())} points')
+    print(f'{args.output}: {len(result["cells"])} cells, {sum(result["totals"].values())} points, '
+          f'coordinate_drops={index.coordinate_drops}')
 
 
 if __name__ == '__main__':

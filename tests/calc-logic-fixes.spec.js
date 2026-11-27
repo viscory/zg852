@@ -5,6 +5,9 @@ const { loadSourceModule, loadSourceModules } = require('./source-modules');
 
 const root = join(__dirname, '..');
 const json = path => JSON.parse(readFileSync(join(root, 'static', 'data', path), 'utf8'));
+// User-facing copy is owned by the i18n catalogues, so assert against the
+// English source rather than pinning a literal phrase that copy edits change.
+const en = JSON.parse(readFileSync(join(root, 'static', 'i18n', 'en.json'), 'utf8'));
 
 // Browser-only modules imported but never called by the pure functions under
 // test are stubbed so the real ESM source can be imported in Node.
@@ -66,7 +69,7 @@ test('walk tolerance uses one raw comparison in cells and pins', async ({ page }
   await page.goto(await shareUrl(page, state));
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('#pointNotice')).toBeVisible();
-  await expect(page.locator('#pointNoticeText')).toContainText('walk tolerance');
+  await expect(page.locator('#pointNoticeText')).toHaveText(en['error.pointWalkLimit']);
   await expect(page.locator('.point-pin')).toHaveCount(0);
 });
 
@@ -212,6 +215,28 @@ test('fares come from current bundled tables and unknown values are flagged', as
   expect(route.legs[1].fareSource).toBe('td-snapshot');
   expect(route.legs[1].fare).toBe(routing.scheduledRouteFare(route.legs[1]));
   expect(route.legs[1].fareEstimated).toBe(false);
+});
+
+// The Light Rail chart counts boarding and alighting stops. describe() stores
+// stopCount as the ride edges after boarding, so N edges mean N+1 stops: the
+// single leg's boarding stop must be added exactly once, not zero or twice.
+test('light rail fare counts the boarding stop once per leg', async () => {
+  const [routing, config] = await loadSourceModules(['routing.js', 'config.js'], STUBS);
+  const rideEdges = 2;
+  const leg = {
+    mode: 'lightRail', fromNode: 0, toNode: 2,
+    coords: [[22.40, 114.00], [22.41, 114.01]],
+    stopCount: rideEdges,
+  };
+  const route = { legs: [leg] };
+  const fares = routing.routeFares(route);
+  const expected = config.LIGHT_RAIL_FARES.find(([limit]) => rideEdges + 1 <= limit)[1];
+  expect(fares.lightRail).toBe(expected);
+  expect(fares.total).toBe(expected);
+  expect(fares.estimated).toBe(false);
+  expect(leg.fare).toBe(expected);
+  expect(leg.fareSource).toBe('lr-chart');
+  expect(leg.fareEstimated).toBe(false);
 });
 
 test('Airport Express result uses the official bundled fare', async ({ page }) => {
