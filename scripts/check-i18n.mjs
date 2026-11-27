@@ -85,6 +85,27 @@ if (!en) {
       errors.push(`FALLBACK keys absent from en.json (not reviewed plural bases): ${list(fallbackOnlyKeys)}`);
     }
 
+    // 2d. Copy that quotes the travel budget must interpolate {budget}, which
+    // t() fills from TRAVEL_BUDGET_MINUTES. A frozen numeral silently goes
+    // stale the next time the budget changes, so forbid any other digit.
+    // Unlimited-mode copy must NOT quote a budget: that mode has no time cap.
+    const BUDGET_KEYS = ['error.noCommonArea'];
+    for (const key of BUDGET_KEYS) {
+      const checkBudgetCopy = (label, value) => {
+        if (typeof value !== 'string') {
+          errors.push(`${label}: "${key}" is missing`);
+        } else if (!value.includes('{budget}')) {
+          errors.push(`${label}: "${key}" must use the {budget} placeholder`);
+        } else if (/\p{Nd}/u.test(value.replaceAll('{budget}', ''))) {
+          errors.push(`${label}: "${key}" contains a hard-coded number`);
+        }
+      };
+      checkBudgetCopy('FALLBACK', FALLBACK[key]);
+      for (const [file, catalog] of catalogs) {
+        checkBudgetCopy(`static/i18n/${file}`, catalog[key]);
+      }
+    }
+
     // 3. Literal keys used in src JS/HTML must exist in en.json and FALLBACK.
     // Patterns are anchored to t()/tp() calls, data-i18n* attributes, and
     // setAttribute() calls so unrelated object keys (rtl, zh-Hant, ...) are ignored.
@@ -172,7 +193,7 @@ if (!en) {
     }
 
     if (!errors.length) {
-      console.log(`i18n check passed: ${catalogFiles.length} catalogues, ${enKeys.length} keys each, ${Object.keys(FALLBACK).length} fallback keys, ${used.size} literal keys verified, no dead keys, no untranslated copy in the reviewed key set (${REQUIRED_TRANSLATION_KEYS.length} keys), FALLBACK values match en.json for shared keys.`);
+      console.log(`i18n check passed: ${catalogFiles.length} catalogues, ${enKeys.length} keys each, ${Object.keys(FALLBACK).length} fallback keys, ${used.size} literal keys verified, no dead keys, no untranslated copy in the reviewed key set (${REQUIRED_TRANSLATION_KEYS.length} keys), FALLBACK values match en.json for shared keys, ${BUDGET_KEYS.length} budget strings interpolate {budget}.`);
     }
   }
 }

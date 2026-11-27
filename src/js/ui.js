@@ -136,12 +136,37 @@ export function clearPointNotice(){
   applyUnboundedUi();
 }
 export function setLabel(el,value){if(!el)return;el.setAttribute('aria-label',value);el.title=value;el.dataset.tooltip=value;}
+// A blank start field and a committed origin cannot coexist: that is exactly
+// the desync where Search silently reuses a place the user just erased. Treat
+// clearing the text as clearing the start place, persist it, and let the shared
+// missing-origin validation report the visible error. Typing, blur and Search
+// all go through this one invariant.
+function clearCommittedOrigin(person,input){
+  if(!person||!person.origin)return;
+  const state=originState(input);
+  state?.cancel?.();
+  if(state){state.query='';state.options=[];}
+  const sug=state?.sug;
+  if(sug){sug.hidden=true;sug.innerHTML='';}
+  input?.setAttribute('aria-expanded','false');
+  input?.removeAttribute('aria-activedescendant');
+  person.origin=null;
+  clearTypedError(input);
+  clearError();
+  save();
+  // An origin change affects the route, so refresh results without Search.
+  scheduleRecompute();
+}
 // Typed start text is only a query until it is resolved to a real place. Keep
 // the query beside the input so Enter, blur and Search can all commit it.
 function resolveTypedOrigin(input,{announce=true,global=true}={}){
   if(!input)return true;
   const state=originState(input),person=personForInput(input),typed=input.value.trim();
-  if(!typed||!person||typed===(person.origin?.label||'')){
+  if(!typed){
+    clearCommittedOrigin(person,input);
+    state.query='';clearTypedError(input);return true;
+  }
+  if(!person||typed===(person.origin?.label||'')){
     state.query='';clearTypedError(input);return true;
   }
   const key=normLabel(typed);
@@ -564,6 +589,7 @@ export function makeCard(person){
     const q=input.value.trim();
     state.query=q;state.options=[];clearTypedError(input);
     if(q.length<2){
+      if(!q)clearCommittedOrigin(person,input);
       sug.hidden=true;sug.innerHTML='';state.options=[];
       input.setAttribute('aria-expanded','false');input.removeAttribute('aria-activedescendant');
       return;

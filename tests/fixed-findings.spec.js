@@ -82,15 +82,16 @@ test('fare heat scale covers every published fare, including Airport Express', a
     fare: Number(element.getAttribute('data-max-fare') || 'NaN'),
     fill: element.getAttribute('fill'),
   })));
-  // Every cell must use the colour its fare earns on the published scale;
-  // checking all cells proves the old HK$25 cap cannot flatten a high fare.
+  // Every cell must use the colour its fare earns on the published logarithmic
+  // scale; checking all cells proves the old HK$25 cap cannot flatten a high fare.
   const { HEAT_COLORS } = await loadSourceModule('config.js');
+  const { heatRatio } = await loadSourceModule('model.js');
   const fills = new Set();
   let sawAboveOldCap = false;
   expect(cells.length).toBeGreaterThan(0);
   for (const cell of cells) {
     expect(Number.isFinite(cell.fare) && cell.fare >= 0).toBe(true);
-    const ratio = Math.max(0, Math.min(1, cell.fare / expectedTop));
+    const ratio = heatRatio(cell.fare, expectedTop);
     expect(cell.fill).toBe(HEAT_COLORS[Math.round(ratio * (HEAT_COLORS.length - 1))]);
     fills.add(cell.fill);
     if (cell.fare > 25) sawAboveOldCap = true;

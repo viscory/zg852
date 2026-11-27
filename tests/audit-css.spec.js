@@ -146,3 +146,10 @@ test.describe('coarse-pointer adaptive deck', () => {
   });
 
 });
+
+test('the map invites a click pointer and uses a crosshair while pinning', async ({ page }) => {
+  await openApp(page);
+  await expect(page.locator('#map')).toHaveCSS('cursor', 'pointer');
+  await page.locator('.card').first().locator('.pin').click();
+  await expect(page.locator('#map')).toHaveCSS('cursor', 'crosshair');
+});

@@ -164,6 +164,40 @@ test('fare ranking sorts by the fare spread shown on the card', async () => {
   expect(FARE_GAP_FLOOR).toBeGreaterThan(0);
 });
 
+// The heat palette is logarithmic: short trips spread across swatches instead
+// of collapsing into the darkest bucket, while the endpoints stay pinned.
+test('heat colour ratios follow a logarithmic scale', async () => {
+  const { heatRatio } = await loadSourceModule('model.js');
+  const { TRAVEL_BUDGET_MINUTES } = await loadSourceModule('config.js');
+  const ceiling = TRAVEL_BUDGET_MINUTES;
+  expect(heatRatio(15, ceiling)).toBeCloseTo(Math.log1p(15) / Math.log1p(ceiling), 10);
+  expect(heatRatio(15, ceiling)).toBeGreaterThan(15 / ceiling); // not linear
+  expect(heatRatio(0, ceiling)).toBe(0);
+  expect(heatRatio(ceiling, ceiling)).toBe(1);
+  expect(heatRatio(ceiling * 2, ceiling)).toBe(1);
+  const swatches = [10, 20, 40, 80, ceiling].map(minutes => Math.round(heatRatio(minutes, ceiling) * 5));
+  expect(new Set(swatches).size).toBeGreaterThan(3);
+});
+
+// Unlimited mode removes the travel cap: areas whose journeys run past the
+// bounded budget must still be published when the cap is Infinity.
+test('an unbounded travel cap keeps areas past the bounded budget', async () => {
+  const [{ TRAVEL_BUDGET_MINUTES }, routing, { store }] = await loadSourceModules(
+    ['config.js', 'routing.js', 'store.js'], STUBS
+  );
+  store.NODES = {
+    names: ['near', 'far'], kind: [1, 1],
+    lat: [22.28, 22.30], lon: [114.15, 114.17], st: [],
+  };
+  store.surface = [0, 1];
+  store.POI = null;
+  const grids = [[10, TRAVEL_BUDGET_MINUTES + 30], [12, TRAVEL_BUDGET_MINUTES + 30]];
+  const bounded = routing.buildCells(grids, 3.05, TRAVEL_BUDGET_MINUTES).map(cell => cell.label);
+  const unbounded = routing.buildCells(grids, 3.05, Infinity).map(cell => cell.label);
+  expect(bounded).toEqual(['near']);
+  expect(unbounded).toEqual(['near', 'far']);
+});
+
 // Finding 10: stale AEL fallbacks are gone, AEL uses the bundled matrix, light
 // rail has its own fare chart, and missing fares are visibly flagged.
 test('fares come from current bundled tables and unknown values are flagged', async () => {

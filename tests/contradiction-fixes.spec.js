@@ -269,31 +269,39 @@ test('recenter legend discloses that undrawn listed routes are included', () => 
   }
 });
 
-// The Unlimited hint must disclose the final-walk rejection, not just the
-// travel cap. The long expected copy is read from en.json, never duplicated
-// here; only short per-language rejection markers are kept in the test.
-test('Unlimited hint discloses the walk-limit rejection in every catalogue', () => {
+// The Unlimited hint must promise no travel-time cap and still disclose the
+// final-walk rejection. Long expected copy is read from en.json, never
+// duplicated here; no per-language rejection markers are needed now that the
+// copy is checked through the catalogue parity gate.
+test('Unlimited hint promises no travel cap and discloses the walk rejection', () => {
   const english = en['map.pickAnywhere'];
+  expect(english.toLowerCase()).toContain('no time limit');
   expect(english.toLowerCase()).toContain('final walk');
   expect(english.toLowerCase()).toContain('walk tolerance');
-  const rejection = {
-    'zh-Hant.json': '拒絕', 'zh-Hans.json': '拒绝', 'ja.json': '拒否', 'ko.json': '거부',
-    'hi.json': 'अस्वीकार', 'ur.json': 'مسترد', 'th.json': 'ปฏิเสธ', 'ne.json': 'अस्वीकार',
-    'vi.json': 'từ chối', 'id.json': 'ditolak', 'fr.json': 'refusée', 'fil.json': 'Tatanggiin',
-    'es.json': 'rechaza', 'de.json': 'abgelehnt',
-  };
+  expect(english).not.toContain('{budget}');
+  expect(english).not.toContain('travel limit still applies');
   for (const [file, data] of catalogues()) {
     const hint = data['map.pickAnywhere'];
     expect(hint, file).toBeTruthy();
-    expect(hint, file).toMatch(/150|१५०/);
+    expect(hint, file).not.toContain('{budget}');
     if (file === 'en.json') expect(hint).toBe(english);
-    else expect(hint, file).toContain(rejection[file]);
   }
   // The built-in fallback and the no-JavaScript literal must mirror the catalogue.
   const html = readFileSync(join(root, 'public', 'index.html'), 'utf8');
   expect(html).toContain(`data-i18n="map.pickAnywhere">${english}</div>`);
   const bundle = readFileSync(join(root, 'public', 'app.js'), 'utf8');
   expect(bundle).toContain(english);
+});
+
+// The retired copy promised a minute limit on point picks. It must not come
+// back through a catalogue edit: Unlimited has no travel-time ceiling at all.
+test('no catalogue can reject a pin for exceeding a travel time', () => {
+  for (const [file, data] of catalogues()) {
+    const notice = data['error.pointOutOfReach'];
+    expect(notice, file).toBeTruthy();
+    expect(notice, file).not.toMatch(/within/i);
+    expect(notice, file).not.toMatch(/\d/);
+  }
 });
 
 // Both privacy documents must inventory the diagnostics export fields and

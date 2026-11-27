@@ -2,9 +2,9 @@ import * as L from 'leaflet';
 import { maplibreGL } from '@maplibre/maplibre-gl-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,TRAVEL_BUDGET_MINUTES,WALK_SPEED_KMH,WALK_DETOUR } from './config.js';
+import { ACCENT,PERSON_COLORS,HEAT_COLORS,CELL_SIZE,WALK_SPEED_KMH,WALK_DETOUR } from './config.js';
 import { store } from './store.js';
-import { heatValue } from './model.js';
+import { heatValue,heatRatio } from './model.js';
 import { $,esc,clamp,isNum,icon,initialsFor,avatarClass,haversine } from './util.js';
 import { t,intNum,minuteText } from './i18n.js';
 import { cellTopNames,cellRatings,cellVector,cellCount,cellPreference,overallRating } from './vectors.js';
@@ -220,19 +220,30 @@ function magneticCell(latlng){
   });
   return best;
 }
-export function heatColor(cell,budget,metric='time'){
+// `ceiling` is the top of the colour scale: the travel budget in bounded mode,
+// the slowest visible cell in Unlimited (where no budget applies), or the fare
+// snapshot max in Fare mode. The mapping itself is logarithmic (model.js), so
+// short trips still separate into distinct swatches.
+export function heatColor(cell,ceiling,metric='time'){
   const value=heatValue(cell,metric);
   // Labels show whole minutes, so colour the number the user actually sees.
   const shown=metric==='fare'?value:Math.round(value);
-  const ratio=metric==='fare'
-    ? clamp(shown/fareHeatMax(),0,1)
-    : clamp(shown/Math.max(budget,1),0,1);
+  const ratio=heatRatio(shown,ceiling);
   return HEAT_COLORS[Math.max(0,Math.min(HEAT_COLORS.length-1,Math.round(ratio*(HEAT_COLORS.length-1))))];
 }
-export function drawCloud(budget){
+function timeHeatCeiling(cap){
+  if(Number.isFinite(cap))return Math.max(cap,1);
+  // Unlimited mode has no travel cap, so scale to the slowest cell on screen.
+  // That way even a very long journey still gets its own step on the palette.
+  let top=1;
+  for(const cell of store.cloudCells)top=Math.max(top,heatValue(cell,'time'));
+  return Math.ceil(top);
+}
+export function drawCloud(cap){
   hideTooltip();
   cloudLayer.clearLayers();
   const metric=store.settings.fairness==='fare'?'fare':'time';
+  const ceiling=metric==='fare'?fareHeatMax():timeHeatCeiling(cap);
   // Unlimited still shows the ranked areas as a visual reference, but the
   // rectangles must not swallow map clicks: every point is pickable there.
   const referenceOnly=store.unbounded;
@@ -242,7 +253,7 @@ export function drawCloud(budget){
   // rectangles would otherwise sit between the sidebar and the results list.
   const entries=[];
   store.cloudCells.forEach(c=>{
-    const lat0=c.cy*CELL_SIZE,lon0=c.cx*CELL_SIZE,color=heatColor(c,budget,metric);
+    const lat0=c.cy*CELL_SIZE,lon0=c.cx*CELL_SIZE,color=heatColor(c,ceiling,metric);
     const rect=L.rectangle([[lat0,lon0],[lat0+CELL_SIZE,lon0+CELL_SIZE]],{color,weight:0,fillColor:color,fillOpacity:.34,interactive:!referenceOnly,className:referenceOnly?'heat-cell heat-cell-reference':'heat-cell'});
     if(!referenceOnly){
       rect.on('mouseover',e=>scheduleCellTooltip(c,e.originalEvent));
@@ -508,10 +519,10 @@ export function selectResult(i,active=store.activePeople,reveal=false){
   if(reveal){setSidebarFace('detail');showMobileRoute();}
   renderSelection(r,active,reveal);
 }
-// Free-point picking is only offered above 300% tolerance. The pin stays at
-// the exact click; routes end at the nearest transit stop that everyone can
-// reach within the travel budget and the walk tolerance. Both limits include
-// the final walk, so a distant stop cannot masquerade as a short trip.
+// Free-point picking is only offered in Unlimited mode. The pin stays at the
+// exact click and routes end at the nearest transit stop everyone can reach.
+// There is no travel-time ceiling here: a journey may take as long as the
+// network allows. The final walk still has to fit each person's walk tolerance.
 export function selectPoint(lat,lon){
   if(!store.unbounded||!isNum(lat)||!isNum(lon))return;
   if(!store.NET||!store.effectiveGrids||!store.activePeople.length){
@@ -526,17 +537,17 @@ export function selectPoint(lat,lon){
   let nearest=-1,bestScore=Infinity,walkOnlyRejected=false;
   for(const index of store.surface){
     const times=grids.map(grid=>grid[index]);
-    if(times.some(value=>!isFinite(value)||value>TRAVEL_BUDGET_MINUTES))continue;
+    if(times.some(value=>!isFinite(value)))continue;
     const distance=haversine(lat,lon,store.NODES.lat[index],store.NODES.lon[index]);
     const walk=approachMinutes(distance);
-    if(walk>TRAVEL_BUDGET_MINUTES||times.some(value=>value+walk>TRAVEL_BUDGET_MINUTES))continue;
     if(times.some((_,person)=>walk>walkLimits[person]+1e-9)){walkOnlyRejected=true;continue;}
     const score=distance+Math.max(...times)*10;
     if(score<bestScore){bestScore=score;nearest=index;}
   }
   if(nearest<0){
-    // A point that is within the travel budget but beyond someone's walk limit
-    // is a walk-limit failure even if other nearby stops are transit-infeasible.
+    // A point within walking range of stops nobody can all reach is a walk
+    // failure; a point with no mutually reachable stop is a reach failure.
+    // Neither quotes a travel budget, because Unlimited mode has none.
     showPointNotice(t(walkOnlyRejected?'error.pointWalkLimit':'error.pointOutOfReach'));
     return;
   }

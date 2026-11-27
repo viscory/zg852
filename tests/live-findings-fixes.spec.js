@@ -71,6 +71,26 @@ test('two cells with the same minute label always share one colour', async ({ pa
   for (const [minute, fills] of groups) expect(fills, `${minute} min`).toHaveLength(1);
 });
 
+test('the heat palette spreads short journeys across several swatches', async ({ page }) => {
+  const distinctFills = async () => page.locator('path.heat-cell').evaluateAll(elements =>
+    [...new Set(elements.map(element => element.getAttribute('fill')))].filter(Boolean));
+  await page.goto('/');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+  expect((await distinctFills()).length).toBeGreaterThan(2);
+
+  // Unlimited has no travel cap, so the scale follows the slowest visible
+  // cell instead; the full palette must still be used there.
+  await page.locator('#tolerance').evaluate(el => {
+    el.value = String(el.max);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await expect(page.locator('#tolval')).toHaveText('Unlimited');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
+  expect((await distinctFills()).length).toBeGreaterThan(2);
+});
+
 test('the count discloses the sort order and fare mode reports a fare spread', async ({ page }) => {
   await page.goto('/');
   await page.locator('#go').click();

@@ -42,6 +42,24 @@ test('an exact typed local place commits with Enter', async ({ page }) => {
   await expect(page.locator('#error')).toBeHidden();
 });
 
+test('clearing a start field clears its origin instead of silently reusing it', async ({ page }) => {
+  const english = await catalog(page, 'en');
+  const input = page.locator('.card').first().locator('.start-input');
+  await expect(input).toHaveValue('Tsuen Wan');
+  await input.fill('');
+  await expect(input).toHaveValue('');
+
+  await page.locator('#go').click();
+  await expect(page.locator('#error')).toBeVisible();
+  await expect(page.locator('#error')).toHaveText(english['error.missingOrigins']);
+  await expect(page.locator('#resultsList')).toBeEmpty();
+  await expect(page.locator('path.heat-cell')).toHaveCount(0);
+
+  // The cleared origin is persisted, so a share link cannot leak the old place.
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('hkfair.v2.people')));
+  expect(stored[0].origin).toBeNull();
+});
+
 test('bogus typed start text blocks search with an inline message', async ({ page }) => {
   const english = await catalog(page, 'en');
   const card = page.locator('.card').first();

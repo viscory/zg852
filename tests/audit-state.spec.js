@@ -250,7 +250,7 @@ test('a pinned point shows the MTR route to Yuen Long', async ({ page }) => {
   await expect(page.locator('#steps')).toContainText('Yuen Long');
 });
 
-test('an out-of-reach pinned point shows a map notice', async ({ page }) => {
+test('an out-of-reach pinned point blames the walk, not a travel cap', async ({ page }) => {
   await page.goto('/');
   const state = await sharedScenario(page, {
     locale: 'en',
@@ -265,7 +265,11 @@ test('an out-of-reach pinned point shows a map notice', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await expect(page.locator('#pointNotice')).toBeVisible();
-  await expect(page.locator('#pointNoticeText')).toHaveText('That point cannot be reached by everyone within 150 minutes.');
+  // Unlimited mode has no time limit, so the only remaining rejection is the
+  // final walk. The copy comes from the catalogue, not a hard-coded phrase.
+  const en = await catalog(page, 'en');
+  await expect(page.locator('#pointNoticeText')).toHaveText(en['error.pointWalkLimit']);
+  await expect(page.locator('#pointNoticeText')).not.toContainText('minutes');
   await expect(page.locator('#pointBanner')).toBeHidden();
   await expect(page.locator('#error')).toBeHidden();
   await page.locator('#dismissPointNotice').click();

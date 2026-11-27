@@ -12,6 +12,8 @@ This section is the truth for the current build. Everything below it is history,
 - The sidebar footer has the legal links plus a Beta-gated Diagnostics button (`#exportDiagnostics`) and its `#diagStatus` output; there is no attribution or inspiration note.
 - The empty state uses `#goPlan`.
 - The results count reads "Top {count} areas": only seven result rows are listed while up to 600 cells are drawn.
+- Bounded searches use a fixed 150-minute travel cap. Unlimited mode removes that cap entirely, so a journey may take as long as the reachable network allows; the only remaining pin rejection is the per-person final-walk tolerance.
+- Heat colours use a logarithmic scale: against the travel budget in bounded mode, against the slowest visible cell in Unlimited mode (no budget), and against the fare snapshot max in Fare mode.
 
 ## History — superseded
 
@@ -23,15 +25,15 @@ The header subtitle now says "Find a fair meeting point in Hong Kong"; "most con
 
 ### 2026-11-25 Fairness metric toggle and tolerance slider (History — superseded)
 
-The Parameters panel now starts with a two-state **Time / Fare** toggle. Time is the default; Fare keeps the 150-minute travel budget, keeps the time-disparity filter, and ranks the time-feasible pool by the displayed fare tuple. The active metric owns the tolerance slider and the map heat colour; the legend text changes from "darker means shorter travel time" to "darker means cheaper fares". Time heat uses the slowest trip; fare heat uses the highest fare, while result order uses the displayed fare tuple. Each metric keeps its own percentage tolerance in settings and share links.
+The Parameters panel now starts with a two-state **Time / Fare** toggle. Time is the default; Fare keeps the same travel budget as Time (none in Unlimited mode), keeps the time-disparity filter, and ranks the time-feasible pool by the displayed fare tuple. The active metric owns the tolerance slider and the map heat colour; the legend text changes from "darker means shorter travel time" to "darker means cheaper fares". Time heat uses the slowest trip; fare heat uses the highest fare, while result order uses the displayed fare tuple. Each metric keeps its own percentage tolerance in settings and share links.
 
 The tolerance slider starts at 5%, runs linear in 1% steps to 100%, logarithmic to 300%, then Unlimited. The DOM value is a slider position, while settings and share links continue to store the fraction. Fare disparity uses the same percentage shape with a HK$1.00 floor so a walk-only fare does not make the ratio meaningless.
 
 MTR fares are looked up, not calculated from distance. `scripts/generate-mtr-fares.mjs` snapshots the Adult Octopus station-pair matrix and Airport Express table from MTR open data into `static/data/mtr-fares.json`; `railFare()` resolves each continuous paid-area rail run from its boarding and alighting stations. Bus and ferry fares are exact Transport Department full-fare snapshots; distance-band estimates apply only when a lookup is missing. (still true in current build)
 
-Unlimited still respects the fixed 150-minute travel budget and each person's walk tolerance. A map pick only resolves to a stop everyone can reach within the budget after the final walk; if no such stop is close enough, the app shows a map notice that the point cannot be reached within 150 minutes instead of inventing a long walk from a distant stop. Pinned-point totals include the final walk, so the displayed total matches the route legs. Diagnostics export the active fairness metric, both tolerances and the travel budget.
+Unlimited mode has no travel budget: it resolves the whole reachable network and each person's walk tolerance still applies. A map pick only resolves to a stop everyone can reach and whose final walk fits every person; otherwise a map notice blames the walk or a genuinely unreachable point instead of inventing a long walk. Pinned-point totals include the final walk, so the displayed total matches the route legs. Diagnostics export the active fairness metric, both tolerances and the bounded travel budget.
 
-The heatmap palette is a dark-maroon → red → orange → yellow sequence so adjacent fairness steps are distinguishable.
+The heatmap palette is a dark-maroon → red → orange → yellow sequence so adjacent fairness steps are distinguishable. Its mapping is logarithmic, so short trips spread across the swatches instead of collapsing into the darkest bucket.
 
 The map key and Interest ratings are proper disclosure panels with a +/− mark and a grid-row height/opacity transition. The desktop map key starts open; the mobile key starts closed; both can be collapsed. Fare heat shows how expensive the meeting is (highest fare), not how fair the fare spread is, while result ordering still uses the fare-disparity score. (still true in current build)
 

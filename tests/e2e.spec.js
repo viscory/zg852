@@ -804,7 +804,8 @@ test('diagnostics dump downloads a timestamped JSON file and copies it', async (
   expect(file.settings.modes).toEqual(['rail', 'bus']);
   expect(file.settings.tolerance).toBeGreaterThan(0);
   expect(file.settings.fareTolerance).toBeGreaterThan(0);
-  expect(file.settings.travelBudgetMinutes).toBe(150);
+  const { TRAVEL_BUDGET_MINUTES } = await loadSourceModule('config.js');
+  expect(file.settings.travelBudgetMinutes).toBe(TRAVEL_BUDGET_MINUTES);
   expect(file.settings.includeHeadway).toBe(true);
   expect(file.settings.toleranceLimited).toBe(true);
   expect(file.settings.unbounded).toBe(false);

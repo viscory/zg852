@@ -18,6 +18,9 @@ const SOURCE_ERROR_KEYS={
 // Interest preferences are informational: ordering uses only the displayed
 // ranking inputs, never a preference adjustment.
 const rankCells = cells => cells.map(cell=>({cell,fitScore:cellFitScore(cell)})).sort((a,b)=>compareAreaRank(a,b,'time'));
+// The cap used for routing and cell feasibility. Unlimited mode deliberately
+// has no ceiling so a journey can run as long as the network allows.
+export const currentTravelCap=()=>store.unbounded?Infinity:TRAVEL_BUDGET_MINUTES;
 
 export function compute(reveal=false){
   clearError();
@@ -38,20 +41,22 @@ export function compute(reveal=false){
   if(!store.unbounded)store.pointSelection=null;
   applyUnboundedUi();
   save();
-  // solve() depends only on origins, the mode mask, headway and the fixed
-  // travel cap. Time/fare tolerance and vector changes re-filter cached
-  // solutions instead of re-running Dijkstra.
-  const solveKey=`${mask}:${TRAVEL_BUDGET_MINUTES}:${store.activePeople.map(p=>{const o=p.origin;return o.kind==='node'?`n${o.node}`:`c${o.lat},${o.lon}`;}).join('|')}:h${store.settings.includeHeadway===false?0:1}`;
+  // Unlimited mode removes the travel cap entirely: Dijkstra runs to the whole
+  // reachable network and a journey may take as long as the timetable allows.
+  // Bounded mode keeps the fixed cap. The cap is part of the cache key so
+  // switching modes always resolves instead of reusing capped distances.
+  const travelCap=currentTravelCap();
+  const solveKey=`${mask}:${store.unbounded?'unbounded':travelCap}:${store.activePeople.map(p=>{const o=p.origin;return o.kind==='node'?`n${o.node}`:`c${o.lat},${o.lon}`;}).join('|')}:h${store.settings.includeHeadway===false?0:1}`;
   if(store.solveKey!==solveKey){
     store.solveKey=solveKey;
-    const sourceResults=store.activePeople.map(p=>sourcesFor(p.origin,TRAVEL_BUDGET_MINUTES));
+    const sourceResults=store.activePeople.map(p=>sourcesFor(p.origin,travelCap));
     const missingSources=sourceResults.find(result=>!result.sources.length);
     if(missingSources){
       renderEmpty();
       showError(t(SOURCE_ERROR_KEYS[missingSources.reason]||'error.noNearby'));
       return;
     }
-    store.sols=sourceResults.map(result=>solve(result.sources,mask,TRAVEL_BUDGET_MINUTES));
+    store.sols=sourceResults.map(result=>solve(result.sources,mask,travelCap));
   }
   if(store.sols.every(s=>!s.dist.size)){renderEmpty();showError(t('error.noReach'));return;}
   if(store.sols.some(s=>!s.dist.size)){renderEmpty();showError(t('error.someNoReach'));return;}
@@ -76,16 +81,16 @@ export function compute(reveal=false){
   store.effectiveGrids=effectiveGrids;
   if(metric==='time'){
     // Unbounded mode keeps every reachable node available for free-point picks.
-    const cells=buildCells(effectiveGrids,store.unbounded?Infinity:fairnessTolerance('time',store.settings),TRAVEL_BUDGET_MINUTES);
+    const cells=buildCells(effectiveGrids,store.unbounded?Infinity:fairnessTolerance('time',store.settings),travelCap);
     const ordered=rankCells(cells);
     store.cloudCells=ordered.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
     store.results=ordered.slice(0,RESULTS_LIMIT).map(({cell:c})=>cellToResult(c));
     store.results.forEach(r=>prepareRoutes(r,store.activePeople));
   }else{
-    // Fare mode keeps the same time-feasibility filter and 150-minute cap, then
-    // orders the surviving cells by the displayed fare spread (fareGap).
+    // Fare mode keeps the same time-feasibility filter and travel cap (none in
+    // Unlimited mode), then orders survivors by the displayed fare spread.
     const timeTolerance=fairnessTolerance('time',store.settings);
-    const timeCells=buildCells(effectiveGrids,timeTolerance,TRAVEL_BUDGET_MINUTES);
+    const timeCells=buildCells(effectiveGrids,timeTolerance,travelCap);
     const ordered=rankCells(timeCells);
     const cacheKey=`${solveKey}|${store.activePeople.map(p=>walkBudget(p)).join(',')}`;
     if(store.costCacheKey!==cacheKey){store.costCacheKey=cacheKey;store.costCache=new Map();}
@@ -135,7 +140,7 @@ export function compute(reveal=false){
     return;
   }
   renderResults(store.activePeople);
-  drawOrigins(store.activePeople);drawCloud(TRAVEL_BUDGET_MINUTES);applySelection(store.activePeople);
+  drawOrigins(store.activePeople);drawCloud(currentTravelCap());applySelection(store.activePeople);
   if(reveal===true)setSidebarFace('detail');
 }
 export function scheduleRecompute(){

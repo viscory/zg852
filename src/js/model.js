@@ -1,4 +1,5 @@
 import { travelTolerance, fareTolerance } from './config.js';
+import { clamp } from './util.js';
 
 // One definition of the rules the interface describes. Ranking, colouring,
 // matching and messages import from here so a hidden factor cannot creep back
@@ -78,6 +79,14 @@ export function compareAreaRank(a,b,metric='time'){
 export const heatValue = (area,metric='time') => metric === 'fare'
   ? Number(area?.maxFare) || 0
   : Number(area?.slowest) || 0;
+// Heat swatches use a logarithmic scale so short trips spread across the
+// palette instead of collapsing into the darkest bucket. log1p keeps zero at
+// the bottom of the scale and makes the mapping defined for an empty value.
+export function heatRatio(value,ceiling){
+  const amount=Number(value),top=Number(ceiling);
+  if(!Number.isFinite(amount)||amount<=0||!Number.isFinite(top)||top<=0)return 0;
+  return clamp(Math.log1p(amount)/Math.log1p(top),0,1);
+}
 export const rankInputs = (area,metric='time') => ({metric,values:areaRank(area,metric)});
 
 // A start is matched to the closest stop. Node kind never changes that walk
