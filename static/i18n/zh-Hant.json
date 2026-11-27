@@ -20,6 +20,7 @@
   "people.libraryTitle": "已儲存的成員",
   "people.librarySearch": "搜尋已儲存的成員",
   "people.libraryEmpty": "尚未儲存任何成員。請從卡片中儲存。",
+  "people.libraryNoMatches": "沒有符合此搜尋的已儲存人物。清除搜尋即可查看全部。",
   "people.libraryAdd": "新增",
   "people.libraryEdit": "編輯",
   "people.libraryDelete": "刪除",

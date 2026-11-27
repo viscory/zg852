@@ -60,6 +60,26 @@ test('clearing a start field clears its origin instead of silently reusing it', 
   expect(stored[0].origin).toBeNull();
 });
 
+test('a library filter reports no matches and clears when reopened', async ({ page }) => {
+  const english = await catalog(page, 'en');
+  await page.locator('#library').click();
+  await expect(page.locator('.directory-row')).toHaveCount(2);
+
+  // Both documented close paths must reopen to a clean, full library.
+  for (const close of ['Escape', 'button']) {
+    await page.locator('#directorySearch').fill('zzzz-no-match');
+    await expect(page.locator('.directory-row')).toHaveCount(0);
+    await expect(page.locator('.directory-empty')).toHaveText(english['people.libraryNoMatches']);
+    await expect(page.locator('.directory-empty')).not.toHaveText(english['people.libraryEmpty']);
+    if (close === 'Escape') await page.keyboard.press('Escape');
+    else await page.locator('#libraryClose').click();
+    await expect(page.locator('#peopleDialog')).toBeHidden();
+    await page.locator('#library').click();
+    await expect(page.locator('#directorySearch')).toHaveValue('');
+    await expect(page.locator('.directory-row')).toHaveCount(2);
+  }
+});
+
 test('bogus typed start text blocks search with an inline message', async ({ page }) => {
   const english = await catalog(page, 'en');
   const card = page.locator('.card').first();

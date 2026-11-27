@@ -809,7 +809,7 @@ export function renderDirectoryList(){
       <button class="icon-button" type="button" data-action="add" aria-label="${addLabel}" title="${addLabel}" data-tooltip="${addLabel}">${icon('add')}</button>
       <button class="icon-button" type="button" data-action="edit" aria-label="${editLabel}" title="${editLabel}" data-tooltip="${editLabel}">${icon('edit')}</button>
       <button class="icon-button" type="button" data-action="delete" aria-label="${deleteLabel}" title="${deleteLabel}" data-tooltip="${deleteLabel}">${icon('remove')}</button>
-    </div></div>`;}).join(''):`<div class="directory-empty">${esc(t('people.libraryEmpty'))}</div>`;
+    </div></div>`;}).join(''):`<div class="directory-empty">${esc(t(query?'people.libraryNoMatches':'people.libraryEmpty'))}</div>`;
   list.querySelectorAll('button').forEach(button=>button.onclick=()=>{
     const row=button.closest('.directory-row'),profile=store.directory.find(d=>d.id===row?.dataset.id),action=button.dataset.action;
     if(action==='add'&&profile){if(addDirectoryPerson(profile))closeDialog($('peopleDialog'));}
@@ -838,6 +838,9 @@ export function closeDialog(dialog){
 export function openDirectory(){
   store.pendingDelete=null;
   clearDirectoryError();
+  // A filter belongs to one dialog session. Carrying it into the next open
+  // would show a stale no-match list that looks like a lost library.
+  const search=$('directorySearch');if(search)search.value='';
   renderDirectoryList();
   openDialog($('peopleDialog'),$('directorySearch'));
 }

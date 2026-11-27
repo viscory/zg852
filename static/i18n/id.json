@@ -20,6 +20,7 @@
   "people.libraryTitle": "Orang tersimpan",
   "people.librarySearch": "Cari orang tersimpan",
   "people.libraryEmpty": "Belum ada orang tersimpan. Simpan seseorang dari kartu.",
+  "people.libraryNoMatches": "Tidak ada orang tersimpan yang cocok dengan pencarian ini. Hapus pencarian untuk melihat semua.",
   "people.libraryAdd": "Tambah",
   "people.libraryEdit": "Ubah",
   "people.libraryDelete": "Hapus",

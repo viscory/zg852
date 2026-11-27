@@ -20,6 +20,7 @@
   "people.libraryTitle": "सहेजे गए लोग",
   "people.librarySearch": "सहेजे गए लोगों में खोजें",
   "people.libraryEmpty": "अभी तक कोई सहेजा गया व्यक्ति नहीं है। किसी कार्ड से किसी को सहेजें।",
+  "people.libraryNoMatches": "इस खोज से कोई सहेजा गया व्यक्ति मेल नहीं खाता। सभी को देखने के लिए खोज साफ़ करें।",
   "people.libraryAdd": "जोड़ें",
   "people.libraryEdit": "संपादित करें",
   "people.libraryDelete": "हटाएं",

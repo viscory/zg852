@@ -20,6 +20,7 @@
   "people.libraryTitle": "保存済みメンバー",
   "people.librarySearch": "保存済みメンバーを検索",
   "people.libraryEmpty": "保存済みメンバーはいません。カードから保存してください。",
+  "people.libraryNoMatches": "この検索に一致する保存済みの人はいません。検索をクリアすると全員が表示されます。",
   "people.libraryAdd": "追加",
   "people.libraryEdit": "編集",
   "people.libraryDelete": "削除",

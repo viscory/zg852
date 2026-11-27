@@ -20,6 +20,7 @@
   "people.libraryTitle": "Gespeicherte Personen",
   "people.librarySearch": "Gespeicherte Personen suchen",
   "people.libraryEmpty": "Noch keine gespeicherten Personen. Speichere jemanden aus einer Karte.",
+  "people.libraryNoMatches": "Keine gespeicherten Personen passen zu dieser Suche. Leere die Suche, um alle zu sehen.",
   "people.libraryAdd": "Hinzufügen",
   "people.libraryEdit": "Bearbeiten",
   "people.libraryDelete": "Löschen",

@@ -20,6 +20,7 @@
   "people.libraryTitle": "Personas guardadas",
   "people.librarySearch": "Buscar personas guardadas",
   "people.libraryEmpty": "Aún no hay personas guardadas. Guarda a alguien desde una tarjeta.",
+  "people.libraryNoMatches": "Ninguna persona guardada coincide con esta búsqueda. Borra la búsqueda para ver a todas.",
   "people.libraryAdd": "Añadir",
   "people.libraryEdit": "Editar",
   "people.libraryDelete": "Eliminar",

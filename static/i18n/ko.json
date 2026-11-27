@@ -20,6 +20,7 @@
   "people.libraryTitle": "저장된 멤버",
   "people.librarySearch": "저장된 멤버 검색",
   "people.libraryEmpty": "저장된 멤버가 없습니다. 카드에서 멤버를 저장하세요.",
+  "people.libraryNoMatches": "이 검색과 일치하는 저장된 사람이 없습니다. 검색을 지우면 모두 표시됩니다.",
   "people.libraryAdd": "추가",
   "people.libraryEdit": "편집",
   "people.libraryDelete": "삭제",

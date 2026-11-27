@@ -20,6 +20,7 @@
   "people.libraryTitle": "Personnes enregistrées",
   "people.librarySearch": "Rechercher parmi les personnes enregistrées",
   "people.libraryEmpty": "Aucune personne enregistrée. Enregistrez-en une depuis une carte.",
+  "people.libraryNoMatches": "Aucune personne enregistrée ne correspond à cette recherche. Effacez la recherche pour toutes les afficher.",
   "people.libraryAdd": "Ajouter",
   "people.libraryEdit": "Modifier",
   "people.libraryDelete": "Supprimer",

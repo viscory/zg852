@@ -20,6 +20,7 @@
   "people.libraryTitle": "सुरक्षित गरिएका मानिसहरू",
   "people.librarySearch": "सुरक्षित गरिएका मानिसहरू खोज्नुहोस्",
   "people.libraryEmpty": "अहिलेसम्म कुनै सुरक्षित गरिएको व्यक्ति छैन। कार्डबाट कसैलाई सुरक्षित गर्नुहोस्।",
+  "people.libraryNoMatches": "यो खोजसँग कुनै पनि सहेतिक व्यक्ति मेल खाँदैन। सबै देख्न खोज खाली गर्नुहोस्।",
   "people.libraryAdd": "थप्नुहोस्",
   "people.libraryEdit": "सम्पादन गर्नुहोस्",
   "people.libraryDelete": "मेटाउनुहोस्",

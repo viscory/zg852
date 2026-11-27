@@ -20,6 +20,7 @@
   "people.libraryTitle": "Người đã lưu",
   "people.librarySearch": "Tìm người đã lưu",
   "people.libraryEmpty": "Chưa có người nào được lưu. Lưu ai đó từ thẻ.",
+  "people.libraryNoMatches": "Không có người nào được lưu khớp với tìm kiếm này. Xóa tìm kiếm để xem tất cả.",
   "people.libraryAdd": "Thêm",
   "people.libraryEdit": "Sửa",
   "people.libraryDelete": "Xóa",

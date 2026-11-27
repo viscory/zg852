@@ -20,6 +20,7 @@
   "people.libraryTitle": "Saved people",
   "people.librarySearch": "Search saved people",
   "people.libraryEmpty": "No saved people yet. Save someone from a card.",
+  "people.libraryNoMatches": "No saved people match this search. Clear the search to see everyone.",
   "people.libraryAdd": "Add",
   "people.libraryEdit": "Edit",
   "people.libraryDelete": "Delete",

@@ -20,6 +20,7 @@
   "people.libraryTitle": "รายชื่อที่บันทึกไว้",
   "people.librarySearch": "ค้นหารายชื่อที่บันทึกไว้",
   "people.libraryEmpty": "ยังไม่มีรายชื่อที่บันทึกไว้ บันทึกใครสักคนจากการ์ด",
+  "people.libraryNoMatches": "ไม่มีผู้ที่บันทึกไว้ตรงกับการค้นหานี้ ล้างการค้นหาเพื่อดูทั้งหมด",
   "people.libraryAdd": "เพิ่ม",
   "people.libraryEdit": "แก้ไข",
   "people.libraryDelete": "ลบ",

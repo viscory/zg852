@@ -20,6 +20,7 @@
   "people.libraryTitle": "Mga naka-save na tao",
   "people.librarySearch": "Hanapin ang mga naka-save na tao",
   "people.libraryEmpty": "Wala pang naka-save na tao. I-save ang isang tao mula sa card.",
+  "people.libraryNoMatches": "Walang naka-save na tao na tumutugma sa paghahanap na ito. I-clear ang paghahanap para makita ang lahat.",
   "people.libraryAdd": "Idagdag",
   "people.libraryEdit": "I-edit",
   "people.libraryDelete": "Tanggalin",
