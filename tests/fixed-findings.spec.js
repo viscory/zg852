@@ -173,3 +173,21 @@ test('a rejected pin blames the walk limit when that is what failed', async ({ p
   await expect(page.locator('#pointNotice')).toBeVisible();
   await expect(page.locator('#pointNoticeText')).toHaveText("That point needs a final walk longer than someone's walk tolerance.");
 });
+
+test('bus deep-link snapshot stays aligned with the network and records real fallbacks', () => {
+  const root = join(__dirname, '..');
+  const network = JSON.parse(readFileSync(join(root, 'static/data/network.json'), 'utf8'));
+  const urls = JSON.parse(readFileSync(join(root, 'static/data/hkbus.json'), 'utf8'));
+  const meta = JSON.parse(readFileSync(join(root, 'static/data/hkbus-meta.json'), 'utf8'));
+  const search = 'https://hkbus.app/en/search';
+  expect(urls.length).toBe(network.lines.length);
+  expect(meta.length).toBe(network.lines.length);
+  for (let i = 0; i < urls.length; i++) {
+    if (meta[i].status === 'ok') expect(urls[i]).toMatch(/^https:\/\/hkbus\.app\/en\/route\//);
+    else if (meta[i].status === 'not-a-bus-line') expect(urls[i]).toBeNull();
+    else expect(urls[i]).toBe(search);
+  }
+  for (const entry of meta.filter(item => item.status === 'fallback')) {
+    expect(['no-matching-key', 'page-404']).toContain(entry.reason);
+  }
+});

@@ -287,3 +287,27 @@ test('Airport Express result uses the official bundled fare', async ({ page }) =
   expect(ael.some(leg => !leg.fareEstimated && published.has(leg.fare))).toBe(true);
   expect(ael.some(leg => leg.fareEstimated)).toBe(true);
 });
+
+test('light-rail-only mode keeps real light-rail stops as candidate origins', async () => {
+  const [routing, { store }] = await loadSourceModules(['routing.js', 'store.js'], STUBS);
+  const nodes = json('nodes.json'), network = json('network.json');
+  const lightRailNode = network.lines.find(line => line.c === 3).s[0];
+  store.NODES = nodes;
+  store.settings = { modes: ['lightRail'] };
+  expect(routing.nodeCompatible(nodes.kind[lightRailNode])).toBe(true);
+  expect(routing.sourceNodeIndices()).toContain(lightRailNode);
+  expect(routing.sourcesFor({ kind: 'node', node: lightRailNode }, 90)).toEqual({ sources: [{ node: lightRailNode, minutes: 0 }], reason: 'ready' });
+  // The same kind-4 stop is still excluded in MTR-only mode.
+  store.settings.modes = ['rail'];
+  expect(routing.nodeCompatible(nodes.kind[lightRailNode])).toBe(false);
+});
+
+test('an all-ones vector preference survives a versioned round trip', async () => {
+  const [vectors, config] = await loadSourceModules(['vectors.js', 'config.js'], STUBS);
+  const ones = Object.fromEntries(config.VECTOR_KEYS.map(key => [key, 1]));
+  const versioned = { ...ones, [vectors.VECTOR_SCHEMA_VERSION_KEY]: vectors.VECTOR_SCHEMA_VERSION };
+  expect(vectors.migrateVectors(versioned)).toEqual(versioned);
+  // Unversioned all-ones still selects the documented legacy reset.
+  expect(vectors.migrateVectors(ones)).toEqual(vectors.defaultVectors());
+  expect(vectors.normalizeVectors(ones)[vectors.VECTOR_SCHEMA_VERSION_KEY]).toBe(vectors.VECTOR_SCHEMA_VERSION);
+});

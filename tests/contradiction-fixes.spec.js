@@ -242,3 +242,29 @@ test('process and detail copy disclose the fit score, walk preference and buffer
   await expect(page.locator('.walk-note')).toBeVisible();
   await expect(page.locator('.walk-note')).toHaveText(en['results.walkPreference']);
 });
+
+// Bus/ferry values are published for a whole route, not for the ridden segment.
+test('fare copy discloses full-route fares instead of claiming segment exactness', async ({ page }) => {
+  expect(en['results.fareNote']).toContain('full-route adult fare');
+  expect(en['results.fareNote']).toContain('not a segment fare');
+  expect(en['legal.summaryProcess']).toContain('full-route adult fares');
+  const process = await (await page.request.get('process.html')).text();
+  expect(process).toContain('published adult full-route fare for that line, not a fare for the ridden segment');
+});
+
+// The disclosed headway mechanism is a frequency-weighted service-day average.
+test('process copy describes the real headway weighting and its fallback', async ({ page }) => {
+  const process = await (await page.request.get('process.html')).text();
+  expect(process).toContain('weighted by how long each band lasts');
+  expect(process).toContain('default half-headway');
+  expect(process).not.toContain('weighted by how long the ride lasts');
+});
+
+// The legend must match what recenterMap() actually fits (all listed areas).
+test('recenter legend discloses that undrawn listed routes are included', () => {
+  expect(en['map.recenterKey']).toContain('including ones not currently drawn');
+  for (const [file, data] of catalogues()) {
+    expect(data['map.recenterKey'], `${file} recenter copy`).toBeTruthy();
+    if (file !== 'en.json') expect(data['map.recenterKey']).not.toBe(en['map.recenterKey']);
+  }
+});

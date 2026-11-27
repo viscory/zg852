@@ -193,9 +193,11 @@ export function walkTimes(sol){
   for(const[k,d]of sol.dist)if(isFreshState(decodeLine(k))){const node=decodeNode(k);if(d<best[node])best[node]=d;}
   return best;
 }
-// Each mode now has its own chip, so a single-mode selection maps to exactly
-// that mode's node kinds. No companion mode is smuggled in behind the label.
-const MODE_NODE_KINDS={rail:[1,3],lightRail:[1,2,3],bus:[4],ferry:[1,3,4]};
+// Origin kinds are entry points, not ride modes: solve() filters ride edges by
+// modesMask separately. Light-rail stops share kind 4 with bus stops, so a
+// light-rail-only start must include kind 4 or every real light-rail stop is
+// discarded before routing. No companion ride mode is enabled by this list.
+const MODE_NODE_KINDS={rail:[1,3],lightRail:[1,2,3,4],bus:[4],ferry:[1,3,4]};
 function singleMode(){
   const modes=store.settings.modes||[];
   return modes.length===1?modes[0]:null;

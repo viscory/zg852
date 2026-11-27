@@ -39,6 +39,9 @@ USER_AGENT = "zg852-hkbus-url-builder/1.0 (+https://github.com/viscory/zg852)"
 ORIGIN_MATCH_WEIGHT = 1
 DESTINATION_MATCH_WEIGHT = 1
 ROUTE_SCORE_DIVISOR = ORIGIN_MATCH_WEIGHT + DESTINATION_MATCH_WEIGHT
+# A deep link is offered only with this much endpoint evidence. A low-scoring
+# candidate is not a "closest match" at all, so the generic search is used.
+ROUTE_SCORE_THRESHOLD = 0.5
 
 # hkbus.app publishes sitemap entries for keys containing a fullwidth slash but
 # the pre-rendered pages 404. This is only a detection character: it decides
@@ -68,7 +71,9 @@ def score_route_match(line, index, route_list):
         return None
     bits = line.get("n", "").split(" - ", 1)
     if len(bits) != 2:
-        return candidates[0]
+        # No endpoint pair to score. Only a single candidate is unambiguous;
+        # otherwise picking candidates[0] would offer an unrelated route page.
+        return candidates[0] if len(candidates) == 1 else None
     origin, destination = bits
     best, best_score = None, -1
     for key in candidates:
@@ -82,7 +87,7 @@ def score_route_match(line, index, route_list):
                      + DESTINATION_MATCH_WEIGHT * destination_ratio) / ROUTE_SCORE_DIVISOR
             if score > best_score:
                 best, best_score = key, score
-    return best
+    return best if best_score >= ROUTE_SCORE_THRESHOLD else None
 
 
 def route_url(key):
