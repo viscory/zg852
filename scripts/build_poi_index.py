@@ -30,6 +30,9 @@ TOURISM_COORDINATE_RE = re.compile(r'(\d+\.\d+)\s*([NS])\s*,\s*(\d+\.\d+)\s*([EW
 BBOX = (113.83, 22.15, 114.45, 22.58)
 CATEGORIES = ('food', 'drinks', 'activities', 'culture', 'outdoors', 'shopping')
 PGRST = 'https://pgrst.open-data.hk'
+# The last entry is not a URL: Overture is supplied as a local --overture
+# GeoJSONL file by the operator, is never fetched by this script, and is not
+# retained under static/data/raw/. Metadata must not claim otherwise.
 SOURCES = (
     'https://open-data.hk/csdi-datasets/fehd_rcd_1630036390312_58893',
     'https://open-data.hk/csdi-datasets/fehd_rcd_1695972959083_79626',
@@ -38,7 +41,7 @@ SOURCES = (
     'https://open-data.hk/csdi-datasets/lcsd_rcd_1629267205214_78787',
     'https://www.afcd.gov.hk/data/AFCD_Visitor_Centre_en.csv',
     'https://www.tourism.gov.hk/datagovhk/major_attractions/major_attractions_info_en.csv',
-    'https://overturemaps.org/',
+    'Overture (local --overture GeoJSONL input; supplied at build time, not fetched by this script and not retained in static/data/raw/)',
 )
 # (dataset, table, lat field, lon field, name fields). The category is not part
 # of the feed row: it comes from the structured feed identity via
@@ -161,14 +164,24 @@ def fetch_pgrst(dataset, table, fields):
         )
         response.raise_for_status()
         page = response.json()
-        rows.extend(page)
         content_range = response.headers.get('content-range', '')
         if '/' in content_range:
-            total = int(content_range.rsplit('/', 1)[1])
+            reported = int(content_range.rsplit('/', 1)[1])
+            if total is not None and reported != total:
+                raise ValueError(f'{table}: content-range total changed from {total} to {reported}')
+            total = reported
+        # A short page is a final page only when the server gave no total.
+        # With a reported total, an empty (or short) page before that total is
+        # a truncated feed: stop only when the reported total is reached, and
+        # treat an empty mid-stream page as an error instead of publishing a
+        # partial index.
+        if not page:
+            if total is not None:
+                raise ValueError(f'{table}: empty page at offset {offset} before reported total {total}')
+            break
+        rows.extend(page)
         offset += len(page)
-        # `and` binds tighter than `or`; make the short-page guard explicit so
-        # pagination only stops early when the server gave no total count.
-        if not page or (total is None and len(page) < PAGE_SIZE):
+        if total is None and len(page) < PAGE_SIZE:
             break
     return rows
 
@@ -316,7 +329,7 @@ def main():
         try:
             fields = [lat_key, lon_key, *name_keys]
             rows = fetch_pgrst(dataset, table, fields)
-        except requests.RequestException as error:
+        except (requests.RequestException, ValueError) as error:
             print(f'SKIP {table}: {error}')
             failed_feeds.append({'feed': table, 'reason': str(error)})
             continue
@@ -324,7 +337,9 @@ def main():
         print(f'{table}: {len(rows)}')
     visitor_url = 'https://www.afcd.gov.hk/data/AFCD_Visitor_Centre_en.csv'
     try:
-        visitor_rows = list(csv.DictReader(io.StringIO(requests.get(visitor_url, timeout=60).text)))
+        visitor_response = requests.get(visitor_url, timeout=60)
+        visitor_response.raise_for_status()
+        visitor_rows = list(csv.DictReader(io.StringIO(visitor_response.text)))
         index.add_rows(visitor_rows, CATEGORY_BY_SOURCE_FIELD['afcd'], 'Latitude Decimal Degree(DD.DDD)', 'Longitude Decimal Degree(DD.DDD)', ('Name of Building/Facility',), 'afcd')
         print(f'afcd visitor centres: {len(visitor_rows)}')
     except requests.RequestException as error:
@@ -332,7 +347,9 @@ def main():
         failed_feeds.append({'feed': 'afcd', 'reason': str(error)})
     tourism_url = 'https://www.tourism.gov.hk/datagovhk/major_attractions/major_attractions_info_en.csv'
     try:
-        tourism_rows = list(csv.DictReader(io.StringIO(requests.get(tourism_url, timeout=60).text)))
+        tourism_response = requests.get(tourism_url, timeout=60)
+        tourism_response.raise_for_status()
+        tourism_rows = list(csv.DictReader(io.StringIO(tourism_response.text)))
         index.add_tourism(tourism_rows)
         print(f'major attractions: {len(tourism_rows)}')
     except requests.RequestException as error:

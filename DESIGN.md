@@ -9,7 +9,7 @@ This section is the truth for the current build. Everything below it is history,
 - Results lead with a stored fit score (whole-minute longest + spread), then the displayed longest and spread as tie-breaks; Fare mode leads with the displayed fare gap then highest fare.
 - Fare mode computes fares for all time-feasible cells.
 - Interchange wait is shown as a separate note and is NOT included in leg minutes.
-- The sidebar footer has legal links only; there is no attribution or inspiration note.
+- The sidebar footer has the legal links plus a Beta-gated Diagnostics button (`#exportDiagnostics`) and its `#diagStatus` output; there is no attribution or inspiration note.
 - The empty state uses `#goPlan`.
 - The results count reads "Top {count} areas": only seven result rows are listed while up to 600 cells are drawn.
 
@@ -23,13 +23,13 @@ The header subtitle now says "Find a fair meeting point in Hong Kong"; "most con
 
 ### 2026-11-25 Fairness metric toggle and tolerance slider (History — superseded)
 
-The Parameters panel now starts with a two-state **Time / Fare** toggle. Time is the default; Fare keeps the 90-minute travel budget, keeps the time-disparity filter, and ranks the time-feasible pool by the displayed fare tuple. The active metric owns the tolerance slider and the map heat colour; the legend text changes from "darker means shorter travel time" to "darker means cheaper fares". Time heat uses the slowest trip; fare heat uses the highest fare, while result order uses the displayed fare tuple. Each metric keeps its own percentage tolerance in settings and share links.
+The Parameters panel now starts with a two-state **Time / Fare** toggle. Time is the default; Fare keeps the 150-minute travel budget, keeps the time-disparity filter, and ranks the time-feasible pool by the displayed fare tuple. The active metric owns the tolerance slider and the map heat colour; the legend text changes from "darker means shorter travel time" to "darker means cheaper fares". Time heat uses the slowest trip; fare heat uses the highest fare, while result order uses the displayed fare tuple. Each metric keeps its own percentage tolerance in settings and share links.
 
 The tolerance slider starts at 5%, runs linear in 1% steps to 100%, logarithmic to 300%, then Unlimited. The DOM value is a slider position, while settings and share links continue to store the fraction. Fare disparity uses the same percentage shape with a HK$1.00 floor so a walk-only fare does not make the ratio meaningless.
 
 MTR fares are looked up, not calculated from distance. `scripts/generate-mtr-fares.mjs` snapshots the Adult Octopus station-pair matrix and Airport Express table from MTR open data into `static/data/mtr-fares.json`; `railFare()` resolves each continuous paid-area rail run from its boarding and alighting stations. Bus and ferry fares are exact Transport Department full-fare snapshots; distance-band estimates apply only when a lookup is missing. (still true in current build)
 
-Unlimited still respects the fixed 90-minute travel budget and each person's walk tolerance. A map pick only resolves to a stop everyone can reach within the budget after the final walk; if no such stop is close enough, the app shows a map notice that the point cannot be reached within 90 minutes instead of inventing a long walk from a distant stop. Pinned-point totals include the final walk, so the displayed total matches the route legs. Diagnostics export the active fairness metric, both tolerances and the travel budget.
+Unlimited still respects the fixed 150-minute travel budget and each person's walk tolerance. A map pick only resolves to a stop everyone can reach within the budget after the final walk; if no such stop is close enough, the app shows a map notice that the point cannot be reached within 150 minutes instead of inventing a long walk from a distant stop. Pinned-point totals include the final walk, so the displayed total matches the route legs. Diagnostics export the active fairness metric, both tolerances and the travel budget.
 
 The heatmap palette is a dark-maroon → red → orange → yellow sequence so adjacent fairness steps are distinguishable.
 
@@ -41,7 +41,7 @@ The desktop three-column shell, header, parameters sticky behaviour, results/foo
 
 > Historical note kept for context. Both 2026-11-25 notes above supersede this one: the global Time/Fare toggle exists now and the current wording is set by those notes. See the authoritative section above for current behaviour.
 
-The right sidebar's options panel is now the **Parameters** panel, and the sidebar itself is labelled "Parameters and results". The global Time/Fare fairness metric is gone: there is no fairness toggle, no `fairnessMetric` in settings or share links, no fare-based spread or longest value, and no fare-based ranking. Areas are ranked by travel time only; the spread and longest values stay whole minutes. Fares are still estimated and shown for comparison in results and route steps, but they never affect which area appears first. (superseded — incorrect in current build: the Time/Fare toggle exists now, with fare-based ranking)
+The right sidebar's options panel is now the **Parameters** panel, and the sidebar itself is labelled "Parameters and results". In this superseded state, the global Time/Fare fairness metric had been removed: there was no fairness toggle, no `fairnessMetric` in settings or share links, no fare-based spread or longest value, and no fare-based ranking. Areas were ranked by travel time only; the spread and longest values stayed whole minutes. Fares were still estimated and shown for comparison in results and route steps, but never affected which area appeared first. (superseded — incorrect in current build: the Time/Fare toggle exists now, with fare-based ranking)
 
 Parameters gain one global checkbox, `Include average headway` (`#includeHeadway`, i18n key `options.includeHeadway`). It defaults to on and is saved in `hkfair.v2.settings` and share links as `settings.includeHeadway`. When it is off, the average headway is neither charged at interchanges nor shown anywhere; when it is on, the existing interchange-only rule applies: every boarding pays the fixed line penalty, and half the day-average headway is added only when a ride follows another transit leg. The `Interchange wait N min` note appears only for those charged transfers.
 

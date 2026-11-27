@@ -1,4 +1,12 @@
 const { test, expect } = require('@playwright/test');
+const { loadSourceModules } = require('./source-modules');
+
+// Browser-only modules imported by i18n.js are never called by the pure
+// ranking functions under test here, so they are stubbed for the Node import.
+const STUBS = {
+  'engine.js': 'export const rerender=()=>{};',
+  'state.js': 'export const save=()=>{};',
+};
 
 // The production service worker calls clients.claim(), which can take over the
 // page mid-test and bypass page.route() for later data fetches. Blocking it here
@@ -124,49 +132,23 @@ test('route leg text is re-translated when the locale changes', async ({ page })
   expect(after).not.toEqual(before);
 });
 
-test('travel time wins even when a bus stop beats an MTR exit', async ({ page }) => {
-  // A tiny synthetic network makes the timing difference deterministic: both
-  // candidates are 10-ish minutes from both origins and the bus is 0.5 min
-  // faster. Node kind no longer breaks ties; the visible times do. One wildcard route keeps
-  // the node list and timetable in sync; separate routes can race and let the
-  // real timetable load against only four synthetic nodes.
-  // Synthetic first-party fixture only: this proves the ranking policy (travel
-  // time beats node kind), not behaviour with real transit data.
-  const line = (l, n, c, s, e) => ({ l, n, c, w: 0, h: 0, s, e, g: [] });
-  const stubs = {
-    'nodes.json': {
-      names: ['Tsuen Wan', 'North Point', 'MTR Exit', 'Bus Interchange'],
-      kind: [1, 1, 3, 4],
-      lat: [22.37, 22.29, 22.31, 22.33],
-      lon: [114.11, 114.22, 114.15, 114.17],
-    },
-    'network.json': {
-      walk: [],
-      lines: [
-        line('TWL', 'Rail out', 0, [0, 2, 1], [10.5, 10.5]),
-        line('TWL-R', 'Rail back', 0, [1, 2, 0], [10.5, 10.5]),
-        line('B1', 'Bus out', 1, [0, 3, 1], [10, 10]),
-        line('B2', 'Bus back', 1, [1, 3, 0], [10, 10]),
-      ],
-    },
-    'hkbus.json': [],
-    'districts.json': [],
-    'poi-index.json': { cells: {} },
-    // Fare tables belong to the same four-node graph; one fixture serves every
-    // data file so none of them can fall through to the real bundle's data.
-    'mtr-fares.json': { fares: {}, aelFares: {}, nodeStation: {}, stationIds: [] },
-    'route-fares.json': { fares: {} },
-  };
-  await page.route('**/data/*.json', route => {
-    const name = new URL(route.request().url()).pathname.split('/').pop();
-    return stubs[name] ? route.fulfill({ json: stubs[name] }) : route.continue();
-  });
-
-  await openApp(page);
-  await search(page);
-
-  const labels = await page.locator('.result-row .result-head b').allInnerTexts();
-  expect(labels.slice(0, 2)).toEqual(['Bus Interchange', 'MTR Exit']);
+test('travel time wins even when a bus stop beats an MTR exit', async () => {
+  const [{ rideMode }, { compareAreaRank, areaRank }] = await loadSourceModules(['routing.js', 'model.js'], STUBS);
+  expect(rideMode(0)).toBe('rail');
+  expect(rideMode(1)).toBe('bus');
+  // The bus-stop area is faster on every displayed time; the station area has
+  // the higher-priority node kind. Ranking must follow the visible times.
+  const busStop = { key: 'bus', kind: 4, fitScore: 24, shownSlowest: 20, shownGap: 4 };
+  const mtrStation = { key: 'rail', kind: 1, fitScore: 36, shownSlowest: 30, shownGap: 6 };
+  expect(compareAreaRank(busStop, mtrStation)).toBeLessThan(0);
+  expect(compareAreaRank(mtrStation, busStop)).toBeGreaterThan(0);
+  expect(areaRank(busStop)).toEqual([24, 20, 4, 'bus']);
+  expect(areaRank(mtrStation)).toEqual([36, 30, 6, 'rail']);
+  // At equal displayed times, node kind and priority cannot break the tie.
+  const exit = { key: 'cell', kind: 1, priority: 3, fitScore: 26, shownSlowest: 22, shownGap: 4 };
+  const stop = { key: 'cell', kind: 4, priority: 1, fitScore: 26, shownSlowest: 22, shownGap: 4 };
+  expect(areaRank(exit)).toEqual(areaRank(stop));
+  expect(compareAreaRank(exit, stop)).toBe(0);
 });
 
 test.describe('narrow fine-pointer desktops use the adaptive deck', () => {

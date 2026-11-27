@@ -6,7 +6,6 @@ import { loadNodes,loadDistricts,loadFares,loadNetwork,loadPoi } from './js/data
 import { betaVectorsEnabled } from './js/vectors.js';
 import { applySharedState,restoreState,restoreDirectory,restoreSelection,readSavedSelection,shareScenario,readHashState,save } from './js/state.js';
 import { triggerSearch } from './js/engine.js';
-import { warnOnce } from './js/fares.js';
 import { createMap,drawOrigins } from './js/map.js';
 import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,applyUnboundedUi,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,showActionStatus,commitPeople,setSidebarFace,flashTooltip,setFairness,clearPointNotice,onSearchSettled } from './js/ui.js';
 import { exportDiagnostics } from './js/diagnostics.js';
@@ -171,7 +170,7 @@ document.addEventListener('keydown',e=>{
     e.preventDefault();clearPinMode();setMobileView('plan');
   }
 });
-if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(err=>warnOnce('Service worker registration failed',err));
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(err=>console.warn('Service worker registration failed',err));
 
  function setDisclosure(root,open){
   if(!root)return;

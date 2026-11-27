@@ -268,3 +268,45 @@ test('recenter legend discloses that undrawn listed routes are included', () => 
     if (file !== 'en.json') expect(data['map.recenterKey']).not.toBe(en['map.recenterKey']);
   }
 });
+
+// The Unlimited hint must disclose the final-walk rejection, not just the
+// travel cap. The long expected copy is read from en.json, never duplicated
+// here; only short per-language rejection markers are kept in the test.
+test('Unlimited hint discloses the walk-limit rejection in every catalogue', () => {
+  const english = en['map.pickAnywhere'];
+  expect(english.toLowerCase()).toContain('final walk');
+  expect(english.toLowerCase()).toContain('walk tolerance');
+  const rejection = {
+    'zh-Hant.json': '拒絕', 'zh-Hans.json': '拒绝', 'ja.json': '拒否', 'ko.json': '거부',
+    'hi.json': 'अस्वीकार', 'ur.json': 'مسترد', 'th.json': 'ปฏิเสธ', 'ne.json': 'अस्वीकार',
+    'vi.json': 'từ chối', 'id.json': 'ditolak', 'fr.json': 'refusée', 'fil.json': 'Tatanggiin',
+    'es.json': 'rechaza', 'de.json': 'abgelehnt',
+  };
+  for (const [file, data] of catalogues()) {
+    const hint = data['map.pickAnywhere'];
+    expect(hint, file).toBeTruthy();
+    expect(hint, file).toMatch(/150|१५०/);
+    if (file === 'en.json') expect(hint).toBe(english);
+    else expect(hint, file).toContain(rejection[file]);
+  }
+  // The built-in fallback and the no-JavaScript literal must mirror the catalogue.
+  const html = readFileSync(join(root, 'public', 'index.html'), 'utf8');
+  expect(html).toContain(`data-i18n="map.pickAnywhere">${english}</div>`);
+  const bundle = readFileSync(join(root, 'public', 'app.js'), 'utf8');
+  expect(bundle).toContain(english);
+});
+
+// Both privacy documents must inventory the diagnostics export fields and
+// describe clipboard copying as best-effort.
+test('privacy documents disclose diagnostics fields and best-effort clipboard copy', () => {
+  const html = readFileSync(join(root, 'src', 'privacy.html'), 'utf8');
+  const md = readFileSync(join(root, 'PRIVACY.md'), 'utf8');
+  for (const field of ['areas', 'hotspots', 'selection', 'selectedArea', 'freePoint', 'solveKey']) {
+    expect(html, `privacy.html ${field}`).toContain(`<code>${field}</code>`);
+    expect(md, `PRIVACY.md ${field}`).toContain('`' + field + '`');
+  }
+  for (const [name, text] of [['privacy.html', html], ['PRIVACY.md', md]]) {
+    expect(text, name).toContain('attempts to copy');
+    expect(text, name).toContain('browser denies clipboard access');
+  }
+});

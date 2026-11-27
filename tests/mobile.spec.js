@@ -229,7 +229,7 @@ test('no-results card explains the failure instead of repeating setup instructio
   await page.locator('#suggest-p2 .suggestion').first().click();
   await page.locator('#go').click();
   await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'results');
-  await expect(page.locator('#mobileEmptyHint')).toContainText('90 minutes');
+  await expect(page.locator('#mobileEmptyHint')).toContainText('150 minutes');
   await expect(page.locator('#mobileEmptyHint')).not.toContainText('Set up who is meeting');
 });
 

@@ -117,3 +117,44 @@ test('every bundled route fare declares its source', () => {
     expect(fares.fareSources[key], `route fare ${key} should name a real source`).toBeTruthy();
   }
 });
+
+test('MTR CSV parser handles quoted fields offline and rejects missing headers', async () => {
+  // Dynamic import of the generator module only loads its pure parser: the
+  // network-reading script body runs solely on a direct invocation.
+  const { pathToFileURL } = require('node:url');
+  const { resolve } = require('node:path');
+  const moduleUrl = pathToFileURL(resolve(__dirname, '..', 'scripts', 'generate-mtr-fares.mjs')).href;
+  const { parseCsv } = await import(moduleUrl);
+
+  expect(parseCsv('a,b\r\n1,"x,y"', ['a', 'b'])).toEqual([{ a: '1', b: 'x,y' }]);
+  expect(parseCsv('a\n"say ""hi"""', ['a'])).toEqual([{ a: 'say "hi"' }]);
+  expect(parseCsv('a,b\r\n1,\r\n', ['a', 'b'])).toEqual([{ a: '1', b: '' }]);
+  expect(parseCsv('a,b\n"multi\nline",2', ['a', 'b'])).toEqual([{ a: 'multi\nline', b: '2' }]);
+  expect(() => parseCsv('a,b\n1,2', ['a', 'c'])).toThrow(/missing required headers/);
+});
+
+test('route fare tie-break selects the higher fare and marks it distinctly', () => {
+  // Python's pure helper is exercised directly; no .mdb feed or network is
+  // needed because the optional parser import lives in rows(), not at module
+  // load time.
+  const { execFileSync } = require('node:child_process');
+  const { resolve } = require('node:path');
+  const script = resolve(__dirname, '..', 'scripts', 'generate-route-fares.py');
+  const probe = `
+import importlib.util, json, sys
+spec = importlib.util.spec_from_file_location('route_fares', sys.argv[1])
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+record = lambda fare: (fare, {'LOC_START_NAMEE': 'Central', 'LOC_END_NAMEE': 'Wan Chai'})
+low, high = record(7.2), record(11.6)
+cases = {'low-first': [low, high], 'high-first': [high, low], 'single': [low]}
+print(json.dumps({name: mod.choose_fare(rows, 'central|wanchai', {'central', 'wanchai'}) for name, rows in cases.items()}))
+`;
+  const result = JSON.parse(execFileSync('python3', ['-c', probe, script], { encoding: 'utf8' }));
+  for (const name of ['low-first', 'high-first']) {
+    expect(result[name][1], `${name} should select the higher fare`).toBe(11.6);
+    expect(result[name][2], `${name} should carry the tie-break marker`).toBe('td-full-fare-tiebreak');
+  }
+  expect(result.single[1]).toBe(7.2);
+  expect(result.single[2]).toBe('td-full-fare');
+});

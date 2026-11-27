@@ -82,7 +82,7 @@ export function compute(reveal=false){
     store.results=ordered.slice(0,RESULTS_LIMIT).map(({cell:c})=>cellToResult(c));
     store.results.forEach(r=>prepareRoutes(r,store.activePeople));
   }else{
-    // Fare mode keeps the same time-feasibility filter and 90-minute cap, then
+    // Fare mode keeps the same time-feasibility filter and 150-minute cap, then
     // orders the surviving cells by the displayed fare spread (fareGap).
     const timeTolerance=fairnessTolerance('time',store.settings);
     const timeCells=buildCells(effectiveGrids,timeTolerance,TRAVEL_BUDGET_MINUTES);

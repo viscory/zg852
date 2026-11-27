@@ -265,7 +265,7 @@ test('an out-of-reach pinned point shows a map notice', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await expect(page.locator('#pointNotice')).toBeVisible();
-  await expect(page.locator('#pointNoticeText')).toHaveText('That point cannot be reached by everyone within 90 minutes.');
+  await expect(page.locator('#pointNoticeText')).toHaveText('That point cannot be reached by everyone within 150 minutes.');
   await expect(page.locator('#pointBanner')).toBeHidden();
   await expect(page.locator('#error')).toBeHidden();
   await page.locator('#dismissPointNotice').click();

@@ -23,8 +23,6 @@ from pathlib import Path
 from urllib.parse import unquote
 from urllib.request import Request, urlopen
 
-from access_parser import AccessParser
-
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / 'static' / 'data' / 'raw'
 OUT = ROOT / 'static' / 'data' / 'route-fares.json'
@@ -53,8 +51,10 @@ MATCH_SCORE_THRESHOLD = 1       # minimum evidence to accept an ambiguous number
 # app (which reads `fares`) can later distinguish snapshots from band fallbacks
 # without a breaking schema change. When equally scored TD candidates disagree,
 # the higher full fare is deliberately selected: a disclosed policy, not a
-# measurement.
+# measurement. Rows decided by that tie-break carry a distinct marker so the
+# shipped data can tell a policy selection from an ordinary snapshot fare.
 FARE_SOURCE = 'td-full-fare'
+TIEBREAK_FARE_SOURCE = 'td-full-fare-tiebreak'
 
 # LAST_UPDATE_DATE cells are ISO-like strings. Parsing them explicitly replaces
 # the old lexicographic max() + [:10] while yielding the same date.
@@ -89,6 +89,10 @@ def fetch(name, *, refresh):
 
 
 def rows(name, *, refresh):
+    # Imported lazily: the pure helpers below are unit-tested without the
+    # optional .mdb parsing dependency being installed.
+    from access_parser import AccessParser
+
     table = AccessParser(str(fetch(name, refresh=refresh))).parse_table('ROUTE')
     return [
         {key: table[key][i] for key in table}
@@ -102,6 +106,33 @@ def norm(value):
 
 def tokens(value):
     return {word for word in re.findall(r'[a-z0-9]+', str(value or '').lower()) if len(word) > 2}
+
+
+def choose_fare(candidates, endpoint_norm, endpoint_tokens):
+    """Pick the best-scoring TD candidate and disclose a tie-break decision.
+
+    Pure helper (no I/O) so the policy is unit-testable without the .mdb feed.
+    Equally scored candidates with different fares are resolved by taking the
+    higher full fare; the returned source marks that policy selection with
+    TIEBREAK_FARE_SOURCE instead of the ordinary FARE_SOURCE.
+    """
+    best = None
+    tied = False
+    for fare, record in candidates:
+        start, end = norm(record.get('LOC_START_NAMEE')), norm(record.get('LOC_END_NAMEE'))
+        score = ((ENDPOINT_SUBSTRING_WEIGHT if start and start in endpoint_norm else 0)
+                 + (ENDPOINT_SUBSTRING_WEIGHT if end and end in endpoint_norm else 0))
+        score += len(endpoint_tokens & tokens(record.get('LOC_START_NAMEE'))) / TOKEN_OVERLAP_DIVISOR
+        score += len(endpoint_tokens & tokens(record.get('LOC_END_NAMEE'))) / TOKEN_OVERLAP_DIVISOR
+        if best is None or score > best[0]:
+            best, tied = (score, fare), False
+        elif score == best[0] and fare != best[1]:
+            tied = True
+            if fare > best[1]:
+                best = (score, fare)
+    if best is None:
+        raise ValueError('no fare candidates to choose from')
+    return best[0], best[1], TIEBREAK_FARE_SOURCE if tied else FARE_SOURCE
 
 
 def parse_update_date(value):
@@ -186,6 +217,7 @@ def main():
     network = json.loads((ROOT / 'static' / 'data' / 'network.json').read_text())
     urls = json.loads((ROOT / 'static' / 'data' / 'hkbus.json').read_text())
     fares = {}
+    fare_sources = {}
     # A network line with no TD fare record at all is data drift, not a line
     # that should silently disappear from the snapshot. Collect them and fail
     # the build so the mismatch is reviewed rather than published as a gap.
@@ -216,24 +248,19 @@ def main():
         endpoint_norm = norm(endpoint_text)
         endpoint_tokens = tokens(endpoint_text)
 
-        best = None
-        for fare, record in candidates:
-            start, end = norm(record.get('LOC_START_NAMEE')), norm(record.get('LOC_END_NAMEE'))
-            score = ((ENDPOINT_SUBSTRING_WEIGHT if start and start in endpoint_norm else 0)
-                     + (ENDPOINT_SUBSTRING_WEIGHT if end and end in endpoint_norm else 0))
-            score += len(endpoint_tokens & tokens(record.get('LOC_START_NAMEE'))) / TOKEN_OVERLAP_DIVISOR
-            score += len(endpoint_tokens & tokens(record.get('LOC_END_NAMEE'))) / TOKEN_OVERLAP_DIVISOR
-            # POLICY DISCLOSURE (not a measurement):
-            # When two TD candidate records score equally, this deliberately chooses the higher full fare; the choice is disclosed in Process copy and is a policy, not a measurement.
-            if best is None or score > best[0] or (score == best[0] and fare > best[1]):
-                best = (score, fare)
+        # POLICY DISCLOSURE (not a measurement): equally scored candidates
+        # with different fares resolve to the higher full fare. choose_fare()
+        # marks those rows with TIEBREAK_FARE_SOURCE; the policy is disclosed
+        # in Process copy.
+        score, fare, source = choose_fare(candidates, endpoint_norm, endpoint_tokens)
         # An unmatched ambiguous route number is not evidence for any one fare.
-        accepted = best and (best[0] >= MATCH_SCORE_THRESHOLD
-                             or len({fare for fare, _ in candidates}) == 1)
+        accepted = (score >= MATCH_SCORE_THRESHOLD
+                    or len({candidate_fare for candidate_fare, _ in candidates}) == 1)
         if accepted:
-            fares[str(index)] = best[1]
+            fares[str(index)] = fare
+            fare_sources[str(index)] = source
         else:
-            low_score.append((index, label, best[0] if best else 0))
+            low_score.append((index, label, score))
 
     if low_score:
         summary = ', '.join(f'{label} (line {index}, score {score:g})'
@@ -258,8 +285,9 @@ def main():
         # Sibling of `fares`: the app consumes `fares`, so adding a key is
         # backward compatible. Each snapshot fare is marked as such; a future
         # band fallback can use a different value without leaving the consumer
-        # unable to tell the two apart.
-        'fareSources': {key: FARE_SOURCE for key in sorted_fares},
+        # unable to tell the two apart. Rows decided by the higher-fare
+        # tie-break get their own marker rather than the ordinary source.
+        'fareSources': {key: fare_sources[key] for key in sorted_fares},
     }
     OUT.write_text(json.dumps(output, separators=(',', ':'), ensure_ascii=False) + '\n')
     print(f'line fares: {len(fares)}; source last updated {output["source"]["lastUpdated"]}')

@@ -88,7 +88,8 @@ test('a malformed share hash shows an inline error before it is cleared', async 
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   const en = await catalog(page, 'en');
-  const expected = en['share.invalid'] || 'share.invalid';
+  expect(Object.keys(en)).toContain('share.invalid');
+  const expected = en['share.invalid'];
   const url = `${new URL(page.url()).origin}${new URL(page.url()).pathname}#s=not-valid-base64!!`;
 
   // The fragment is consumed on arrival, so the error is shown by the
@@ -142,6 +143,7 @@ test('a one-person share link loads that person and shows the need-two error', a
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   const en = await catalog(page, 'en');
+  expect(Object.keys(en)).toContain('error.needTwo');
   const url = await makeShareUrl(page, await onePersonState(page));
 
   await page.goto(url);
@@ -151,5 +153,5 @@ test('a one-person share link loads that person and shows the need-two error', a
   await expect(page.locator('.card')).toHaveCount(1);
   expect(await nameValues(page)).toEqual(['Solo']);
   await expect(page.locator('#error')).toBeVisible();
-  await expect(page.locator('#error')).toHaveText(en['error.needTwo'] || 'Add at least two people with a start place.');
+  await expect(page.locator('#error')).toHaveText(en['error.needTwo']);
 });

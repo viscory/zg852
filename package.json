@@ -10,7 +10,7 @@
     "i18n:check": "node scripts/check-i18n.mjs",
     "dev": "vite",
     "serve": "python3 -m http.server 8765 --bind 127.0.0.1 --directory public",
-    "prepare": "node -e \"const{execFileSync:g}=require('node:child_process');const get=()=>{try{return g('git',['config','--get','core.hooksPath'],{stdio:['ignore','pipe','ignore']}).toString().trim()}catch{return ''}};if(!get())g('git',['config','core.hooksPath','.githooks'],{stdio:'inherit'});\"",
+    "hooks:install": "git config core.hooksPath .githooks",
     "build": "vite build && node scripts/finalize.mjs",
     "preview": "vite preview",
     "pages:dev": "wrangler pages dev public",

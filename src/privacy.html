@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Privacy - 就腳</title>
 <meta name="description" content="How 就腳 handles browser-stored data and third-party requests.">
-<link rel="canonical" href="https://zg852.pages.dev/privacy">
+<link rel="canonical" href="https://zg852.pages.dev/privacy.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="就腳">
 <meta property="og:title" content="Privacy - 就腳">
 <meta property="og:description" content="How 就腳 handles browser-stored data and third-party requests.">
-<meta property="og:url" content="https://zg852.pages.dev/privacy">
+<meta property="og:url" content="https://zg852.pages.dev/privacy.html">
 <meta property="og:image" content="https://zg852.pages.dev/og-image.png?v=2">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Privacy - 就腳">
@@ -37,7 +37,7 @@
 <h2>Offline cache</h2>
 <p>A service worker caches app assets, local data files, and translation catalogues so the app can load again later. Clearing site data removes this cache.</p>
 <h2>Diagnostics export</h2>
-<p>Turning on Beta features reveals a Diagnostics button in the footer. Pressing it downloads a JSON file and copies the same text to your clipboard. The file contains your people's names, start places (including coordinates), routes, fares, settings, and the current page URL. The app does not send this file anywhere; only you decide what to do with it.</p>
+<p>Turning on Beta features reveals a Diagnostics button in the footer. Pressing it downloads a JSON file and attempts to copy the same text to your clipboard; this can fail if the browser denies clipboard access. The file contains your people's names, start places (including coordinates), routes, fares, settings, and the current page URL. It also contains the areas and hotspots shown on the map (<code>areas</code>, <code>hotspots</code>), the current selection and pinned point (<code>selection</code>, <code>selectedArea</code>, <code>freePoint</code>), and the solve key (<code>solveKey</code>). The app does not send this file anywhere; only you decide what to do with it.</p>
 <h2>Contact</h2>
 <p>Questions or privacy reports: <a href="https://github.com/viscory/zg852/issues" target="_blank" rel="noopener noreferrer">GitHub issues</a>.</p>
 <nav><a href="/">App</a><a href="terms.html">Terms</a><a href="credits.html">Credits</a><a href="process.html">Process</a></nav>

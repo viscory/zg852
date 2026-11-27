@@ -152,6 +152,15 @@ for (const mapName of ['fares', 'fareSources']) {
     }
   }
 }
+// Matching ranges alone is not enough: a fare could be attributed to a
+// different snapshot source (or lack one entirely) without either map leaving
+// the valid index range.
+const fareKeys = Object.keys(routeFaresData.fares);
+const sourceKeys = Object.keys(routeFaresData.fareSources);
+if (fareKeys.length !== sourceKeys.length
+    || fareKeys.some(key => !Object.prototype.hasOwnProperty.call(routeFaresData.fareSources, key))) {
+  throw new Error('data alignment: route-fares.json fares and fareSources key sets differ');
+}
 
 // maplibre-gl resolves its worker relative to the bundle URL, so the worker
 // file must sit next to app.js at the site root.

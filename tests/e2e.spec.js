@@ -90,11 +90,10 @@ async function clickableHeatCell(page) {
   return point;
 }
 
-// A synthetic four-station rail graph that makes an interchange unavoidable:
-// two origins start on separate lines and both must change at the hub onto the
-// Use a real MTR-only scenario: Central → Kowloon Tong changes from the
-// Tsuen Wan Line to the Kwun Tong Line at an interchange. No synthetic
-// timetable is needed, so the test exercises the shipped graph.
+// Use a real MTR-only scenario: Tsuen Wan and Sha Tin reach the top-ranked
+// fair area with a line change for at least one person, which produces a real
+// interchange-wait note. No synthetic timetable is needed, so the test
+// exercises the shipped graph.
 async function openInterchangeScenario(page) {
   const state = await page.evaluate(async () => {
     const nodes = await (await fetch('data/nodes.json')).json();
@@ -104,7 +103,7 @@ async function openInterchangeScenario(page) {
     };
     return {
       v: 1,
-      people: ['Central', 'Kowloon Tong'].map((name, i) => ({
+      people: ['Tsuen Wan', 'Sha Tin'].map((name, i) => ({
         id: `p${i + 1}`, name: ['A', 'B'][i], origin: origin(name), walkMinutes: 20,
       })),
       settings: { modes: ['rail'], fairness: 'time', tolerance: 3.05, includeHeadway: true },
@@ -370,7 +369,10 @@ test('interchange waits are charged only after the first transit leg', async ({ 
   // every wait note belongs to a later ride leg.
   const routes = await routeWaits();
   expect(routes).toHaveLength(2);
-  expect(routes.every(route => route.length === 0 || route[0].length === 0)).toBe(true);
+  for (const route of routes) {
+    expect(route.length).toBeGreaterThan(0);
+    expect(route[0]).toHaveLength(0);
+  }
 
   const notes = await page.locator('.ride-leg .interchange-wait').allInnerTexts();
   for (const note of notes) {
@@ -381,8 +383,8 @@ test('interchange waits are charged only after the first transit leg', async ({ 
 });
 
 test('displayed route legs reconcile with the total when headway is shown', async ({ page }) => {
-  // The synthetic interchange fixture guarantees a second ride leg with a
-  // headway wait for each person, so every step can be checked directly.
+  // The real Tsuen Wan / Sha Tin scenario needs a line change for at least one
+  // person, so at least one step has a headway wait to reconcile.
   await openInterchangeScenario(page);
   await expect(page.locator('#includeHeadway')).toBeChecked();
 
@@ -397,7 +399,10 @@ test('displayed route legs reconcile with the total when headway is shown', asyn
     };
   }));
   expect(steps).toHaveLength(2);
-  for (const step of steps) expect(step.sum).toBe(step.total);
+  expect(steps.some(step => step.hasWait)).toBe(true);
+  for (const step of steps) {
+    expect(step.sum).toBe(step.total);
+  }
 });
 
 test('travel budget slider is gone', async ({ page }) => {
@@ -799,7 +804,7 @@ test('diagnostics dump downloads a timestamped JSON file and copies it', async (
   expect(file.settings.modes).toEqual(['rail', 'bus']);
   expect(file.settings.tolerance).toBeGreaterThan(0);
   expect(file.settings.fareTolerance).toBeGreaterThan(0);
-  expect(file.settings.travelBudgetMinutes).toBe(90);
+  expect(file.settings.travelBudgetMinutes).toBe(150);
   expect(file.settings.includeHeadway).toBe(true);
   expect(file.settings.toleranceLimited).toBe(true);
   expect(file.settings.unbounded).toBe(false);
@@ -1155,7 +1160,7 @@ test('interest tooltip shows normalized category ratings when beta is on', async
   expect(widths.every(width => /^\d+%$/.test(width))).toBe(true);
 });
 
-// The synthetic fixture pins a station reachable only by changing lines, so
+// The real pinned Hang Hau station is reachable only by changing lines, so
 // the selected routes always contain an interchange wait.
 async function selectAnInterchange(page) {
   await openInterchangeScenario(page);
@@ -1180,8 +1185,8 @@ test('headway parameter persists through storage, reload and routes', async ({ p
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
-  // The restored pinned-point selection still requires a line change, but no
-  // wait note may be shown while headway is off.
+  // The restored selection still requires a line change, but no wait note may
+  // be shown while headway is off.
   await expect(page.locator('#steps .ride-leg .interchange-wait')).toHaveCount(0);
 
   await page.locator('#includeHeadway').check();
@@ -1192,13 +1197,13 @@ test('headway parameter persists through storage, reload and routes', async ({ p
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   await expect.poll(() => page.locator('#goLabel').textContent()).toBe('Find fair areas');
-  for (const note of await page.locator('.ride-leg .interchange-wait').allInnerTexts()) {
+  const notes = await page.locator('.ride-leg .interchange-wait').allInnerTexts();
+  expect(notes.length).toBeGreaterThan(0);
+  for (const note of notes) {
     expect(note).toMatch(/^Interchange wait\s+\d+\s+min$/);
   }
-  // A contiguous rail group books its fare on the last rail leg, so check any
-  // leg rather than assuming the first one carries the fare.
-  const legMetas = await page.locator('.ride-leg .leg-meta').allInnerTexts();
-  expect(legMetas.some(text => text.includes('Fare HK$'))).toBeTruthy();
+  // The selected result's fare chip is the deterministic home for the total.
+  await expect(page.locator('.result-row .fare.total').first()).toContainText('Fare HK$');
   const railChips = await page.locator('.ride-leg.route-rail .leg-mode').allInnerTexts();
   for (const chip of railChips) {
     expect(chip).toMatch(/[A-Z][a-z]+\s+(?:[A-Z][a-z]+\s+)?(?:Line|Express)\b/);
@@ -1388,14 +1393,31 @@ test('adding and removing a person recomputes without pressing search', async ({
   await expect(page.locator('#error')).toBeHidden();
 });
 
-test('a Photon outage shows an inline notice and no remote suggestions', async ({ page }) => {
-  await page.route('**/photon.komoot.io/api/**', route => route.abort());
-  const third = page.locator('.card').nth(2);
-  await page.locator('#add').click();
-  await third.locator('.start-input').fill('3 Canton Road');
-  await expect(third.locator('.suggestion-error')).toBeVisible();
-  await expect(third.locator('.suggestion')).toHaveCount(0);
-  await expect(third.locator('.suggestion-error')).toContainText('Place search is unavailable');
+test('a Photon outage shows an inline notice and no remote suggestions', async ({ browser }) => {
+  // Inject the failure in a fresh context so the shared beforeEach handler on
+  // the main page stays reachable and untouched.
+  const context = await browser.newContext({
+    baseURL: process.env.TEST_BASE_URL || 'http://127.0.0.1:8765',
+  });
+  const page = await context.newPage();
+  try {
+    await context.route('**/sw.js', route => route.abort());
+    await context.route('**/tiles.openfreemap.org/**', route => route.abort());
+    await context.route('**/basemaps.cartocdn.com/**', route => route.abort());
+    await context.route('**/tile.openstreetmap.org/**', route => route.abort());
+    await context.route('**/photon.komoot.io/api/**', route => route.abort());
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+
+    const third = page.locator('.card').nth(2);
+    await page.locator('#add').click();
+    await third.locator('.start-input').fill('3 Canton Road');
+    await expect(third.locator('.suggestion-error')).toBeVisible();
+    await expect(third.locator('.suggestion')).toHaveCount(0);
+    await expect(third.locator('.suggestion-error')).toContainText('Place search is unavailable');
+  } finally {
+    await context.close();
+  }
 });
 
 async function pickStation(page, index, name) {
@@ -1406,14 +1428,29 @@ async function pickStation(page, index, name) {
   await row.click();
 }
 
-test('empty place search shows a no-match message', async ({ page }) => {
-  await page.route('**/photon.komoot.io/api/**', route => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ features: [] }),
-  }));
-  await page.locator('#start-p1').fill('zzzzqqqq');
-  await expect(page.locator('.card').first().locator('.suggestion-error')).toHaveText('No places match. Pick a transit stop or use a map pin.');
+test('empty place search shows a no-match message', async ({ browser }) => {
+  const context = await browser.newContext({
+    baseURL: process.env.TEST_BASE_URL || 'http://127.0.0.1:8765',
+  });
+  const page = await context.newPage();
+  try {
+    await context.route('**/sw.js', route => route.abort());
+    await context.route('**/tiles.openfreemap.org/**', route => route.abort());
+    await context.route('**/basemaps.cartocdn.com/**', route => route.abort());
+    await context.route('**/tile.openstreetmap.org/**', route => route.abort());
+    await context.route('**/photon.komoot.io/api/**', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ features: [] }),
+    }));
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+
+    await page.locator('#start-p1').fill('zzzzqqqq');
+    await expect(page.locator('.card').first().locator('.suggestion-error')).toHaveText('No places match. Pick a transit stop or use a map pin.');
+  } finally {
+    await context.close();
+  }
 });
 
 test('identical station starts say the person is already there', async ({ page }) => {
@@ -1504,59 +1541,90 @@ test('shipped graph reflects the builder\'s rail-hop repairs', async ({ page }) 
   expect(report.shortSlow).toBe(0);
 });
 
-test('a late place search does not reopen a chosen stop', async ({ page }) => {
+test('a late place search does not reopen a chosen stop', async ({ browser }) => {
   // Two promise gates replace the fixed sleep. The handler announces when the
   // remote request actually arrives, then holds the response until the local
   // stop has been chosen; the test releases it explicitly so "late" means
-  // after the pick, never "after N milliseconds".
-  let requestSeenResolve;
-  const requestSeen = new Promise(r => { requestSeenResolve = r; });
-  let releaseLate;
-  const late = new Promise(r => { releaseLate = r; });
-  await page.route('**/photon.komoot.io/api/**', async route => {
-    requestSeenResolve?.();
-    requestSeenResolve = null;
-    await late;
-    try {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ features: [{
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [114.173, 22.278] },
-          properties: { name: 'Central Plaza', city: 'Hong Kong', country: 'Hong Kong', osm_type: 'way', osm_id: '9' },
-        }] }),
-      });
-    } catch {
-      // The app may abort the superseded lookup; the late arrival is the point.
-    }
+  // after the pick, never "after N milliseconds". Inject it in a fresh context
+  // so the shared beforeEach handler stays untouched.
+  const context = await browser.newContext({
+    baseURL: process.env.TEST_BASE_URL || 'http://127.0.0.1:8765',
   });
-  const card = page.locator('.card').first();
-  const input = card.locator('.start-input');
-  await input.fill('Central');
-  const row = card.locator('.suggestion').filter({ has: page.locator('.place-main', { hasText: /^Central$/ }) }).first();
-  await expect(row).toBeVisible();
-  await requestSeen;
-  await row.click();
-  await expect(input).toHaveValue('Central');
-  await expect(card.locator('.suggestions')).toBeHidden();
-  releaseLate();
-  await expect(card.locator('.suggestions')).toBeHidden();
+  const page = await context.newPage();
+  try {
+    await context.route('**/sw.js', route => route.abort());
+    await context.route('**/tiles.openfreemap.org/**', route => route.abort());
+    await context.route('**/basemaps.cartocdn.com/**', route => route.abort());
+    await context.route('**/tile.openstreetmap.org/**', route => route.abort());
+    let requestSeenResolve;
+    const requestSeen = new Promise(r => { requestSeenResolve = r; });
+    let releaseLate;
+    const late = new Promise(r => { releaseLate = r; });
+    await context.route('**/photon.komoot.io/api/**', async route => {
+      requestSeenResolve?.();
+      requestSeenResolve = null;
+      await late;
+      try {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ features: [{
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [114.173, 22.278] },
+            properties: { name: 'Central Plaza', city: 'Hong Kong', country: 'Hong Kong', osm_type: 'way', osm_id: '9' },
+          }] }),
+        });
+      } catch {
+        // The app may abort the superseded lookup; the late arrival is the point.
+      }
+    });
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+
+    const card = page.locator('.card').first();
+    const input = card.locator('.start-input');
+    await input.fill('Central');
+    const row = card.locator('.suggestion').filter({ has: page.locator('.place-main', { hasText: /^Central$/ }) }).first();
+    await expect(row).toBeVisible();
+    await requestSeen;
+    await row.click();
+    await expect(input).toHaveValue('Central');
+    await expect(card.locator('.suggestions')).toBeHidden();
+    releaseLate();
+    await expect(card.locator('.suggestions')).toBeHidden();
+  } finally {
+    await context.close();
+  }
 });
 
-test('a two-character Chinese query returns places', async ({ page }) => {
-  await page.route('**/photon.komoot.io/api/**', route => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ features: [{
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [114.158, 22.281] },
-      properties: { name: '中環', city: '香港', country: '香港', osm_type: 'node', osm_id: '8' },
-    }] }),
-  }));
-  const card = page.locator('.card').first();
-  await card.locator('.start-input').fill('中環');
-  await expect(card.locator('.suggestion').first()).toContainText('中環');
+test('a two-character Chinese query returns places', async ({ browser }) => {
+  const context = await browser.newContext({
+    baseURL: process.env.TEST_BASE_URL || 'http://127.0.0.1:8765',
+  });
+  const page = await context.newPage();
+  try {
+    await context.route('**/sw.js', route => route.abort());
+    await context.route('**/tiles.openfreemap.org/**', route => route.abort());
+    await context.route('**/basemaps.cartocdn.com/**', route => route.abort());
+    await context.route('**/tile.openstreetmap.org/**', route => route.abort());
+    await context.route('**/photon.komoot.io/api/**', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ features: [{
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [114.158, 22.281] },
+        properties: { name: '中環', city: '香港', country: '香港', osm_type: 'node', osm_id: '8' },
+      }] }),
+    }));
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+
+    const card = page.locator('.card').first();
+    await card.locator('.start-input').fill('中環');
+    await expect(card.locator('.suggestion').first()).toContainText('中環');
+  } finally {
+    await context.close();
+  }
 });
 
 test('legal pages include social preview tags', async ({ page }) => {

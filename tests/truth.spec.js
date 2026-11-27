@@ -60,7 +60,7 @@ test('no-JavaScript fallback copy matches the English catalogue', async ({ page 
 });
 
 test('no-JavaScript fallbacks match the English catalogue except two documented shorter labels', async ({ page }) => {
-  const html = readFileSync('src/index.html', 'utf8');
+  const html = readFileSync('public/index.html', 'utf8');
   const en = JSON.parse(readFileSync('static/i18n/en.json', 'utf8'));
   // Reviewed exceptions: these no-JS literals are deliberately shorter than
   // their catalogue counterparts, and are not stale translations:

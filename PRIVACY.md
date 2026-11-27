@@ -39,7 +39,7 @@ A service worker caches app assets, local data files, and translation catalogues
 
 ## Diagnostics export
 
-Turning on Beta features reveals a Diagnostics button in the footer. Pressing it downloads a JSON file and copies the same text to your clipboard. The file contains your people's names, start places (including coordinates), routes, fares, settings, and the current page URL. The app does not send this file anywhere; only you decide what to do with it.
+Turning on Beta features reveals a Diagnostics button in the footer. Pressing it downloads a JSON file and attempts to copy the same text to your clipboard; this can fail if the browser denies clipboard access. The file contains your people's names, start places (including coordinates), routes, fares, settings, and the current page URL. It also contains the areas and hotspots shown on the map (`areas`, `hotspots`), the current selection and pinned point (`selection`, `selectedArea`, `freePoint`), and the solve key (`solveKey`). The app does not send this file anywhere; only you decide what to do with it.
 
 ## Contact
 

@@ -22,7 +22,9 @@ export const CELL_SIZE=0.005;
 export const WALK_SPEED_KMH=4.5;
 export const WALK_DETOUR=1.3;
 export const MAX_CLOUD_CELLS=600;
-export const TRAVEL_BUDGET_MINUTES=90;
+// 150 minutes = 2.5 hours. Every user-facing copy string that quotes this
+// budget must be kept in sync with this constant (see the i18n catalogues).
+export const TRAVEL_BUDGET_MINUTES=150;
 // Only this many top-ranked areas are published in the results list. Shared
 // with the mobile cap regression so the two cannot drift apart.
 export const RESULTS_LIMIT=7;

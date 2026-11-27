@@ -7,7 +7,9 @@ friction, implied speeds and layover detection) and stay at historical values
 for reproducibility. The only deliberate time repair is adjust_edges(): it
 re-times rail hops detected at a flat ASSUMED_RAIL_KMH and very short hops
 stored as layovers. Regenerating therefore changes exactly those detected hops
-rather than reproducing the committed graph.json byte-for-byte.
+rather than reproducing a previous local graph.json byte-for-byte. That file is
+a gitignored generated intermediate with no committed baseline to compare
+against.
 """
 
 import csv
@@ -34,8 +36,9 @@ OUT = os.path.join(DATA, "graph.json")
 # to compensate for gaps in the GTFS feed (no walk links, no interchange
 # timings, and rail clocks stored at a flat speed). They are *not* surveyed
 # distances or observed timings. Every literal below is preserved at its
-# historical value; the only intentional departure from the committed JSON is
-# the narrow detected-hop repair in adjust_edges().
+# historical value; the only intentional departure from the locally generated
+# graph.json (gitignored, no committed baseline) is the narrow detected-hop
+# repair in adjust_edges().
 # ---------------------------------------------------------------------------
 
 # Walking model: pace and detour are assumptions; radius/neighbours bound the
