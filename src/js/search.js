@@ -5,10 +5,10 @@ import { t } from './i18n.js';
 import { districtFor } from './data.js';
 
 export function loadGeoCache(){
-  try{const raw=JSON.parse(localStorage.getItem(KEY.geocache));if(raw&&typeof raw==='object'&&!Array.isArray(raw))store.geoCache=raw;}catch(e){}
+  try{const raw=JSON.parse(localStorage.getItem(KEY.geocache));if(raw&&typeof raw==='object'&&!Array.isArray(raw))store.geoCache=raw;}catch(e){/* The geocache is optional: ignore missing, corrupt or unavailable storage. */}
 }
 export function saveGeoCache(){
-  try{localStorage.setItem(KEY.geocache,JSON.stringify(Object.fromEntries(Object.entries(store.geoCache).slice(-60))));}catch(e){}
+  try{localStorage.setItem(KEY.geocache,JSON.stringify(Object.fromEntries(Object.entries(store.geoCache).slice(-60))));}catch(e){/* Caching is an optimisation; persistence failures must not break search. */}
 }
 export function normLabel(value){return value.toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}]+/gu,' ').trim();}
 export function dedupePlaces(entries,limit=8){

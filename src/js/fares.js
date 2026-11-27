@@ -39,8 +39,9 @@ export function isEstimatedFare(leg,official){
 }
 
 const warnedOnce=new Set();
-// Diagnostics-only logging. Production stays silent; a repeated missing-fare
-// warning is emitted once per distinct message while beta diagnostics are on.
+// Beta-only logging: while the beta vectors setting is on, a repeated
+// missing-fare warning is emitted once per distinct message; otherwise nothing
+// is logged.
 export function warnOnce(...args){
   if(!store.settings?.beta?.vectors)return;
   const key=JSON.stringify(args);

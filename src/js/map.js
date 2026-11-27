@@ -189,8 +189,9 @@ export function fitMapTo(points){
   map.setView([22.31,114.17],12,{animate:false});
 }
 export function recenterMap(){
-  // Only fair areas and the selected point are fitted. Start markers stay put,
-  // as the map key says, even when an origin sits far outside the result area.
+  // The fit covers the result route paths, which begin at the origins, plus
+  // the selected point or a directly picked heat cell. Start markers are
+  // therefore in the bounds even when an origin sits far outside the area.
   const points=store.results.flatMap(result=>result.paths.flat());
   if(store.selection?.kind==='point'&&isNum(store.selection.lat)&&isNum(store.selection.lon))points.push([store.selection.lat,store.selection.lon]);
   // A heat cell picked directly is drawn by renderSelection() even when it is

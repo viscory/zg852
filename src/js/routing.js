@@ -283,9 +283,9 @@ export function rideLegText(leg){
   return (text+' '+interchangeWaitText(leg)).replace(/\s+/g,' ').trim();
 }
 export function legLabel(leg){return leg.mode==='walk'?walkLegText(leg):rideLegText(leg);}
-// Each leg is rounded independently. The displayed total is the sum of those
-// rounded legs plus the separately noted interchange waits, so the numbers on
-// screen add up without silently moving minutes from one leg to another.
+// Each leg is rounded independently. Interchange waits were already excluded
+// from ride-leg minutes when the legs were built, so their rounded total is
+// added back here as a separate figure: screen total = displayed legs + waits.
 export function reconcileDisplayMinutes(route,total){
   const legs=route.legs;
   if(!legs.length||!isNum(total)){route.shownTotal=Math.max(0,Math.round(total||0));return route;}

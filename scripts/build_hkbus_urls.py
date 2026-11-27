@@ -11,9 +11,9 @@ identifier linking our lines to hkbus.app pages.
 This is a maintenance tool, not part of the normal Vite build: the generated
 ``static/data/hkbus.json`` is committed so the app never needs a network call
 at build or run time. A parallel ``static/data/hkbus-meta.json`` records an
-explicit status/reason for every line index, so a fallback to in-app search is
-never confused with a real deep link. Re-run both whenever the GTFS feed is
-refreshed.
+explicit status for every line index, with the same generic ``no-deep-link``
+reason for every fallback, so a fallback to in-app search is never confused
+with a real deep link. Re-run both whenever the GTFS feed is refreshed.
 
 Usage: python3 scripts/build_hkbus_urls.py
 """
@@ -41,9 +41,9 @@ DESTINATION_MATCH_WEIGHT = 1
 ROUTE_SCORE_DIVISOR = ORIGIN_MATCH_WEIGHT + DESTINATION_MATCH_WEIGHT
 
 # hkbus.app publishes sitemap entries for keys containing a fullwidth slash but
-# the pre-rendered pages 404. This is only a detection character; *why* a line
-# has no deep link is an explicit status/reason in hkbus-meta.json, not a
-# one-codepoint feature flag hidden here.
+# the pre-rendered pages 404. This is only a detection character: it decides
+# whether a candidate slug is usable. The shipped metadata does not record
+# which of the two fallback cases applied, only the generic no-deep-link reason.
 FULLWIDTH_SLASH_CHAR = "／"
 
 
@@ -90,9 +90,10 @@ def route_url(key):
 
     A None key means no candidate matched; a key containing FULLWIDTH_SLASH_CHAR
     is published in the sitemap but its page 404s. Both cases are represented
-    explicitly as "no deep link" here rather than being silently redirected.
+    identically as "no deep link" here rather than being silently redirected.
     The caller maps None to the in-app search URL so the generated list keeps
-    its historical values, and records the specific reason in hkbus-meta.json.
+    its historical values, and records the same generic reason in both cases:
+    the specific cause is not recoverable from the shipped metadata.
     """
     if not key or FULLWIDTH_SLASH_CHAR in key:
         return None
@@ -126,13 +127,14 @@ def main():
         key = score_route_match(line, index, route_list)
         url = route_url(key)
         if url is None:
+            # Both fallback cases ship the same generic reason; the specific
+            # cause cannot be reconstructed from static/data/hkbus-meta.json.
             if not key:
                 unmatched += 1
-                meta.append({"status": "fallback", "reason": "unmatched-route"})
             else:
                 skipped_fullwidth += 1
-                meta.append({"status": "fallback", "reason": "fullwidth-slash-404", "key": key})
                 print(f"SKIP {line['l']}: hkbus.app page 404s for fullwidth-slash key {key!r}; using in-app search")
+            meta.append({"status": "fallback", "reason": "no-deep-link"})
             urls.append(SEARCH_URL)
         else:
             matched += 1

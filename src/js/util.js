@@ -16,9 +16,10 @@ export function haversine(lat1,lon1,lat2,lon2){
   const a=Math.sin(dlat/2)**2+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dlon/2)**2;
   return 2*6371000*Math.asin(Math.sqrt(a));
 }
-// Everywhere else walks are shown in whole minutes. The extra minute keeps a
-// very short access walk from rounding away to zero and absorbs the detour
-// estimate's sub-minute error so starts are never credited with a free hop.
+// Access walks use this extra minute so a very short first hop does not round
+// away to zero and the detour estimate's sub-minute error does not give the
+// start a free hop. The terminal walk to a pinned point is computed from raw
+// metres instead, without this buffer.
 export const WALK_ROUNDING_BUFFER_MIN=1;
 export function walkMinutes(metres){return metres/1000/WALK_SPEED_KMH*60*WALK_DETOUR+WALK_ROUNDING_BUFFER_MIN;}
 export function decodeBase64Url(value){

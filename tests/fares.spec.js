@@ -29,8 +29,9 @@ test('bundled MTR fares are internally consistent and sourced from OCT_ADT_FARE'
   expect(fares.source.field).toBe('OCT_ADT_FARE');
   expect(Object.keys(fares.fares).length).toBeGreaterThan(8800);
 
-  // Data integrity, not pinned amounts: every published value is a finite
-  // positive fare and every station pair is stored in both directions.
+  // Data integrity, not pinned amounts: published values used in the matrix
+  // are finite positive fares (a station to itself may be zero) and every
+  // station pair is stored in both directions.
   const values = Object.values(fares.fares);
   expect(values.every(value => Number.isFinite(value) && value >= 0)).toBe(true);
   expect(Math.max(...values)).toBeGreaterThan(40);
@@ -95,4 +96,24 @@ test('routes show looked-up MTR fares instead of distance-band estimates', async
     .map(text => Number(text.replace(/[^0-9.]/g, '')));
   expect(shown.length).toBeGreaterThan(0);
   for (const value of shown) expect(expected).toContain(value);
+});
+
+test('bundled MTR fare tables have no zero fare between different stations', () => {
+  const fares = JSON.parse(readFileSync('static/data/mtr-fares.json', 'utf8'));
+  for (const table of [fares.fares, fares.aelFares || {}]) {
+    const zeroCrossStation = Object.entries(table)
+      .filter(([key, value]) => value === 0 && key.split('|')[0] !== key.split('|')[1])
+      .map(([key]) => key);
+    expect(zeroCrossStation, 'a trip between two different stations cannot cost zero').toEqual([]);
+  }
+});
+
+test('every bundled route fare declares its source', () => {
+  const fares = JSON.parse(readFileSync('static/data/route-fares.json', 'utf8'));
+  const keys = Object.keys(fares.fares);
+  expect(keys.length).toBeGreaterThan(0);
+  for (const key of keys) {
+    expect(Object.prototype.hasOwnProperty.call(fares.fareSources, key), `route fare ${key} should have a fareSources entry`).toBe(true);
+    expect(fares.fareSources[key], `route fare ${key} should name a real source`).toBeTruthy();
+  }
 });

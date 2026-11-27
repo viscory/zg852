@@ -151,7 +151,7 @@ test('fare ranking sorts by the fare spread shown on the card', async () => {
   const { FARE_GAP_FLOOR } = await loadSourceModule('config.js');
   const wide = { key: 'wide', fareGap: 20, maxFare: 25, slowest: 40, gap: 10 };
   const tight = { key: 'tight', fareGap: 2, maxFare: 14, slowest: 40, gap: 10 };
-  // Ascending order puts the smallest displayed spread first ("fairest first").
+  // Ascending rank puts the smallest displayed spread ahead of the largest.
   expect(compareAreaRank(tight, wide, 'fare')).toBeLessThan(0);
   expect(compareAreaRank(wide, tight, 'fare')).toBeGreaterThan(0);
   expect(heatValue(wide, 'fare')).toBe(25);

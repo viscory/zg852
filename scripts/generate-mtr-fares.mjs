@@ -160,7 +160,11 @@ for (const from of stationIndices) {
     const toId = metroIdByName.get(canonical(nodes.names[to]));
     if (toId === undefined) continue;
     const fare = fareByOfficialId.get(`${fromId}|${toId}`) ?? fareByOfficialId.get(`${toId}|${fromId}`);
-    if (fare !== undefined) fares[`${from}|${to}`] = Math.round(fare * 10) / 10;
+    // A zero fare is legitimate for the same station, but the feed also
+    // publishes zero for distinct stations (e.g. East Tsim Sha Tsui ↔ Tsim
+    // Sha Tsui). Skip only those cross-station zeros so regeneration matches
+    // the shipped matrix instead of presenting them as exact published fares.
+    if (fare > 0 || from === to) fares[`${from}|${to}`] = Math.round(fare * 10) / 10;
   }
 }
 
@@ -174,7 +178,9 @@ const aelFares = {};
 for (const from of aelStations) {
   for (const to of aelStations) {
     const fare = fareByAelId.get(`${from.id}|${to.id}`) ?? fareByAelId.get(`${to.id}|${from.id}`);
-    if (fare !== undefined) aelFares[`${from.index}|${to.index}`] = Math.round(fare * 10) / 10;
+    // Same rule as the metro matrix: self-pairs may be zero, cross-station
+    // zeros are not published fares.
+    if (fare > 0 || from.index === to.index) aelFares[`${from.index}|${to.index}`] = Math.round(fare * 10) / 10;
   }
 }
 

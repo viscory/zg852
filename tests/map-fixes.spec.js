@@ -172,9 +172,12 @@ test.describe('narrow fine-pointer desktops use the adaptive deck', () => {
 
   test('the stacked fallback no longer replaces the deck', async ({ page }) => {
     await openApp(page);
-    expect(await page.evaluate(() => document.documentElement.hasAttribute('data-mobile-layout'))).toBe(true);
     await expect(page.locator('#mobileTabbar')).toBeVisible();
     await expect(page.locator('.layout')).toHaveCSS('display', 'block');
+    // The map stays a real, usable destination at this breakpoint.
+    await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
+    await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'map');
+    await expect(page.locator('#map')).toBeVisible();
   });
 
   test('legend keys stay visible and long tolerance labels wrap', async ({ page }) => {

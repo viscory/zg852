@@ -5,11 +5,22 @@ const { join } = require('node:path');
 
 const root = join(__dirname, '..');
 const publicDir = join(root, 'public');
-const SW_SOURCE = readFileSync(join(root, 'static', 'sw.js'), 'utf8');
-const SW_CACHE_NAME = SW_SOURCE.match(/CACHE='([^']+)'/)[1];
+const REQUIRED_OFFLINE_ASSETS = [
+  '/index.html', '/app.js', '/app.css', '/data/network.json', '/data/nodes.json',
+  '/data/mtr-fares.json', '/data/route-fares.json', '/i18n/en.json', '/maplibre-gl-worker.mjs',
+];
 // Derive the worker cache-buster from the installed package so a maplibre
 // upgrade cannot silently desynchronise this test from the shipped bundle.
 const MAPLIBRE_VERSION = require('maplibre-gl/package.json').version;
+
+// The installed worker owns the cache name. Read it from CacheStorage at
+// runtime so the test follows the deployed worker instead of source text.
+async function installedCacheName(page) {
+  const names = await page.evaluate(() => caches.keys());
+  const versioned = names.filter(name => name.startsWith('zg852-v'));
+  expect(versioned, 'exactly one versioned zg852 cache should be installed').toHaveLength(1);
+  return versioned[0];
+}
 
 async function setupWithServiceWorker(page) {
   await page.route('**/tiles.openfreemap.org/**', route => route.abort());
@@ -30,7 +41,7 @@ test('service worker serves the versioned maplibre worker from precache offline'
   const precached = await page.evaluate(async name => {
     const cache = await caches.open(name);
     return !!(await cache.match('/maplibre-gl-worker.mjs'));
-  }, SW_CACHE_NAME);
+  }, await installedCacheName(page));
   expect(precached, 'bare worker URL should be precached').toBeTruthy();
 
   await context.setOffline(true);
@@ -77,7 +88,7 @@ test('service worker does not cache non-OK responses', async ({ page, context })
   const cached = await page.evaluate(async ({ name, path }) => {
     const cache = await caches.open(name);
     return !!(await cache.match(path));
-  }, { name: SW_CACHE_NAME, path: missing });
+  }, { name: await installedCacheName(page), path: missing });
   expect(cached, '404 response must not enter the cache').toBeFalsy();
 
   await context.setOffline(true);
@@ -91,19 +102,20 @@ test('service worker does not cache non-OK responses', async ({ page, context })
   expect(offline.status).toBe(404);
 });
 
-test('service worker precache list still covers required offline assets', () => {
-  expect(SW_CACHE_NAME.length).toBeGreaterThan(0);
-  const sw = readFileSync(join(publicDir, 'sw.js'), 'utf8');
-  // The deployed worker is copied verbatim; a divergent cache name would make
-  // offline assertions target a cache the page never opens.
-  expect(sw.match(/CACHE='([^']+)'/)?.[1]).toBe(SW_CACHE_NAME);
-  const list = sw.match(/const ASSETS=\[([^\]]*)\]/);
-  expect(list).not.toBeNull();
-  const assets = [...list[1].matchAll(/['"](\.\/[^'"]+)['"]/g)].map(match => match[1].replace(/^\.\//, '/'));
-  for (const required of ['/index.html', '/app.js', '/app.css', '/data/network.json', '/data/nodes.json', '/data/mtr-fares.json', '/data/route-fares.json', '/i18n/en.json', '/maplibre-gl-worker.mjs']) {
-    expect(assets, `${required} should be precached`).toContain(required);
+test('service worker precache still covers required offline assets', async ({ page }) => {
+  // Waiting for the controller means install (precache) and activate have
+  // settled, so CacheStorage is the source of truth for what is precached.
+  await setupWithServiceWorker(page);
+  const name = await installedCacheName(page);
+  const cached = await page.evaluate(async ({ name, required }) => {
+    const cache = await caches.open(name);
+    const entries = await Promise.all(required.map(async url => [url, !!(await cache.match(url))]));
+    return { entries: Object.fromEntries(entries), sw: !!(await cache.match('/sw.js')) };
+  }, { name, required: REQUIRED_OFFLINE_ASSETS });
+  for (const required of REQUIRED_OFFLINE_ASSETS) {
+    expect(cached.entries[required], `${required} should be precached`).toBe(true);
   }
-  expect(assets).not.toContain('/sw.js');
+  expect(cached.sw, 'sw.js should not be precached').toBe(false);
 });
 
 test('build emits precompressed assets and gzip headers without dropping originals', () => {

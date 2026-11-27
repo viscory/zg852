@@ -148,20 +148,8 @@ if (readFileSync(swDeployedPath, 'utf8') !== readFileSync(swSourcePath, 'utf8'))
   throw new Error('public/sw.js diverges from static/sw.js; fix the Vite copy step instead of patching the worker');
 }
 
-// preview-config.js is a plain static file and must execute before
-// preview-noindex.js so the production hostname global is defined. The source
-// HTML pages are outside this script's scope, so wire the ordering on the built
-// output; the hostname then lives in exactly one file (static/preview-config.js).
-const configTag = '<script src="preview-config.js"></script>';
-const noindexTag = '<script src="preview-noindex.js"></script>';
-for (const page of ['index.html', 'privacy.html', 'terms.html', 'credits.html', 'process.html']) {
-  const pagePath = join(out, page);
-  if (!existsSync(pagePath)) throw new Error(`built page missing: ${page}`);
-  const html = await readFile(pagePath, 'utf8');
-  if (html.includes(configTag)) continue;
-  if (!html.includes(noindexTag)) throw new Error(`${page} is missing the preview-noindex.js script tag`);
-  await writeFile(pagePath, html.replace(noindexTag, `${configTag}\n${noindexTag}`));
-}
+// The preview-config.js tag is authored in each source page before
+// preview-noindex.js; Vite copies it verbatim into public/. No patch step here.
 
 const strayStyles = join(out, 'styles.css');
 if (existsSync(strayStyles)) await rm(strayStyles);

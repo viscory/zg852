@@ -34,13 +34,13 @@ test.beforeEach(async ({ page }) => {
   }));
 });
 
-// Finding 1: fare mode orders by the spread printed on the card; the heat
-// colour follows the largest visible fare chip, as the map key states.
+// Fare mode ranks by the spread printed on the card and the heat key follows
+// the largest visible fare chip.
 test('fare ranking follows the displayed spread and heat follows the largest fare', async () => {
   const { compareAreaRank, heatValue } = await model();
   const wide = { key: 'wide', fareGap: 20, maxFare: 25, slowest: 40, gap: 10 };
   const tight = { key: 'tight', fareGap: 2, maxFare: 14, slowest: 40, gap: 10 };
-  // Ascending order puts the smallest displayed spread first ("fairest first").
+  // Ascending rank puts the smallest displayed spread ahead of the largest.
   expect(compareAreaRank(tight, wide, 'fare')).toBeLessThan(0);
   expect(compareAreaRank(wide, tight, 'fare')).toBeGreaterThan(0);
   expect(heatValue(wide, 'fare')).toBe(25);
@@ -50,8 +50,7 @@ test('fare ranking follows the displayed spread and heat follows the largest far
   expect(compareAreaRank(wide, sameSpread, 'fare')).toBe(0);
 });
 
-// Finding 2: no undisclosed station-priority tie-break may reorder areas whose
-// visible numbers are equal.
+// Equal visible numbers keep their order regardless of station priority.
 test('no hidden meeting-suitability tie-break reorders equally fair areas', async () => {
   const { compareAreaRank, areaRank } = await model();
   const left = { key: 'a', fitScore: 12, priority: 1, kind: 1 };
@@ -61,8 +60,7 @@ test('no hidden meeting-suitability tie-break reorders equally fair areas', asyn
   expect(areaRank(left)).toEqual([12, 0, 0, 'a']);
 });
 
-// Finding 3: fare mode may reorder cells but may never widen the time-feasible
-// set by dropping the time-difference filter.
+// Fare mode may reorder cells but must keep the time-difference filter.
 test('buildCells keeps the time fairness filter used by fare mode', async () => {
   const [{ buildCells }, { store }] = await loadSourceModules(['routing.js', 'store.js'], stubs);
   store.NODES = {
@@ -76,7 +74,7 @@ test('buildCells keeps the time fairness filter used by fare mode', async () => 
   expect(cells.map(cell => cell.label).sort()).toEqual(['A', 'C']);
 });
 
-// Finding 4: unreachable starts and no common area are different failures.
+// Unreachable starts and a missing common area report different errors.
 test('unreachable starts and no common area use different error copy', async () => {
   const { noReachErrorKey } = await model();
   expect(noReachErrorKey('no-common-area')).toBe('error.noCommonArea');
@@ -91,8 +89,7 @@ test('unreachable starts and no common area use different error copy', async () 
   expect(en['error.noCommonArea']).toContain('90 minutes');
 });
 
-// Finding 5: source lookup stays inside the fixed walking radius; grouping by
-// station must not add a kind-based bonus.
+// Source lookup stays inside the access radius without a station-kind bonus.
 test('source lookup stays inside the fixed access radius', async () => {
   const [{ nearestSources }, { store }, { ACCESS_RADIUS_M, MAX_ACCESS_NODES }] =
     await loadSourceModules(['routing.js', 'store.js', 'config.js'], stubs);
@@ -109,8 +106,7 @@ test('source lookup stays inside the fixed access radius', async () => {
   expect(MAX_ACCESS_NODES).toBeGreaterThan(0);
 });
 
-// Finding 6: the advertised floors are gap floors, not a percentage on top of
-// the 5-minute floor.
+// Fairness floors are the advertised gap minima, not a share of the trip.
 test('time and fare fairness floors match the legend', async () => {
   const { GAP_FLOOR_STATION_MIN, GAP_FLOOR_STOP_MIN, FARE_GAP_FLOOR } =
     await Promise.all([model(), config()]).then(([m, c]) => ({ ...m, FARE_GAP_FLOOR: c.FARE_GAP_FLOOR }));
@@ -124,7 +120,7 @@ test('time and fare fairness floors match the legend', async () => {
   expect(overFairnessBand({ fastest: 50, gap: 9, kind: 1 }, 0.1)).toBe(true);
 });
 
-// Finding 7: recentering fits the selected area/route, not the start markers.
+// Recenter fits the selected route without moving the start inputs.
 test('recenter fits fair areas only', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
@@ -151,7 +147,7 @@ test('recenter fits fair areas only', async ({ page }) => {
   await expect(page.locator('.legend .recenter-key')).toHaveText(en['map.recenterKey']);
 });
 
-// Finding 8: persisted/shared walk tolerances are snapped at every boundary.
+// Persisted and shared walk minutes snap to 5-minute steps at the boundaries.
 test('walk tolerance is snapped to 5-minute steps at the outer boundaries', async ({ page }) => {
   const { snapWalkMinutes } = await model();
   expect([-7, 0, 17, 59, 63].map(snapWalkMinutes)).toEqual([0, 0, 15, 60, 60]);
@@ -183,8 +179,7 @@ test('walk tolerance is snapped to 5-minute steps at the outer boundaries', asyn
   }
 });
 
-// Finding 9: with both modes enabled, the no-fit message must not ask the user
-// to enable another mode.
+// The no-fit message matches the modes that are actually enabled.
 test('no-fit message follows the enabled modes', async () => {
   const { noFitErrorKey } = await model();
   expect(noFitErrorKey(['rail', 'bus'])).toBe('results.noFitTolerance');
@@ -198,8 +193,7 @@ test('no-fit message follows the enabled modes', async () => {
   }
 });
 
-// Finding 10: the closest stop within the radius is the sole representative;
-// node kind must never change the walk minute ranking.
+// Source ranking uses walk minutes alone, never node kind.
 test('source ranking uses walk minutes only', async () => {
   const { sourceRankMinutes } = await model();
   expect(sourceRankMinutes(12.4)).toBe(12.4);
@@ -213,4 +207,17 @@ test('source ranking uses walk minutes only', async () => {
   const sources = nearestSources(22.28, 114.15, 60, [0, 1, 2]);
   expect(sources[0].node).toBe(0);
   expect(sources[0].minutes).toBeLessThan(sources[sources.length - 1].minutes);
+});
+
+// The process summary must not overstate that every bus fare is estimated:
+// published snapshot fares are shown as exact values.
+test('process summary does not call every bus fare an estimate', () => {
+  const summary = en['legal.summaryProcess'].toLowerCase();
+  expect(summary.includes('all bus fares are estimates')).toBe(false);
+  expect(summary.includes('bus fares are estimates.')).toBe(false);
+});
+
+// The count must disclose the actual sort key, not an obsolete fairness claim.
+test('results header does not claim a fairest-first ordering', () => {
+  expect(en['results.header'].toLowerCase().includes('fairest first')).toBe(false);
 });

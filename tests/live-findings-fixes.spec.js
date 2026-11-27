@@ -1,5 +1,8 @@
 const { test, expect } = require('@playwright/test');
 const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
+
+const EN_CATALOGUE = JSON.parse(readFileSync(join(__dirname, '..', 'static', 'i18n', 'en.json'), 'utf8'));
 
 test.use({ serviceWorkers: 'block' });
 
@@ -72,7 +75,8 @@ test('the count discloses the sort order and fare mode reports a fare spread', a
   await page.goto('/');
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
-  await expect(page.locator('#nres')).toContainText('fairest first');
+  const rows = await page.locator('.result-row').count();
+  await expect(page.locator('#nres')).toHaveText(EN_CATALOGUE['results.header'].replace('{count}', String(rows)));
   await page.locator('#fairnessToggle [data-fairness="fare"]').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   await expect(page.locator('.result-row').first().locator('.result-times > span').first())

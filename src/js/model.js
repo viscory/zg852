@@ -30,12 +30,13 @@ export function overFairnessBand(cell,tolerance){
   return gap > Math.max(fastest * tolerance, floor);
 }
 
-// The visible ordering. Every field here is one the user can see on the card:
-// the whole-minute score (longest + spread), then the displayed longest and
-// spread as tie-breaks, then a stable area key. Interest ratings are disclosed
-// as information only and never change this order. In fare mode the displayed
-// fare spread comes first, then the largest visible fare chip and the same
-// displayed time numbers. The heat colour follows the largest fare chip.
+// The ordering used for areas. The first key is a stored fit score derived
+// from the whole-minute longest + spread, not a figure shown on the card; the
+// displayed longest and spread follow as tie-breaks, then a stable area key.
+// Interest ratings are disclosed as information only and never change this
+// order. In fare mode the displayed fare spread comes first, then the largest
+// visible fare chip and the same displayed time numbers. The heat colour
+// follows the largest fare chip.
 export function areaRank(area,metric='time'){
   if(metric === 'fare')return [
     Number(area?.fareGap) || 0,

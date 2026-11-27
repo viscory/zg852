@@ -111,16 +111,10 @@ test('an unbounded tap before Search reports that data is still loading without 
     slider.dispatchEvent(new Event('input', { bubbles: true }));
   });
   await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
+  const mapBox = await page.locator('#map').boundingBox();
+  expect(mapBox).not.toBeNull();
+  await page.mouse.click(mapBox.x + mapBox.width / 2, mapBox.y + 100);
   const snapshot = await page.evaluate(() => {
-    const mapEl = document.querySelector('#map');
-    const box = mapEl.getBoundingClientRect();
-    mapEl.dispatchEvent(new MouseEvent('click', {
-      bubbles: true,
-      cancelable: true,
-      view: window,
-      clientX: box.left + box.width / 2,
-      clientY: box.top + 100,
-    }));
     const error = document.querySelector('#error');
     return {
       errorHidden: error.hidden,

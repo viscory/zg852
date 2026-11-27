@@ -84,8 +84,6 @@ export function sliderPositionForTolerance(value){
   const position=TOLERANCE_LINEAR_END+Math.round(Math.log(pct/TOLERANCE_PERCENT_SCALE)/Math.log(TRAVEL_TOLERANCE_MAX)*TOLERANCE_LOG_STEPS);
   return Math.max(TOLERANCE_LINEAR_END+TOLERANCE_SLIDER_MIN,Math.min(TOLERANCE_SLIDER_MAX-TOLERANCE_SLIDER_MIN,position));
 }
-// Cost ranking keeps the top time-feasible cells and ranks those by fare.
-export const MAX_COST_CELLS=300;
 // Used only if the bundled fare snapshot has not loaded yet. The live scale is
 // derived from that snapshot so every published fare has its own colour.
 export const FARE_HEAT_FALLBACK_MAX=25;

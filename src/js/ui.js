@@ -34,8 +34,8 @@ export function onSearchSettled(callback){
 function notifySearchSettled(){
   searchSettledListeners.forEach(callback=>callback());
 }
-// The keyframes mirror the CSS ones so the visible result is unchanged while
-// the Web Animations API owns the timing, cancellation and completion signal.
+// These frames are defined here so the Web Animations API owns the timing,
+// cancellation and completion signal for the flip and mobile screen-in.
 const FLIP_OUT_FRAMES=[{transform:'rotateY(0)'},{transform:'rotateY(90deg)'}];
 const FLIP_IN_FRAMES=[{transform:'rotateY(-90deg)'},{transform:'none'}];
 export const SCREEN_IN_FRAMES=[{opacity:0,transform:'translateY(6px)'},{opacity:1,transform:'none'}];
@@ -686,7 +686,7 @@ export function refreshTranslatedNames(){
     const input=card.querySelector('.name-input');if(!input)return;
     const start=input.selectionStart,end=input.selectionEnd,direction=input.selectionDirection;
     input.value=displayName({name:''},idx);
-    if(document.activeElement===input){try{input.setSelectionRange(start,end,direction);}catch{}}
+    if(document.activeElement===input){try{input.setSelectionRange(start,end,direction);}catch{/* Some inputs reject a selection range; the value is already restored. */}}
   });
   refreshMeta();
 }

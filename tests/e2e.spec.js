@@ -499,7 +499,7 @@ test('selected map area shows district subtitles and segmented routes', async ({
   await expect(page.locator('#detailDistrict')).not.toBeEmpty();
   await expect(page.locator('.legend')).toBeVisible();
   await expect(page.locator('.legend .route-key')).toBeVisible();
-  await expect(page.locator('.route-key-help')).toHaveText('Colour = person · line style = mode');
+  await expect(page.locator('.route-key-help')).toHaveText(EN_CATALOGUE['map.routeKeyHelp']);
   await expect(page.locator('.route-key .route-walk')).toBeVisible();
   await expect(page.locator('.route-key .route-rail')).toBeVisible();
   await expect(page.locator('.route-key .route-bus')).toBeVisible();

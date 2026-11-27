@@ -3,15 +3,20 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 
 const root = join(__dirname, '..');
-// Read the real workflow so this spec fails if a required CI step is removed.
-const CI_WORKFLOW = readFileSync(join(root, '.github', 'workflows', 'ci.yml'), 'utf8');
+// Parse the package manifest, not the workflow text: the CI commands must be
+// declared as runnable scripts or removing one silently breaks the pipeline.
+const SCRIPTS = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts;
 
-test('workflow file declares lint, build, test and deploy commands', () => {
-  // This asserts the workflow file contains the declared commands, not that CI
-  // actually executed them; real runs are verified by the CI service itself.
-  for (const step of ['npm run lint', 'npm run build', 'npm test', 'npx wrangler pages deploy public']) {
-    expect(CI_WORKFLOW, `${step} should be present in .github/workflows/ci.yml`).toContain(step);
+test('package.json declares runnable lint, build, test and deploy scripts', () => {
+  // CI invokes these script names; assert each exists and runs the tool it
+  // claims to run. The comments above are not an oracle for CI execution.
+  for (const name of ['lint', 'build', 'test', 'pages:deploy']) {
+    expect(Object.prototype.hasOwnProperty.call(SCRIPTS, name), `${name} script should exist`).toBe(true);
   }
+  expect(SCRIPTS.lint).toContain('eslint');
+  expect(SCRIPTS.build).toContain('vite build');
+  expect(SCRIPTS.test).toContain('playwright test');
+  expect(SCRIPTS['pages:deploy']).toContain('wrangler pages deploy public');
 });
 
 const SHELL_ASSETS = [

@@ -6,17 +6,11 @@ import { invalidateMapSize,revealMap } from './map.js';
 import { playMotion,SCREEN_IN_FRAMES } from './ui.js';
 
 const VIEWS=['plan','results','map'];
-// The breakpoint is owned here; CSS consumes the html attribute set from it.
-// Keeping one matchMedia query means JS and CSS cannot drift apart.
+// The JS breakpoint lives here; CSS has its own matching media query.
 const MOBILE_QUERY='(max-width:1024px)';
 const mobileQuery=typeof matchMedia==='function'?matchMedia(MOBILE_QUERY):null;
 let closeRouteTimer=null;
 let routeCardHeightFrame=0;
-
-function syncMobileLayoutAttribute(){
-  document.documentElement.toggleAttribute('data-mobile-layout',Boolean(mobileQuery?.matches));
-}
-syncMobileLayoutAttribute();
 
 export function isMobileLayout(){
   return Boolean(mobileQuery?.matches);
@@ -208,7 +202,6 @@ export function initMobile(){
     if(card)new ResizeObserver(syncRouteCardHeight).observe(card);
   }
   mobileQuery?.addEventListener?.('change',()=>{
-    syncMobileLayoutAttribute();
     syncViewState();
   });
   // The keyboard owns the lower half of the screen; get the persistent bars

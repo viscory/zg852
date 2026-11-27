@@ -2,7 +2,16 @@ const { test, expect } = require('@playwright/test');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 
-const SW_CACHE_NAME = readFileSync(join(__dirname, '..', 'static', 'sw.js'), 'utf8').match(/CACHE='([^']+)'/)[1];
+const EN_CATALOGUE = JSON.parse(readFileSync(join(__dirname, '..', 'static', 'i18n', 'en.json'), 'utf8'));
+
+// The installed worker owns its cache name; read it from CacheStorage so a
+// cache-buster bump cannot desynchronise these checks from the deployed worker.
+async function installedCacheName(page) {
+  const names = await page.evaluate(() => caches.keys());
+  const versioned = names.filter(name => name.startsWith('zg852-v'));
+  expect(versioned, 'exactly one versioned zg852 cache should be installed').toHaveLength(1);
+  return versioned[0];
+}
 
 const RAW_KEY = /\b(app|people|options|results|map|route|legal|vector|status|error|unit|tag|cat|mode|share|beta|search|place|district|note|locale)\.[A-Za-z][A-Za-z0-9]*/;
 
@@ -103,7 +112,7 @@ test('production headway parameter and fare output are visible', async ({ page }
   await expect(page.locator('.result-row').first().locator('.fare.total').first()).toContainText('Fare HK$');
   await expect(page.locator('.side-left .face[data-face="detail"]')).toBeVisible();
   await expect(page.locator('.fare-note')).toBeVisible();
-  await expect(page.locator('.fare-note')).toContainText('Fares are published adult Octopus values where available');
+  await expect(page.locator('.fare-note')).toContainText(EN_CATALOGUE['results.fareNote']);
   await expect(page.locator('#steps')).not.toContainText('Get on:');
   await expect(page.locator('#steps')).not.toContainText('Get off:');
 });
@@ -115,6 +124,7 @@ test('stale cached catalogs cannot resurrect raw i18n keys', async ({ browser })
     baseURL: process.env.TEST_BASE_URL || 'http://127.0.0.1:8765',
   });
   const page = await context.newPage();
+  let cacheName;
   try {
     await context.route('**/tiles.openfreemap.org/**', route => route.abort());
     await context.route('**/photon.komoot.io/api/**', route => route.fulfill({
@@ -122,13 +132,15 @@ test('stale cached catalogs cannot resurrect raw i18n keys', async ({ browser })
     }));
     await page.goto('/');
     await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+    await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+    cacheName = await installedCacheName(page);
     await page.evaluate(async name => {
       await navigator.serviceWorker.ready;
       const cache = await caches.open(name);
       await cache.put('/i18n/en.json', new Response(JSON.stringify({ 'app.title': 'Stale title' }), {
         headers: { 'content-type': 'application/json' },
       }));
-    }, SW_CACHE_NAME);
+    }, cacheName);
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
     await expect(page.locator('h1')).toHaveText('就腳 zau6 goek3');
@@ -137,10 +149,12 @@ test('stale cached catalogs cannot resurrect raw i18n keys', async ({ browser })
     await expect(page.locator('[data-legal="privacy"]')).toHaveText('Privacy');
     expect(await page.locator('body').innerText()).not.toMatch(RAW_KEY);
   } finally {
-    await page.evaluate(async name => {
-      const cache = await caches.open(name);
-      await cache.delete('/i18n/en.json');
-    }, SW_CACHE_NAME).catch(() => {});
+    if (cacheName) {
+      await page.evaluate(async name => {
+        const cache = await caches.open(name);
+        await cache.delete('/i18n/en.json');
+      }, cacheName).catch(() => {});
+    }
     await context.close();
   }
 });
@@ -160,12 +174,12 @@ test('recenter control sits on the map beside the zoom control', async ({ page }
 
 test('service worker precaches the bundle, data, and catalogs for offline use', async ({ page }) => {
   await setup(page, { serviceWorker: true });
-  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
   const cached = await page.evaluate(async name => {
     const cache = await caches.open(name);
     const entries = ['/app.js', '/app.css', '/index.html', '/data/nodes.json', '/data/hkbus.json', '/i18n/en.json'];
     return Object.fromEntries(await Promise.all(entries.map(async entry => [entry, !!(await cache.match(entry))])));
-  }, SW_CACHE_NAME);
+  }, await installedCacheName(page));
   expect(cached).toEqual({
     '/app.js': true,
     '/app.css': true,
@@ -174,4 +188,15 @@ test('service worker precaches the bundle, data, and catalogs for offline use', 
     '/data/hkbus.json': true,
     '/i18n/en.json': true,
   });
+});
+
+test('built page loads preview config before the noindex script', async ({ page }) => {
+  await page.goto('/');
+  const srcs = await page.evaluate(() => [...document.querySelectorAll('script[src]')]
+    .map(element => new URL(element.src, location.href).pathname));
+  const configIndex = srcs.findIndex(src => src === '/preview-config.js');
+  const noindexIndex = srcs.findIndex(src => src === '/preview-noindex.js');
+  expect(configIndex, 'built page should load preview-config.js').toBeGreaterThanOrEqual(0);
+  expect(noindexIndex, 'built page should load preview-noindex.js').toBeGreaterThanOrEqual(0);
+  expect(configIndex, 'preview config must be applied before noindex runs').toBeLessThan(noindexIndex);
 });

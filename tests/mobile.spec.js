@@ -30,6 +30,31 @@ async function rect(locator) {
   return { ...box, right: box.x + box.width, bottom: box.y + box.height };
 }
 
+// Pick a point that really hits a heat cell. Only real hit-testing is used:
+// sample points inside positive-size, on-screen cells and accept whichever
+// heat cell is topmost. No invented viewport bands or minimum pixel sizes.
+async function visibleHeatTarget(page) {
+  const target = await page.evaluate(() => {
+    for (const element of document.querySelectorAll('path.heat-cell')) {
+      const style = getComputedStyle(element);
+      if (style.visibility === 'hidden' || style.display === 'none') continue;
+      const box = element.getBoundingClientRect();
+      if (box.width <= 0 || box.height <= 0) continue;
+      for (const fx of [0.5, 0.35, 0.65]) {
+        for (const fy of [0.5, 0.35, 0.65]) {
+          const x = box.left + box.width * fx;
+          const y = box.top + box.height * fy;
+          const top = document.elementFromPoint(x, y);
+          if (top?.closest?.('path.heat-cell')) return { x, y };
+        }
+      }
+    }
+    return null;
+  });
+  expect(target, 'a visible heat cell should be tappable').not.toBeNull();
+  return target;
+}
+
 test.beforeEach(async ({ page }) => {
   await page.route('**/sw.js', route => route.abort());
   await page.route('**/basemaps.cartocdn.com/**', route => route.abort());
@@ -230,18 +255,7 @@ test('bounded heat tap opens the route card with bar-only ratings', async ({ pag
   await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
   await expect(page.locator('#map')).toBeVisible();
   await expect(page.locator('path.heat-cell').first()).toBeVisible();
-  const target = await page.evaluate(() => {
-    for (const el of document.querySelectorAll('path.heat-cell')) {
-      const box = el.getBoundingClientRect();
-      if (box.width < 12 || box.height < 12 || box.top < 70 || box.top > innerHeight - 80) continue;
-      const x = box.left + box.width / 2;
-      const y = box.top + box.height / 2;
-      const top = document.elementFromPoint(x, y);
-      if (top === el || top?.closest?.('.leaflet-interactive') === el) return { x, y };
-    }
-    return null;
-  });
-  expect(target).not.toBeNull();
+  const target = await visibleHeatTarget(page);
   await page.touchscreen.tap(target.x, target.y);
   await expect(page.locator('body')).toHaveClass(/mobile-route-open/);
   await page.locator('#toggleRoute').click();
@@ -278,17 +292,7 @@ test('an expanded route card scrolls to the fare disclaimer instead of clipping 
   await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
   await expect(page.locator('#map')).toBeVisible();
   await expect(page.locator('path.heat-cell').first()).toBeVisible();
-  const target = await page.evaluate(() => {
-    for (const el of document.querySelectorAll('path.heat-cell')) {
-      const box = el.getBoundingClientRect();
-      if (box.width < 12 || box.height < 12 || box.top < 70 || box.top > innerHeight - 80) continue;
-      const x = box.left + box.width / 2, y = box.top + box.height / 2;
-      const top = document.elementFromPoint(x, y);
-      if (top === el || top?.closest?.('.leaflet-interactive') === el) return { x, y };
-    }
-    return null;
-  });
-  expect(target).not.toBeNull();
+  const target = await visibleHeatTarget(page);
   await page.touchscreen.tap(target.x, target.y);
   await expect(page.locator('body')).toHaveClass(/mobile-route-open/);
   await page.locator('#toggleRoute').click();
