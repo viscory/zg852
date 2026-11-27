@@ -16,7 +16,7 @@
   --z-local:2;--z-chrome:20;--z-sticky-panel:30;--z-floating:900;
   --z-hint:940;--z-banner:950;--z-notice:952;--z-share-status:1000;
   --z-map-tooltip:1200;--z-route-card:1250;--z-cta:1300;
-  --z-mobile-nav:1400;--z-mobile-error:1450;--z-action-status:1500;
+  --z-mobile-nav:1400;--z-mobile-error:1450;--z-action-status:1500;--z-loading:1600;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -258,6 +258,17 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .vector-ends-track{display:var(--vector-ends-track-display)}
 .error{border:1px solid var(--danger-border);background:var(--danger-bg);color:var(--danger);border-radius:var(--r-md);padding:8px 12px;font-size:12px;margin-top:8px}
 .mobile-error{display:none}
+/* Startup covers the whole app until the bundled data is ready. The copy is
+   staged by app.js so the user sees progress instead of an inline error. */
+.loading-overlay{position:fixed;inset:0;z-index:var(--z-loading);display:grid;place-items:center;padding:24px;background:var(--bg);color:var(--text)}
+.loading-card{display:grid;justify-items:center;gap:10px;max-width:340px;text-align:center}
+.loading-spinner{width:38px;height:38px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:zg-spin .9s linear infinite}
+@keyframes zg-spin{to{transform:rotate(360deg)}}
+.loading-title{margin:0;font-size:16px;font-weight:600}
+.loading-detail{margin:0;color:var(--muted);font-size:13px}
+.loading-error{margin:2px 0 0;color:var(--danger);font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+.loading-retry{padding:6px 14px;border:1px solid var(--accent);border-radius:var(--r-md);background:var(--accent);color:#fff;font-weight:600}
+@media (prefers-reduced-motion:reduce){.loading-spinner{animation:none}}
 .main{grid-column:2;grid-row:1;position:relative;min-width:0;background:var(--bg)}
 /* Leaflet's default grab hand says "drag me"; the map's primary action is a
    click, so show the click affordance instead. Pinning keeps the crosshair. */

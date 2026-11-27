@@ -36,6 +36,30 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
 });
 
+test('a delayed timetable keeps the whole app behind a staged loading overlay', async ({ page }) => {
+  const en = await catalog(page, 'en');
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  await page.route('**/data/network.json', async route => {
+    await gate;
+    await route.continue();
+  });
+  await page.goto('/');
+  try {
+    await expect(page.locator('#loadingOverlay')).toBeVisible();
+    await expect(page.locator('#loadingOverlay')).toHaveAttribute('data-state', 'loading');
+    await expect(page.locator('#loadingDetail')).toHaveText(en['loading.timetable']);
+    await expect(page.locator('body')).toHaveAttribute('aria-busy', 'true');
+    await expect(page.locator('#loadingRetry')).toBeHidden();
+    await expect(page.locator('#loadingError')).toBeHidden();
+  } finally {
+    release();
+  }
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await expect(page.locator('#loadingOverlay')).toBeHidden();
+  await expect(page.locator('body')).not.toHaveAttribute('aria-busy', 'true');
+});
+
 test('removing the pinned person clears pin mode', async ({ page }) => {
   await page.locator('.card').first().locator('.pin').click();
   await expect(page.locator('#map')).toHaveClass(/pinning/);

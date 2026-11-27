@@ -68,13 +68,16 @@ test.beforeEach(async ({ page }) => {
   await preparePage(page);
 });
 
-test('blocked nodes.json leaves a visible error and a usable shell', async ({ page }) => {
+test('blocked nodes.json shows a full-app failure with a retry and keeps the shell', async ({ page }) => {
   await page.route('**/data/nodes.json', route => route.abort());
   await page.goto('/');
 
   await expect(page.locator('html')).toHaveAttribute('data-net', 'error');
-  await expect(page.locator('#error')).toBeVisible();
-  await expect(page.locator('#error')).toContainText(/Nodes|search failed/i);
+  await expect(page.locator('#loadingOverlay')).toBeVisible();
+  await expect(page.locator('#loadingError')).toBeVisible();
+  await expect(page.locator('#loadingError')).toContainText(/Nodes|search failed/i);
+  await expect(page.locator('#loadingRetry')).toBeVisible();
+  await expect(page.locator('#loadingOverlay')).toHaveAttribute('data-state', 'error');
   await expect(page.locator('h1')).toBeVisible();
   await expect(page.locator('#map')).toBeVisible();
   await expect(page.locator('#go')).toBeVisible();

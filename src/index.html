@@ -26,6 +26,16 @@
 <script src="preview-noindex.js"></script>
 </head>
 <body data-mobile-view="plan">
+<noscript><style>.loading-overlay{display:none!important}</style></noscript>
+<div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite">
+  <div class="loading-card">
+    <span class="loading-spinner" aria-hidden="true"></span>
+    <p class="loading-title" data-i18n="loading.title">Getting everything ready</p>
+    <p class="loading-detail" id="loadingDetail" data-i18n="loading.stops">Loading stop data…</p>
+    <p class="loading-error" id="loadingError" hidden></p>
+    <button class="loading-retry" id="loadingRetry" type="button" data-i18n="loading.retry" hidden>Try again</button>
+  </div>
+</div>
 <header>
   <div class="brand">
     <div class="logo" aria-hidden="true">ZG</div>

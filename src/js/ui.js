@@ -117,6 +117,34 @@ export function clearError(){
   const mobile=$('mobileError');if(mobile){mobile.textContent='';mobile.hidden=true;}
   syncMobileResults('ready');
 }
+// One full-app loading surface replaces the old inline "still loading" error.
+// Stages are set by app.js as data arrives; a failure keeps the overlay up with
+// an honest message and a retry button instead of showing a misleading spinner.
+export function showLoading(key){
+  const overlay=$('loadingOverlay');if(!overlay||overlay.dataset.state==='error')return;
+  overlay.dataset.state='loading';overlay.hidden=false;
+  const detail=$('loadingDetail');if(detail){detail.hidden=false;detail.textContent=t(key);}
+  const spinner=overlay.querySelector('.loading-spinner');if(spinner)spinner.hidden=false;
+  const title=overlay.querySelector('.loading-title');if(title)title.textContent=t('loading.title');
+  const error=$('loadingError');if(error){error.textContent='';error.hidden=true;}
+  const retry=$('loadingRetry');if(retry)retry.hidden=true;
+  document.body.setAttribute('aria-busy','true');
+}
+export function failLoading(message){
+  const overlay=$('loadingOverlay');if(!overlay)return;
+  overlay.dataset.state='error';overlay.hidden=false;
+  const spinner=overlay.querySelector('.loading-spinner');if(spinner)spinner.hidden=true;
+  const title=overlay.querySelector('.loading-title');if(title)title.textContent=t('loading.failed');
+  const detail=$('loadingDetail');if(detail)detail.hidden=true;
+  const error=$('loadingError');if(error){error.textContent=message;error.hidden=false;}
+  const retry=$('loadingRetry');if(retry)retry.hidden=false;
+  document.body.removeAttribute('aria-busy');
+}
+export function hideLoading(){
+  const overlay=$('loadingOverlay');if(!overlay)return;
+  overlay.hidden=true;overlay.dataset.state='ready';
+  document.body.removeAttribute('aria-busy');
+}
 let pointNoticeTimer=null;
 function hidePointNotice(){
   clearTimeout(pointNoticeTimer);pointNoticeTimer=null;

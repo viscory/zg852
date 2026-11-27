@@ -104,7 +104,7 @@ test('heat cells are labelled, roving-focusable and keyboard-activatable', async
   await expect(page.locator('body')).toHaveClass(/mobile-route-open/);
 });
 
-test('an unbounded tap before Search reports that data is still loading without selecting a point', async ({ page }) => {
+test('an unbounded tap before Search asks for a search without selecting a point', async ({ page }) => {
   await page.evaluate(() => {
     const slider = document.querySelector('#tolerance');
     slider.value = '201';
@@ -118,25 +118,23 @@ test('an unbounded tap before Search reports that data is still loading without 
   const mapBox = await page.locator('#map').boundingBox();
   expect(mapBox).not.toBeNull();
   await page.mouse.click(mapBox.x + mapBox.width / 2, mapBox.y + 100);
-  const snapshot = await page.evaluate(() => {
-    const error = document.querySelector('#error');
-    return {
-      errorHidden: error.hidden,
-      errorText: error.textContent,
-      bannerHidden: document.querySelector('#pointBanner').hidden,
-      detailHidden: document.querySelector('#detail').hidden,
-      pins: document.querySelectorAll('.point-pin').length,
-    };
-  });
-  expect(snapshot.errorHidden).toBe(false);
-  expect(snapshot.errorText).toBe('The timetable is still loading.');
+  const snapshot = await page.evaluate(() => ({
+    noticeHidden: document.querySelector('#pointNotice').hidden,
+    noticeText: document.querySelector('#pointNoticeText').textContent,
+    errorHidden: document.querySelector('#error').hidden,
+    bannerHidden: document.querySelector('#pointBanner').hidden,
+    detailHidden: document.querySelector('#detail').hidden,
+    pins: document.querySelectorAll('.point-pin').length,
+  }));
+  // The timetable is ready; only results are missing. Say so on the map
+  // instead of claiming the timetable is still loading.
+  expect(snapshot.noticeHidden).toBe(false);
+  expect(snapshot.noticeText).toBe('Find fair areas before picking a point.');
+  expect(snapshot.errorHidden).toBe(true);
   expect(snapshot.bannerHidden).toBe(true);
   expect(snapshot.detailHidden).toBe(true);
   expect(snapshot.pins).toBe(0);
-  // #error is display:none on this mobile profile; the shared live region is
-  // what the user actually sees, so assert its visible feedback as well.
-  await expect(page.locator('#mobileError')).toBeVisible();
-  await expect(page.locator('#mobileError')).toHaveText('The timetable is still loading.');
+  await expect(page.locator('#pointNotice')).toBeVisible();
   await page.locator('#mobileTabbar [data-mobile-view="plan"]').click();
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);

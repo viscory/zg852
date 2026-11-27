@@ -7,7 +7,7 @@ import { betaVectorsEnabled } from './js/vectors.js';
 import { applySharedState,restoreState,restoreDirectory,restoreSelection,readSavedSelection,shareScenario,readHashState,save } from './js/state.js';
 import { triggerSearch } from './js/engine.js';
 import { createMap,drawOrigins } from './js/map.js';
-import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,applyUnboundedUi,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,showActionStatus,commitPeople,setSidebarFace,flashTooltip,setFairness,clearPointNotice,onSearchSettled } from './js/ui.js';
+import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,applyUnboundedUi,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,showActionStatus,commitPeople,setSidebarFace,flashTooltip,setFairness,clearPointNotice,onSearchSettled,showLoading,failLoading,hideLoading } from './js/ui.js';
 import { exportDiagnostics } from './js/diagnostics.js';
 import { clearPoint } from './js/map.js';
 import { initScrollShadows } from './js/scroll.js';
@@ -20,10 +20,10 @@ function storedValue(key){
 // Loaders and their human labels travel together, so an added or reordered
 // loader cannot leave a wrong label on the displayed failure message.
 const LOADERS=[
-  {label:'Nodes',load:loadNodes,errorKey:'error.searchFailed'},
-  {label:'Districts',load:loadDistricts,errorKey:'error.searchFailed'},
-  {label:'MTR fares',load:loadFares,errorKey:'error.searchFailed'},
-  {label:'English catalogue',load:()=>ensureCatalog('en'),errorKey:'error.searchFailed'},
+  {label:'Nodes',loadingKey:'loading.stops',load:loadNodes,errorKey:'error.searchFailed'},
+  {label:'Districts',loadingKey:'loading.districts',load:loadDistricts,errorKey:'error.searchFailed'},
+  {label:'MTR fares',loadingKey:'loading.fares',load:loadFares,errorKey:'error.searchFailed'},
+  {label:'English catalogue',loadingKey:'loading.language',load:()=>ensureCatalog('en'),errorKey:'error.searchFailed'},
 ];
 const LOAD_ERROR_KEYS=Object.fromEntries(LOADERS.map(({label,errorKey})=>[label,errorKey]));
 LOAD_ERROR_KEYS.Timetable='error.timetableFailed';
@@ -34,24 +34,26 @@ function loadFailure(label,err){
   return t(LOAD_ERROR_KEYS[label]||'error.searchFailed',{message});
 }
 async function init(){
-  const errors=[];
+  showLoading(LOADERS[0].loadingKey);
+  const fatal=[],errors=[];
   let mapError=null;
   try{createMap();}catch(err){console.error(err);mapError=err;}
   const sources=await Promise.allSettled(LOADERS.map(({load})=>load()));
-  LOADERS.forEach(({label},i)=>{
+  LOADERS.forEach(({label,loadingKey},i)=>{
     const result=sources[i];
     if(result.status==='rejected'){
       console.error(result.reason);
-      errors.push(loadFailure(label,result.reason));
-    }
+      fatal.push(loadFailure(label,result.reason));
+    }else if(loadingKey)showLoading(loadingKey);
   });
+  showLoading('loading.polish');
   if(sources[ENGLISH_CATALOGUE_INDEX].status==='fulfilled')store.EN=store.I18N.en;
   if(sources[NODES_INDEX].status==='rejected')document.documentElement.dataset.net='error';
   const hashLocale=readHashState()?.locale;
   const storedLocale=LOCALES.includes(hashLocale)?hashLocale:(storedValue(KEY.locale)||detectLocale());
   if(storedLocale!=='en'){
     try{await ensureCatalog(storedLocale);}
-    catch(err){console.error(err);store.I18N[storedLocale]=store.EN;errors.push(loadFailure(`${storedLocale} catalogue`,err));}
+    catch(err){console.error(err);store.I18N[storedLocale]=store.EN;fatal.push(loadFailure(`${storedLocale} catalogue`,err));}
   }
   store.locale=LOCALES.includes(storedLocale)?storedLocale:'en';
   setDocumentLocale();
@@ -69,11 +71,15 @@ async function init(){
   renderDirectoryList();
   restoreSelection(pendingSelection);
   applyUnboundedUi();
+  // A failed map is non-fatal: routing still works, so keep that one inline.
   if(mapError)errors.push(t('error.mapFailed',{message:mapError.message||String(mapError)}));
-  if(errors.length)showError(errors.join(' '));
+  if(fatal.length)failLoading(fatal.join(' '));
+  else if(errors.length)showError(errors.join(' '));
   try{drawOrigins();}catch(err){console.error(err);}
-  if(document.documentElement.dataset.net!=='error'&&store.NODES?.names?.length){
+  if(!fatal.length&&document.documentElement.dataset.net!=='error'&&store.NODES?.names?.length){
+    showLoading('loading.timetable');
     loadNetwork().then(()=>{
+      hideLoading();
       if(sharedScenario&&store.people.length>=2){
         setMobileView('map');
         // Open the mobile route face when the shared search actually renders
@@ -89,7 +95,7 @@ async function init(){
     }).catch(err=>{
       console.error(err);
       document.documentElement.dataset.net='error';
-      showError([...errors,loadFailure('Timetable',err)].join(' '));
+      failLoading([...fatal,...errors,loadFailure('Timetable',err)].join(' '));
     });
   }
 }
@@ -97,6 +103,7 @@ async function init(){
 $('add').onclick=()=>{if(store.people.length<8){store.people.push({id:`p${store.seq++}`,name:'',origin:null,walkMinutes:20});commitPeople();}};
 $('library').onclick=openDirectory;
 $('libraryClose').onclick=()=>closeDialog($('peopleDialog'));
+$('loadingRetry').onclick=()=>location.reload();
 $('directorySearch').oninput=renderDirectoryList;
 $('peopleDialog').addEventListener('close',()=>{store.pendingDelete=null;store.lastDialogFocus?.focus?.();});
 $('legalDialog')?.addEventListener('close',()=>{store.lastDialogFocus?.focus?.();});
@@ -188,5 +195,5 @@ initScrollShadows();
 init().catch(err=>{
   console.error(err);
   if(document.documentElement.dataset.net!=='ready')document.documentElement.dataset.net='error';
-  showError(t('error.searchFailed',{message:err?.message||String(err)}));
+  failLoading(t('error.searchFailed',{message:err?.message||String(err)}));
 });

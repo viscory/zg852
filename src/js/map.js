@@ -13,7 +13,7 @@ import { routeLink,mtrLineCode,districtFor } from './data.js';
 import { fareHeatMax } from './fares.js';
 import { displayName,saveSelection } from './state.js';
 import { isMobileLayout,showMobileRoute } from './mobile.js';
-import { markSelectedResult,setPinOrigin,setLabel,setSidebarFace,showError,showPointNotice,clearPointNotice,applyUnboundedUi } from './ui.js';
+import { markSelectedResult,setPinOrigin,setLabel,setSidebarFace,showPointNotice,clearPointNotice,applyUnboundedUi } from './ui.js';
 
 // Leaflet accepts infinite LatLngBounds, but Web Mercator only covers these
 // finite corners. They keep the old one-world pan restriction (viscosity 1)
@@ -526,7 +526,7 @@ export function selectResult(i,active=store.activePeople,reveal=false){
 export function selectPoint(lat,lon){
   if(!store.unbounded||!isNum(lat)||!isNum(lon))return;
   if(!store.NET||!store.effectiveGrids||!store.activePeople.length){
-    showError(t('error.loading'));
+    showPointNotice(t('map.searchFirst'));
     return;
   }
   hideTooltip();

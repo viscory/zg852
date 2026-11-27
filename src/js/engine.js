@@ -7,7 +7,7 @@ import { districtFor,loadNetwork } from './data.js';
 import { cellFitScore } from './vectors.js';
 import { sourcesFor,solve,bestTimes,walkTimes,walkBudget,buildCells,prepareRoutes,cellToResult,legLabel,SOURCE_NO_STOP,SOURCE_WRONG_MODE,SOURCE_OUTSIDE_WALK } from './routing.js';
 import { save } from './state.js';
-import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,refreshTranslatedNames,setWorking,setSidebarFace,applyUnboundedUi,hasPendingOrigins } from './ui.js';
+import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,refreshTranslatedNames,setWorking,setSidebarFace,applyUnboundedUi,hasPendingOrigins,showLoading } from './ui.js';
 import { drawOrigins,drawCloud,applySelection,applyMapLabels } from './map.js';
 
 const SOURCE_ERROR_KEYS={
@@ -27,7 +27,7 @@ export function compute(reveal=false){
   // Typed but unchosen place names must not silently fall back to an older
   // origin: ask for a suggestion before any origin is read.
   if(hasPendingOrigins()){renderEmpty();showError(t('search.selectSuggestion'));return;}
-  if(!store.NET){renderEmpty();showError(t('error.loading'));return;}
+  if(!store.NET){renderEmpty();showLoading('loading.timetable');return;}
   if(store.people.some(p=>!p.origin)){renderEmpty();showError(t('error.missingOrigins'));return;}
   store.activePeople=store.people.filter(p=>p.origin);
   if(store.activePeople.length<2){renderEmpty();showError(t('error.needTwo'));return;}
