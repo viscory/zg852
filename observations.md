@@ -1,3 +1,7 @@
+## 2026-11-27T11:22Z — Merged, shipped and verified live
+- Integrated origin/main's two commits (displayed-fare heat scale, updated legend refresh, data-consistency checks) into the three-fix round. Kept that displayed-fare ceiling and added the logarithmic mapping on top; resolved the engine drawCloud/legend refresh, SW cache and fare-heat test conflicts. SW cache is now v86 (past origin/main's v85).
+- npm run lint clean; CI=true npm test passed 213/213 against built public/ with no flakes. Merged and pushed main (63b04f6); CI run 45989392100 passed test and deploy.
+- Live verification after deploy: zg852.pages.dev serves sw.js CACHE zg852-v86, en.json error.pointOutOfReach "That point cannot be reached by everyone.", map.pickAnywhere "Journeys have no time limit in this mode.", and app.css #map cursor:pointer. The stale 90-minute rejection is gone from production.
 ## 2026-11-27T05:13Z — Fixed the genuine defects from the forensic inventory
 - Work was isolated in a new worktree because the original session had uncommitted i18n/test edits in the main worktree; HEAD stayed at 6a3b846 and no concurrent file was touched.
 - Triage first: of 33 forensic findings, left documented design alone (tolerance sentinel, null padding, full-width slash flag, data-width channel, capture-phase veto, dataset.net, !important storm, seven-copy tooltip, git churn, prepend-only log) and fixed only defects where shipped data, behaviour, or a test contradicted its own claim.
