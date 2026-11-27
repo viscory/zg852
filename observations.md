@@ -1,3 +1,11 @@
+## 2026-11-27T05:58Z — Pushed narrow honesty fixes from a branch off origin/main
+- Work isolated in `fix/honesty-triage-fork` from `origin/main` (26cc94b) because the original session owns uncommitted i18n/test edits and an existing `fix-real-issues` worktree. The branch already carries upstream's tie-break fare markers, fare-heat scale fix and SW v85.
+- Retracted three planned fixes after re-reading code: the "no nearby stop" error is accurate (`sourcesFor`'s budget is the 150-minute travel cap, not per-person walk tolerance), and both fare provenance and fare-heat scale were already fixed upstream. No i18n key or catalogue churn was needed.
+- Data loading: `loadFares()` now validates `fares`, `nodeStation` and `aelFares` before publishing to `store.MTR_FARES`, so a malformed 200 response leaves no poisoned cache and a later load can retry. `aelFareForNodes()` guards a missing AEL table instead of throwing.
+- Docs: README now documents opt-in `npm run hooks:install` instead of a non-existent `prepare` script; the live-audit skill says 150 minutes instead of 90 in both SKILL.md and checks.md.
+- Regression: `calc-logic-fixes.spec.js` stubs fetch to prove a malformed snapshot rejects without poisoning, then a valid snapshot loads and a missing AEL table returns null. Focused test passed; lint/i18n check green (15 catalogues / 197 keys); full suite 207 passed with one pre-existing parallel-load flake in audit-map that passes in isolation.
+- Untracked QA artefacts and `__pycache__` left unstaged. Implementation and this log are committed separately; branch pushed.
+
 ## 2026-11-27T05:13Z — Fixed the genuine defects from the forensic inventory
 - Work was isolated in a new worktree because the original session had uncommitted i18n/test edits in the main worktree; HEAD stayed at 6a3b846 and no concurrent file was touched.
 - Triage first: of 33 forensic findings, left documented design alone (tolerance sentinel, null padding, full-width slash flag, data-width channel, capture-phase veto, dataset.net, !important storm, seven-copy tooltip, git churn, prepend-only log) and fixed only defects where shipped data, behaviour, or a test contradicted its own claim.
