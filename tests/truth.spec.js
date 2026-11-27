@@ -25,7 +25,7 @@ test.beforeEach(async ({ page }) => {
   }));
 });
 
-test('copy names targets, top areas and the diagnostics export', async ({ page }) => {
+test('copy states the real targets, floors and diagnostics export', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('.brand .sub')).toHaveText('Find a fair meeting point in Hong Kong');
@@ -46,6 +46,26 @@ test('copy names targets, top areas and the diagnostics export', async ({ page }
   await expect(page.locator('.beta-disclosure')).toContainText('copies');
   await expect(page.locator('.vector-help')).toContainText('travel time');
   await expect(page.locator('#exportDiagnostics')).toBeVisible();
+});
+
+test('no-JavaScript fallback copy matches the English catalogue', async ({ page }) => {
+  const en = await (await page.request.get('i18n/en.json')).json();
+  const html = await (await page.request.get('/')).text();
+  for (const key of ['map.areaHint', 'map.vectorKey', 'map.recenterKey', 'options.interestsHelp', 'beta.diagnosticsHelp', 'results.fareNote', 'results.walkPreference']) {
+    expect(html, `${key} must appear verbatim in the fallback page`).toContain(en[key]);
+  }
+  for (const stale of ['Tap a red area', 'prefer includes, avoid discounts', 'starts stay put', 'Preferences can make nearby interests count']) {
+    expect(html, `stale fallback copy "${stale}"`).not.toContain(stale);
+  }
+});
+
+test('the privacy page discloses every localStorage key the app uses', async () => {
+  const { loadSourceModule } = require('./source-modules');
+  const { KEY } = await loadSourceModule('config.js');
+  const privacy = readFileSync('PRIVACY.md', 'utf8');
+  for (const key of [...Object.values(KEY), 'hkfair.v2.selection']) {
+    expect(privacy, `${key} must be disclosed in PRIVACY.md`).toContain(key);
+  }
 });
 
 test('the results heading counts only the displayed top areas', async ({ page }) => {

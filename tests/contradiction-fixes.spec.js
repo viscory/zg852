@@ -120,8 +120,8 @@ test('time and fare fairness floors match the legend', async () => {
   expect(overFairnessBand({ fastest: 50, gap: 9, kind: 1 }, 0.1)).toBe(true);
 });
 
-// Recenter fits the selected route without moving the start inputs.
-test('recenter fits fair areas only', async ({ page }) => {
+// Recenter keeps the selected route in view without editing the start inputs.
+test('recenter keeps route lines visible and leaves start inputs unchanged', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await page.locator('#go').click();
@@ -220,4 +220,20 @@ test('process summary does not call every bus fare an estimate', () => {
 // The count must disclose the actual sort key, not an obsolete fairness claim.
 test('results header does not claim a fairest-first ordering', () => {
   expect(en['results.header'].toLowerCase().includes('fairest first')).toBe(false);
+});
+
+// The hidden rank key and the walk-first preference are disclosed to users.
+test('process and detail copy disclose the fit score, walk preference and buffer', async ({ page }) => {
+  const process = await (await page.request.get('process.html')).text();
+  expect(process).toContain('stored fit score');
+  expect(process).toContain('faster transit route may still exist');
+  expect(process).toContain('1-minute buffer');
+  expect(en['route.busLink']).toContain('closest matching');
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await page.locator('.result-row').first().click();
+  await expect(page.locator('.walk-note')).toBeVisible();
+  await expect(page.locator('.walk-note')).toContainText('faster transit route may exist');
 });

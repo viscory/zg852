@@ -7,12 +7,13 @@ export const store={
   people:[],directory:[],settings:{modes:['rail','bus'],fairness:'time',tolerance:0.1,fareTolerance:0.25,includeHeadway:true,vectors:null,beta:{vectors:false}},seq:1,directorySeq:1,pendingDelete:null,lastDialogFocus:null,
   results:[],cloudCells:[],sols:[],effectiveGrids:null,unbounded:false,pointSelection:null,activePeople:[],selected:0,
   get selection(){return selectionState;},
-  // Clearing map output must not discard a point/cell selection that is still
-  // waiting to be applied after a shared link or a reload.
-  set selection(value){
-    if(value?.kind==='result'&&value.index===0&&sharedSelectionState&&sharedSelectionState.kind!=='result')return;
+  // A map clear must not discard a point/cell selection still waiting to be
+  // applied, but an explicit restore must be able to set result index 0.
+  setSelection(value,{force=false}={}){
+    if(!force&&value?.kind==='result'&&value.index===0&&sharedSelectionState&&sharedSelectionState.kind!=='result')return;
     selectionState=value;
   },
+  set selection(value){this.setSelection(value);},
   get sharedSelection(){return sharedSelectionState;},
   set sharedSelection(value){sharedSelectionState=value;},
   geoCache:{},pinTarget:null,

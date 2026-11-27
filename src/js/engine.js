@@ -157,10 +157,12 @@ export function triggerSearch(reveal=false){
     return;
   }
   setWorking(true);
-  setTimeout(()=>{
+  // A microtask keeps the token-guard semantics without a fixed delay: every
+  // synchronous trigger bumps workSeq, and only the last token runs.
+  queueMicrotask(()=>{
     if(token!==store.workSeq)return;
     try{setWorking(false);compute(reveal);}catch(err){console.error(err);setWorking(false);renderEmpty();showError(t('error.searchFailed',{message:err.message}));}
-  },30);
+  });
 }
 export function rerender(){
   applyStaticText();

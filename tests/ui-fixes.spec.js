@@ -97,7 +97,7 @@ test('the highlighted autocomplete option exposes aria-selected', async ({ page 
   await expect(suggestions.locator('.suggestion[aria-selected="true"]')).toHaveCount(1);
 });
 
-test('a listbox error row is a disabled option', async ({ browser }) => {
+test('a simulated Photon outage renders a disabled listbox error option', async ({ browser }) => {
   // Inject the failure in a fresh context so the shared beforeEach handler on
   // the main page stays reachable and untouched.
   const context = await browser.newContext({

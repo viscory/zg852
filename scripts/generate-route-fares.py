@@ -64,6 +64,12 @@ def fetch(name, *, refresh):
     filename = f'{name}.mdb'
     path = RAW / filename
     if path.exists() and not refresh:
+        # Existence is not freshness: a corrupt or tampered local snapshot must
+        # fail the build instead of silently rewriting published fares.
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        expected = FILE_SHA256[filename]
+        if digest != expected:
+            raise ValueError(f'checksum mismatch for local {name}: expected {expected}, got {digest}')
         return path
     if not refresh:
         raise FileNotFoundError(

@@ -241,7 +241,7 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .face[data-face="detail"] .detail-panel{margin-bottom:8px}
 .detail-placeholder{margin:0;padding:12px;border:1px dashed var(--border);border-radius:var(--r-lg);font-size:12px;color:var(--muted)}
 .face[data-face="detail"]:has(#detail:not([hidden])) .detail-placeholder{display:none}
-.fare-note{margin:8px 0 0}
+.fare-note,.walk-note{margin:8px 0 0}
 .options-title{margin-bottom:8px}
 .mobile-tabbar,.mobile-scenario,.mobile-results-empty,.mobile-route-close,.mobile-beta-row,.pin-hint,.jump-settings,.mobile-route-more{display:none}
 .vector-section{margin-top:12px}
@@ -487,10 +487,10 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   body[data-mobile-view="map"].mobile-route-expanded .side-left{max-height:50dvh}
   body[data-mobile-view="map"].mobile-route-expanded #flipStage{max-height:calc(50dvh - 28px)}
   body.mobile-route-closing .side-left{animation:mobile-card-out .16s ease-in both}
-  body.mobile-route-expanded #interestRatings,body.mobile-route-expanded #steps,body.mobile-route-expanded .fare-note{animation:mobile-detail-in .18s ease-out both}
+  body.mobile-route-expanded #interestRatings,body.mobile-route-expanded #steps,body.mobile-route-expanded .fare-note,body.mobile-route-expanded .walk-note{animation:mobile-detail-in .18s ease-out both}
   body[data-mobile-view="map"]:not(.mobile-route-expanded) #interestRatings,
   body[data-mobile-view="map"]:not(.mobile-route-expanded) #steps,
-  body[data-mobile-view="map"]:not(.mobile-route-expanded) .fare-note{display:none!important}
+  body[data-mobile-view="map"]:not(.mobile-route-expanded) .fare-note,body[data-mobile-view="map"]:not(.mobile-route-expanded) .walk-note{display:none!important}
   .mobile-route-more{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:44px;margin:10px 0 2px;padding:0 10px;border:1px solid var(--accent);border-radius:var(--r-md);background:var(--danger-bg);color:var(--accent);font-size:12px;font-weight:600}
   .mobile-route-chevron{width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .15s ease}
   .mobile-route-expanded .mobile-route-chevron{transform:rotate(225deg)}
@@ -512,7 +512,7 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   #detailTitle{font-size:18px;line-height:1.25;margin:0 0 4px;padding-right:2px}
   #detail .district-line{margin:0 0 8px}
   #detail .steps{gap:10px}
-  #detail .fare-note{font-size:11px}
+  #detail .fare-note,#detail .walk-note{font-size:11px}
 
   /* Tabs. */
   .mobile-tabbar{position:fixed;left:0;right:0;bottom:0;z-index:var(--z-mobile-nav);display:grid;grid-template-columns:repeat(3,1fr);height:calc(var(--tabbar) + env(safe-area-inset-bottom));padding:0 6px env(safe-area-inset-bottom);border-top:1px solid var(--border);background:rgba(255,255,255,.98);box-shadow:0 -4px 18px rgba(80,20,20,.08)}
@@ -607,7 +607,7 @@ html[dir="rtl"] .legend{left:auto;right:24px}
 
   html[dir="rtl"] .layout{display:block}
   html[dir="rtl"] .legend{left:auto;right:8px}
-@media (prefers-reduced-motion:reduce){.mobile-view-anim .side-left,.mobile-view-anim .side-right,.mobile-view-anim .main,body.mobile-route-open .side-left,body.mobile-route-closing .side-left,body.mobile-route-expanded #interestRatings,body.mobile-route-expanded #steps,body.mobile-route-expanded .fare-note,.mobile-error:not([hidden]),.pin-banner:not([hidden]),.point-banner:not([hidden]),.point-notice:not([hidden]),.legend.open .disclosure-body{transition:none!important}}
+@media (prefers-reduced-motion:reduce){.mobile-view-anim .side-left,.mobile-view-anim .side-right,.mobile-view-anim .main,body.mobile-route-open .side-left,body.mobile-route-closing .side-left,body.mobile-route-expanded #interestRatings,body.mobile-route-expanded #steps,body.mobile-route-expanded .fare-note,body.mobile-route-expanded .walk-note,.mobile-error:not([hidden]),.pin-banner:not([hidden]),.point-banner:not([hidden]),.point-notice:not([hidden]),.legend.open .disclosure-body{transition:none!important}}
 }
 
 @media (max-width:1024px) and (max-height:520px){

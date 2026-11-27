@@ -13,6 +13,9 @@ The app stores these values in browser `localStorage`:
 - `hkfair.v2.directory`: saved people library, including each saved walk tolerance
 - `hkfair.v2.geocache`: recent place-search results
 - `hkfair.v2.locale`: selected language
+- `hkfair.v2.selection`: selected area or cell and any pinned meeting point
+- `hkfair.v2.previousScenario`: backup of the previous people, settings, locale and selection when a share link replaces the local scenario
+- `hkfair.v1.locations`, `hkfair.v1.modes`: legacy v1 keys read only to migrate older saved data
 
 Share links put the current scenario in the URL fragment, including the `includeHeadway` setting. The selected result (the chosen area/cell) and any pinned meeting point are also encoded in the URL fragment. Walk tolerance stays with each person. Anyone who receives the link can see that scenario. Do not put sensitive information into people names or start places if you plan to share.
 

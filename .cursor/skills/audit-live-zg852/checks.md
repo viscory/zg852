@@ -30,7 +30,7 @@ Run the graph script, then these live pairs twice. Compare the step text with th
 | Central, Kowloon Tong | MTR only | TWL and KTL. Ride times are ordinary urban hops, not tens of minutes for one stop. |
 | Tsim Sha Tsui, Airport | both | Airport Express Airport to Tsing Yi. Flag a ride near 30 minutes or a fare from the shared rail band (top HK$20.5). |
 | Kennedy Town, Shau Kei Wan | both | Island line both ways. No walk across the harbour. |
-| Nam Cheong, Tuen Mun | MTR only, tolerance 10% | Empty is a defect if stations are reachable inside the fixed 60-minute cap. |
+| Nam Cheong, Tuen Mun | MTR only, tolerance 10% | Empty is a defect if stations are reachable inside the fixed 90-minute cap. |
 | Swap the two starts | both | Same areas. Fares follow the person. |
 
 Also count, in the top result, `.ride-leg.route-rail` and `.ride-leg.route-bus`. A bus-only title with MTR steps is a labeling issue, not a missing MTR leg.

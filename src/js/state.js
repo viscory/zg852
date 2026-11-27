@@ -210,7 +210,7 @@ export function restoreSelection(value=readSavedSelection(),shared=readSelection
   const selection=normalizeSelection(value);
   const pending=normalizeSelection(shared);
   if(!selection&&!pending)return false;
-  if(selection)store.selection=selection;
+  if(selection)store.setSelection(selection,{force:true});
   store.sharedSelection=pending||selection;
   if(selection?.kind==='point'&&store.unbounded)store.pointSelection={lat:selection.lat,lon:selection.lon,node:selection.node,label:t('map.pinnedPoint')};
   else if(selection?.kind!=='point')store.pointSelection=null;
@@ -291,7 +291,7 @@ export function applySharedState(){
   store.sharedSelection=state.selected&&typeof state.selected==='object'?state.selected:null;
   // Old links without a selection should restore the setup without inventing
   // a selected result. compute()/applySelection() safely handle a null choice.
-  store.selection=normalizeSelection(store.sharedSelection);
+  store.setSelection(normalizeSelection(store.sharedSelection),{force:true});
   store.seq=nextSeq(store.people);
   save();
   saveSelection();

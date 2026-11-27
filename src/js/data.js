@@ -48,23 +48,32 @@ export async function loadNodes(){
   for(let i=0;i<store.NODES.names.length;i++)if(store.NODES.kind[i]===NODE_KIND.STATION||store.NODES.kind[i]===NODE_KIND.EXIT||store.NODES.kind[i]===NODE_KIND.BUS_STOP)store.surface.push(i);
   store.lowerNames=store.NODES.names.map(name=>String(name).toLowerCase());
 }
-export async function loadNetwork(){
-  if(store.NET)return store.NET;
-  store.NET=await fetchJson('data/network.json','Timetable');
-  if(!store.NET||!Array.isArray(store.NET.walk)||!Array.isArray(store.NET.lines))throw new Error('Timetable data is invalid');
-  try{store.HKBUS_URLS=await fetchJson('data/hkbus.json','Bus URLs');}
-  catch(err){console.error(err);store.HKBUS_URLS=[];}
-  const n=store.NODES.names.length;
-  store.walkAdj=Array.from({length:n},()=>[]);
-  store.rideAdj=Array.from({length:n},()=>[]);
-  store.nodeLines=Array.from({length:n},()=>[]);
-  store.NET.walk.forEach(([a,b,d])=>{store.walkAdj[a].push([b,d]);store.walkAdj[b].push([a,d]);});
-  store.NET.lines.forEach((line,li)=>{for(let i=0;i<line.s.length;i++){
-    const node=line.s[i];store.nodeLines[node].push(li);
-    if(i+1<line.s.length)store.rideAdj[node].push([li,line.s[i+1],line.e[i],i]);
-  }});
-  document.documentElement.dataset.net='ready';
-  return store.NET;
+let networkPromise=null;
+export function loadNetwork(){
+  // One shared promise: publish NET only after its adjacency tables exist, so a
+  // Search clicked mid-load cannot compute against a half-built graph.
+  if(networkPromise)return networkPromise;
+  networkPromise=(async()=>{
+    const net=await fetchJson('data/network.json','Timetable');
+    if(!net||!Array.isArray(net.walk)||!Array.isArray(net.lines))throw new Error('Timetable data is invalid');
+    let urls=[];
+    try{urls=await fetchJson('data/hkbus.json','Bus URLs');}
+    catch(err){console.error(err);}
+    const n=store.NODES.names.length;
+    const walkAdj=Array.from({length:n},()=>[]);
+    const rideAdj=Array.from({length:n},()=>[]);
+    const nodeLines=Array.from({length:n},()=>[]);
+    net.walk.forEach(([a,b,d])=>{walkAdj[a].push([b,d]);walkAdj[b].push([a,d]);});
+    net.lines.forEach((line,li)=>{for(let i=0;i<line.s.length;i++){
+      const node=line.s[i];nodeLines[node].push(li);
+      if(i+1<line.s.length)rideAdj[node].push([li,line.s[i+1],line.e[i],i]);
+    }});
+    store.NET=net;store.HKBUS_URLS=urls;
+    store.walkAdj=walkAdj;store.rideAdj=rideAdj;store.nodeLines=nodeLines;
+    document.documentElement.dataset.net='ready';
+    return net;
+  })().catch(err=>{networkPromise=null;throw err;});
+  return networkPromise;
 }
 export async function loadDistricts(){
   store.DISTRICTS=await fetchJson('data/districts.json','Districts');
