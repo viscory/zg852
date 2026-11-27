@@ -1,3 +1,8 @@
+## 2026-11-27T10:15Z — Pushed the fix branch and verified sync
+- Implementation commit e5da930 and separate observations commit aa234bf were pushed to origin/fix/live-findings-10; the branch reports 0 0 against its upstream.
+- main...origin/main still reports 0 2 because the shared main checkout (original worktree, with unrelated uncommitted edits) remains two commits behind; deliberately not force-updated to avoid disturbing that session. The new branch is based on origin/main 26cc94b and therefore already contains those two commits.
+- Untracked node_modules symlink and scripts/__pycache__ remain unstaged.
+
 ## 2026-11-27T10:13Z — Fixed and verified the ten live findings
 - Work stayed isolated on fix/live-findings-10 (based on origin/main 26cc94b); the shared worktree and the other fork's branch were never touched. node_modules was symlinked locally (gitignored-equivalent artefact, never staged).
 - Fixes: explicit Search now focuses the first result once on search settle (never on debounced recompute, preserving the name-field caret); the rejected last-mode guard copy was corrected to "Keep at least one transport mode enabled." and its status now clears on the next successful toggle; reaching eight people announces people.max while #add stays disabled; library Add/Edit/Delete now write to #actionStatus and stale statuses are cleared when the dialog opens; sharing now mirrors the copied #s= fragment into the address bar with history.replaceState (no hashchange re-import); a long person name now wraps via `.step .txt>b{overflow-wrap:anywhere}`; the Cheung Chau dead-end is disclosed in error.noCommonArea as an outlying-island timetable gap (copy-only — investigation proved a missing inbound ferry edge, not a mode-filter bug).
