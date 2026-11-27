@@ -12,6 +12,10 @@ from pathlib import Path
 DATA = Path(__file__).resolve().parents[1] / 'static' / 'data'
 # Reasons emitted for fallback rows by scripts/build_hkbus_urls.py.
 ALLOWED_FALLBACK_REASONS = {'no-matching-key', 'page-404'}
+# Provenance markers emitted by scripts/generate-route-fares.py. A fare chosen
+# by the disclosed higher-fare tie-break must not be labelled as an ordinary
+# snapshot fare.
+ALLOWED_FARE_SOURCES = {'td-full-fare', 'td-full-fare-tiebreak'}
 
 
 def load(name):
@@ -52,6 +56,15 @@ def main():
         missing = sorted(set(fares) - set(sources))[:5]
         extra = sorted(set(sources) - set(fares))[:5]
         errors.append(f'route-fares.json: fares/fareSources key sets differ (missing {missing}, extra {extra})')
+    else:
+        bad_sources = sorted({source for source in sources.values()
+                              if source not in ALLOWED_FARE_SOURCES})
+        if bad_sources:
+            errors.append(f'route-fares.json: unknown fareSources values {bad_sources}')
+        # A stale snapshot once labelled every fare, including tie-break picks,
+        # as an ordinary published fare and carried a note confessing it.
+        if 'note' in route_fares:
+            errors.append('route-fares.json: stale note must be removed once per-row sources are real')
 
     metro = load('mtr-fares.json')
     if not isinstance(metro, dict) or not isinstance(metro.get('source'), dict):

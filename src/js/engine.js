@@ -136,6 +136,9 @@ export function compute(reveal=false){
   }
   renderResults(store.activePeople);
   drawOrigins(store.activePeople);drawCloud(TRAVEL_BUDGET_MINUTES);applySelection(store.activePeople);
+  // The fare legend prints the scale derived from the drawn cells, so refresh
+  // it after every search rather than only on the metric toggle.
+  updateSettingsLabels();
   if(reveal===true)setSidebarFace('detail');
 }
 export function scheduleRecompute(){

@@ -217,10 +217,18 @@ test('process summary does not call every bus fare an estimate', () => {
   expect(summary.includes('bus fares are estimates.')).toBe(false);
 });
 
-// The count must disclose the actual sort key, not any absolute fairness
-// ranking: "fairest" and "best balance" both overstate what the ordering means.
-test('results header makes no absolute fairness-ranking claim', () => {
-  expect(/fairest|best balance/i.test(en['results.header'])).toBe(false);
+// The header must describe the ordering the engine actually uses: a stored fit
+// score in Time mode, the displayed fare gap in Fare mode. Assert the ranking
+// semantics rather than scanning the string for banned words.
+test('results header copy matches the real area ordering', async () => {
+  const { areaRank, compareAreaRank } = await model();
+  const a = { key: 'a', fitScore: 10, shownSlowest: 30, shownGap: 5, fareGap: 2, maxFare: 8 };
+  const b = { key: 'b', fitScore: 11, shownSlowest: 29, shownGap: 4, fareGap: 1, maxFare: 9 };
+  expect(areaRank(a, 'time')[0]).toBe(a.fitScore);
+  expect(compareAreaRank(a, b, 'time')).toBe(-1); // stored fit score wins
+  expect(areaRank(a, 'fare')[0]).toBe(a.fareGap);
+  expect(compareAreaRank(a, b, 'fare')).toBe(1);  // displayed fare gap wins
+  expect(en['results.header']).toContain('ordered by fit');
 });
 
 // The hidden rank key and the walk-first preference are disclosed to users.

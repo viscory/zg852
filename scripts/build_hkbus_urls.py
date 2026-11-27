@@ -11,9 +11,9 @@ identifier linking our lines to hkbus.app pages.
 This is a maintenance tool, not part of the normal Vite build: the generated
 ``static/data/hkbus.json`` is committed so the app never needs a network call
 at build or run time. A parallel ``static/data/hkbus-meta.json`` records an
-explicit status for every line index, with the same generic ``no-deep-link``
-reason for every fallback, so a fallback to in-app search is never confused
-with a real deep link. Re-run both whenever the GTFS feed is refreshed.
+explicit status for every line index and a distinct fallback reason
+(``no-matching-key`` or ``page-404``), so a fallback to in-app search is never
+confused with a real deep link. Re-run both whenever the GTFS feed is refreshed.
 
 Usage: python3 scripts/build_hkbus_urls.py
 """
@@ -45,8 +45,8 @@ ROUTE_SCORE_THRESHOLD = 0.5
 
 # hkbus.app publishes sitemap entries for keys containing a fullwidth slash but
 # the pre-rendered pages 404. This is only a detection character: it decides
-# whether a candidate slug is usable. The shipped metadata does not record
-# which of the two fallback cases applied, only the generic no-deep-link reason.
+# whether a candidate slug is usable. The two fallback causes are recorded
+# distinctly in hkbus-meta.json (page-404 vs no-matching-key).
 FULLWIDTH_SLASH_CHAR = "／"
 
 
@@ -97,8 +97,7 @@ def route_url(key):
     is published in the sitemap but its page 404s. Both cases are represented
     identically as "no deep link" here rather than being silently redirected.
     The caller maps None to the in-app search URL so the generated list keeps
-    its historical values, and records the same generic reason in both cases:
-    the specific cause is not recoverable from the shipped metadata.
+    its historical values, and records the specific cause in hkbus-meta.json.
     """
     if not key or FULLWIDTH_SLASH_CHAR in key:
         return None
@@ -134,7 +133,6 @@ def main():
         if url is None:
             # Record the two fallback causes distinctly: no candidate key vs. a
             # sitemap key whose page 404s.
-            # The shipped hkbus-meta.json was produced by the older generic-reason version and gains these reasons on the next regeneration.
             if not key:
                 unmatched += 1
                 meta.append({"status": "fallback", "reason": "no-matching-key"})

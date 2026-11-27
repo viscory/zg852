@@ -89,8 +89,9 @@ export function sliderPositionForTolerance(value){
   const position=TOLERANCE_LINEAR_END+Math.round(Math.log(pct/TOLERANCE_PERCENT_SCALE)/Math.log(TRAVEL_TOLERANCE_MAX)*TOLERANCE_LOG_STEPS);
   return Math.max(TOLERANCE_LINEAR_END+TOLERANCE_SLIDER_MIN,Math.min(TOLERANCE_SLIDER_MAX-TOLERANCE_SLIDER_MIN,position));
 }
-// Used only if the bundled fare snapshot has not loaded yet. The live scale is
-// derived from that snapshot so every published fare has its own colour.
+// Used only until a search has produced displayed fares. The live scale follows
+// the largest fare chip shown on the current heat cells, so an unvisited high
+// fare in the bundled snapshot cannot flatten the map.
 export const FARE_HEAT_FALLBACK_MAX=25;
 // Standard MTR line colours, keyed by the line code used in network.json.
 export const MTR_LINE_COLORS={

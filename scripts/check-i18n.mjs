@@ -12,9 +12,11 @@ const i18nFile = path.join(root, 'src/js/i18n.js');
 // This package is CommonJS and i18n.js imports browser-only modules, so import
 // the exported FALLBACK from an import-free copy of its source. This strips
 // import lines and evaluates the literal FALLBACK object via a data: import;
-// it is a source-text transform and must be kept minimal. This is NOT an
-// executable test of i18n.js: the actual guarantee enforced below is key-set
-// parity between FALLBACK and the catalogues.
+// it is a source-text transform and must be kept minimal (imports are removed,
+// so browser-only modules are not executed). The checks below enforce catalogue
+// key-set and value parity with FALLBACK, the reverse FALLBACK->en key set,
+// literal t()/tp()/data-i18n keys, dead keys and a reviewed set of translated
+// strings -- not the runtime behaviour of i18n.js.
 const i18nSource = fs.readFileSync(i18nFile, 'utf8');
 const standalone = i18nSource.replace(/^import [^\n]*\n/gm, '');
 const { FALLBACK } = await import(`data:text/javascript;base64,${Buffer.from(standalone).toString('base64')}`);

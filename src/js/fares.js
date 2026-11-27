@@ -56,13 +56,14 @@ export function lightRailFare(stops){
   return LIGHT_RAIL_FARES.find(([limit])=>count<=limit)[1];
 }
 export function fareHeatMax(){
-  if(isNum(store.fareHeatMax)&&store.fareHeatMax>0)return store.fareHeatMax;
+  // Scale to the fares actually painted on the map, not to the whole published
+  // table: one Airport Express fare (HK$120) would otherwise push every
+  // ordinary HK$4-16 fare into the same darkest swatch. There are at most 600
+  // drawn cells, so recomputing here needs no stale cache to invalidate.
   let max=0;
-  const data=store.MTR_FARES;
-  if(data)for(const table of [data.fares,data.aelFares]){
-    if(!table||typeof table!=='object')continue;
-    for(const value of Object.values(table))if(isNum(value)&&value>max)max=value;
+  if(Array.isArray(store.cloudCells))for(const cell of store.cloudCells){
+    const value=cell?.maxFare;
+    if(isNum(value)&&value>max)max=value;
   }
-  store.fareHeatMax=max>0?Math.ceil(max):FARE_HEAT_FALLBACK_MAX;
-  return store.fareHeatMax;
+  return max>0?Math.ceil(max):FARE_HEAT_FALLBACK_MAX;
 }
