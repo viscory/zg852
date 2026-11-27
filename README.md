@@ -52,7 +52,7 @@ Playwright builds `public/` first and serves that directory at `http://127.0.0.1
 
 `.github/workflows/ci.yml` runs lint, build, and the full Playwright suite on every push to `main` and every pull request. Every green push to `main` is then published to Cloudflare Pages with `wrangler pages deploy`. The deploy job needs two repository secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
 
-`npm install` runs the `prepare` script, which sets `core.hooksPath=.githooks`. That activates the repository hooks in `.githooks/`. The pre-commit hook enforces that `observations.md` is prepend-only: every assistant turn adds a new block at the top, and existing lines must never be edited or removed.
+Hooks are opt-in: run `npm run hooks:install` once to set `core.hooksPath=.githooks`. `npm install` does not change your git config. With hooks installed, the pre-commit hook enforces that `observations.md` is prepend-only: every assistant turn adds a new block at the top, and existing lines must never be edited or removed.
 
 ## Build and manual deploy
 

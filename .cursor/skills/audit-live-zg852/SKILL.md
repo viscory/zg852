@@ -36,7 +36,7 @@ End with the checks that passed, including numbers. "Slow" needs a millisecond. 
 
 Re-measure. These were true on 23 November 2026 and may have changed:
 
-- MTR-only is not universally empty. Tsuen Wan plus North Point, Central plus Sha Tin, and Central plus Kowloon Tong returned MTR legs. Nam Cheong plus Tuen Mun at 90 minutes and 10% tolerance can return nothing because `buildCells` drops a station unless the slower time is within `max(fastest, 5) * (1 + tolerance)`.
+- MTR-only is not universally empty. Tsuen Wan plus North Point, Central plus Sha Tin, and Central plus Kowloon Tong returned MTR legs. Nam Cheong plus Tuen Mun at 150 minutes and 10% tolerance can return nothing because `buildCells` drops a station unless the slower time is within `max(fastest, 5) * (1 + tolerance)`.
 - A cell titled as a bus stop can still have MTR legs. The title is the best stop inside the cell. Kind 2 platforms are not candidates.
 - Airport Express Airport to Tsing Yi was 24.47 minutes in the feed, about 45 km/h, plus a 6 minute wait on screen. The MTR site says the Airport to city trip takes as little as 24 minutes.
 - Bus hops under 800 m can take 15 minutes or more because the builder keeps any gap under 60 minutes.

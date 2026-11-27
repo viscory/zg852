@@ -83,8 +83,12 @@ export async function loadDistricts(){
 }
 export async function loadFares(){
   if(store.MTR_FARES)return store.MTR_FARES;
-  store.MTR_FARES=await fetchJson('data/mtr-fares.json','MTR fares');
-  if(!store.MTR_FARES?.fares||!store.MTR_FARES?.nodeStation)throw new Error('MTR fare data is invalid');
+  // Validate before publishing to the store: a malformed 200 response must
+  // leave no cache behind, so a later load can retry instead of silently
+  // returning the bad snapshot.
+  const data=await fetchJson('data/mtr-fares.json','MTR fares');
+  if(!data?.fares||!data?.nodeStation||!data?.aelFares)throw new Error('MTR fare data is invalid');
+  store.MTR_FARES=data;
   // The bus/minibus/ferry snapshot is optional: a missing table must degrade
   // to an explicitly flagged estimate, not break the app or hide MTR fares.
   try{store.ROUTE_FARES=await fetchJson('data/route-fares.json','Route fares');}

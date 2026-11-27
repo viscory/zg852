@@ -26,7 +26,9 @@ export function railFare(fromNode,toNode){
 export function aelFareForNodes(fromNode,toNode){
   const from=stationNode(fromNode),to=stationNode(toNode);
   if(from===null||to===null)return null;
-  return store.MTR_FARES.aelFares[fareKey(from,to)]??null;
+  const table=store.MTR_FARES.aelFares;
+  if(!table)return null;
+  return table[fareKey(from,to)]??null;
 }
 
 // A fare is estimated only when an exact published value was unavailable and a

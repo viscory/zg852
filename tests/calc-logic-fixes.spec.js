@@ -311,3 +311,31 @@ test('an all-ones vector preference survives a versioned round trip', async () =
   expect(vectors.migrateVectors(ones)).toEqual(vectors.defaultVectors());
   expect(vectors.normalizeVectors(ones)[vectors.VECTOR_SCHEMA_VERSION_KEY]).toBe(vectors.VECTOR_SCHEMA_VERSION);
 });
+
+test('a malformed fare snapshot is rejected without poisoning later loads', async () => {
+  const [dataApi, faresApi, { store }] = await loadSourceModules(
+    ['data.js', 'fares.js', 'store.js'],
+    { ...STUBS, 'i18n.js': 'export const t=key=>key;' },
+  );
+  const valid = json('mtr-fares.json');
+  const originalFetch = global.fetch;
+  try {
+    global.fetch = async () => ({ ok: true, json: async () => ({}) });
+    await expect(dataApi.loadFares()).rejects.toThrow('MTR fare data is invalid');
+    expect(store.MTR_FARES).toBeNull();
+
+    global.fetch = async url => ({
+      ok: true,
+      json: async () => String(url).includes('mtr-fares') ? valid : { fares: {} },
+    });
+    await expect(dataApi.loadFares()).resolves.toBe(valid);
+    expect(store.MTR_FARES).toBe(valid);
+
+    // A snapshot missing the Airport Express table must not throw on a leg.
+    delete store.MTR_FARES.aelFares;
+    const station = Number(Object.keys(valid.nodeStation)[0]);
+    expect(faresApi.aelFareForNodes(station, station)).toBeNull();
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
