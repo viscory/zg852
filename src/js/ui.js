@@ -741,9 +741,11 @@ export function flashSaved(id){
   showActionStatus(message);
 }
 export function deleteDirectoryPerson(id){
+  const name=store.directory.find(d=>d.id===id)?.name||'';
   store.directory=store.directory.filter(d=>d.id!==id);
   store.people.forEach(p=>{if(p.directoryId===id)p.directoryId=null;});
   saveDirectory();save();renderDirectoryList();scheduleRecompute();
+  showActionStatus(name?t('people.removed',{name}):t('people.saved'));
 }
 export function addDirectoryPerson(profile){
   if(!profile)return false;
@@ -753,6 +755,7 @@ export function addDirectoryPerson(profile){
   clearDirectoryError();
   store.people.push({id:`p${store.seq++}`,name:profile.name,origin:clone(profile.origin),directoryId:profile.id,walkMinutes:snapWalkMinutes(profile.walkMinutes)});
   commitPeople();
+  showActionStatus(t('people.saved'));
   return true;
 }
 export function editDirectoryPerson(profile){
@@ -769,6 +772,7 @@ export function editDirectoryPerson(profile){
   clearDirectoryError();
   person.name=profile.name;person.origin=clone(profile.origin);person.walkMinutes=snapWalkMinutes(profile.walkMinutes);
   commitPeople();
+  showActionStatus(t('people.saved'));
   return true;
 }
 export function renderDirectoryList(){
@@ -811,6 +815,7 @@ export function closeDialog(dialog){
 }
 export function openDirectory(){
   store.pendingDelete=null;
+  hideActionStatus();
   clearDirectoryError();
   renderDirectoryList();
   openDialog($('peopleDialog'),$('directorySearch'));

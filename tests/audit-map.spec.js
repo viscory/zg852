@@ -123,6 +123,10 @@ test('an unbounded tap before Search reports that data is still loading without 
     return {
       errorHidden: error.hidden,
       errorText: error.textContent,
+      // Read both error nodes in the same tick: the loading error is cleared as
+      // soon as the timetable finishes loading, so a later read races that.
+      mobileErrorHidden: document.querySelector('#mobileError').hidden,
+      mobileErrorText: document.querySelector('#mobileError').textContent,
       bannerHidden: document.querySelector('#pointBanner').hidden,
       detailHidden: document.querySelector('#detail').hidden,
       pins: document.querySelectorAll('.point-pin').length,
@@ -135,8 +139,8 @@ test('an unbounded tap before Search reports that data is still loading without 
   expect(snapshot.pins).toBe(0);
   // #error is display:none on this mobile profile; the shared live region is
   // what the user actually sees, so assert its visible feedback as well.
-  await expect(page.locator('#mobileError')).toBeVisible();
-  await expect(page.locator('#mobileError')).toHaveText('The timetable is still loading.');
+  expect(snapshot.mobileErrorHidden).toBe(false);
+  expect(snapshot.mobileErrorText).toBe('The timetable is still loading.');
   await page.locator('#mobileTabbar [data-mobile-view="plan"]').click();
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);

@@ -89,7 +89,7 @@ test('tapping the last active transport mode explains why it stays on', async ({
   await page.locator('.chip[data-mode="rail"]').click();
   await expect(page.locator('.chip[data-mode="rail"]')).toHaveAttribute('aria-pressed', 'false');
   await page.locator('.chip[data-mode="bus"]').click();
-  await expect(page.locator('#error')).toHaveText('Enable at least one transport mode.');
+  await expect(page.locator('#error')).toHaveText(EN_CATALOGUE['error.noMode']);
   await expect(page.locator('.chip[data-mode="bus"]')).toHaveAttribute('aria-pressed', 'true');
 });
 
@@ -263,9 +263,9 @@ test('the rejected last-mode toggle is announced in the shared status', async ({
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await page.locator('.chip[data-mode="rail"]').click();
   await page.locator('.chip[data-mode="bus"]').click();
-  await expect(page.locator('#error')).toHaveText('Enable at least one transport mode.');
+  await expect(page.locator('#error')).toHaveText(EN_CATALOGUE['error.noMode']);
   await expect(page.locator('#actionStatus')).toBeVisible();
-  await expect(page.locator('#actionStatus')).toContainText('Enable at least one transport mode.');
+  await expect(page.locator('#actionStatus')).toContainText(EN_CATALOGUE['error.noMode']);
   await expect(page.locator('.chip[data-mode="bus"]')).toHaveAttribute('aria-pressed', 'true');
 });
 
@@ -361,4 +361,111 @@ test('the desktop beta badge shows its on/off state', async ({ page }) => {
   await expect(page.locator('#betaBadgeState')).toHaveText('On');
   await page.locator('#betaBadge').click();
   await expect(page.locator('#betaBadgeState')).toHaveText('Off');
+});
+
+test('long person names wrap inside the route detail instead of being clipped', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  const longName = 'W'.repeat(120);
+  await page.locator('#name-p1').fill(longName);
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await page.locator('.result-row[data-index="0"]').click();
+  await expect.poll(() => page.locator('#steps .step b').count()).toBeGreaterThan(0);
+  const name = page.locator('#steps .step b').first();
+  await expect(name).toBeVisible();
+  await expect(name).toHaveCSS('overflow-wrap', 'anywhere');
+  const [nameBox, textBox] = await Promise.all([
+    name.boundingBox(),
+    page.locator('#steps .step .txt').first().boundingBox(),
+  ]);
+  expect(nameBox.width).toBeLessThanOrEqual(textBox.width + 1);
+});
+
+test('the rejected last-mode status clears as soon as another mode is enabled', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('.chip[data-mode="rail"]').click();
+  await page.locator('.chip[data-mode="bus"]').click();
+  await expect(page.locator('#actionStatus')).toBeVisible();
+  await expect(page.locator('#actionStatus')).toContainText(EN_CATALOGUE['error.noMode']);
+  await expect(page.locator('.chip[data-mode="bus"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('.chip[data-mode="lightRail"]').click();
+  await expect(page.locator('#actionStatus')).toBeHidden();
+  await expect(page.locator('.chip[data-mode="lightRail"]')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('an explicit Search focuses the first result without stealing focus on recompute', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('.result-row').first()).toBeFocused();
+  await page.locator('#name-p1').fill('Focused Name');
+  await expect(page.locator('#name-p1')).toBeFocused();
+});
+
+test('sharing puts the copied scenario fragment in the address bar', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('#share').click();
+  await expect(page).toHaveURL(/#s=/);
+  const hash = await page.evaluate(() => location.hash);
+  expect(hash.startsWith('#s=')).toBe(true);
+  expect(atob(hash.slice(3).replace(/-/g, '+').replace(/_/g, '/'))).toContain('people');
+});
+
+test('reaching the eight-person limit announces why the add button is disabled', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  for (let i = 0; i < 6; i += 1) await page.locator('#add').click();
+  await expect(page.locator('#add')).toBeDisabled();
+  await expect(page.locator('#actionStatus')).toContainText(EN_CATALOGUE['people.max']);
+});
+
+test('adding a saved person already on the board is announced instead of being silent', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await expect.poll(() => page.locator('.card').count()).toBe(2);
+  await page.locator('#library').click();
+  const row = page.locator('.directory-row').first();
+  await row.locator('button[data-action="add"]').click();
+  await expect(page.locator('#peopleDialog')).toBeHidden();
+  await expect.poll(() => page.locator('.card').count()).toBe(3);
+  await expect(page.locator('#actionStatus')).toContainText(EN_CATALOGUE['people.saved']);
+});
+
+test('deleting a saved person announces the removal', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('#library').click();
+  const row = page.locator('.directory-row').first();
+  await row.locator('button[data-action="delete"]').click();
+  await row.locator('button[data-action="delete"]').click();
+  await expect(page.locator('#actionStatus')).toContainText(EN_CATALOGUE['people.removed'].replace('{name}', 'Person A'));
+  const directory = await page.evaluate(() => JSON.parse(localStorage.getItem('hkfair.v2.directory') || '[]'));
+  expect(directory.map(p => p.name)).not.toContain('Person A');
+});
+
+test('an unreachable outlying island explains that extra modes cannot help', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  const [cheungChau, loWu] = await Promise.all([
+    nodeOrigin(page, 'Cheung Chau Ferry Pier at San Hing Praya Street'),
+    nodeOrigin(page, 'Lo Wu'),
+  ]);
+  const url = await shareUrl(page, {
+    v: 1,
+    people: [
+      { id: 'p1', name: 'Island', origin: cheungChau, walkMinutes: 20 },
+      { id: 'p2', name: 'Mainland', origin: loWu, walkMinutes: 20 },
+    ],
+    settings: { ...settings, modes: ['rail', 'bus', 'lightRail', 'ferry'] },
+    locale: 'en',
+  });
+  await page.goto(url);
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await expect.poll(() => page.locator('#error').innerText()).toContain('no area is reachable');
+  await expect(page.locator('#error')).toHaveText(EN_CATALOGUE['error.noCommonArea']);
+  await expect(page.locator('#error')).toContainText('enabling more modes cannot fix that');
 });

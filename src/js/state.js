@@ -243,6 +243,9 @@ export async function shareScenario(){
   const state={v:1,people:store.people.map(p=>({id:p.id,name:p.name,origin:p.origin,walkMinutes:snapWalkMinutes(p.walkMinutes)})),settings,locale:store.locale};
   if(selectedState)state.selected=selectedState;
   const url=`${location.origin}${location.pathname}${location.search}#s=${encodeBase64Url(state)}`;
+  // Keep the address bar in sync with the link we copy. replaceState does not
+  // fire hashchange, so the just-shared scenario is not re-imported locally.
+  history.replaceState(null,'',url);
   const button=$('share'),status=$('shareStatus');
   const report=message=>{
     flashTooltip(button,message);

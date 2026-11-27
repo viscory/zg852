@@ -7,7 +7,7 @@ import { betaVectorsEnabled } from './js/vectors.js';
 import { applySharedState,restoreState,restoreDirectory,restoreSelection,readSavedSelection,shareScenario,readHashState,save } from './js/state.js';
 import { triggerSearch } from './js/engine.js';
 import { createMap,drawOrigins } from './js/map.js';
-import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,applyUnboundedUi,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,showActionStatus,commitPeople,setSidebarFace,flashTooltip,setFairness,clearPointNotice,onSearchSettled } from './js/ui.js';
+import { renderCards,renderEmpty,renderDirectoryList,applySettingsToDom,applyBetaFeatures,applyUnboundedUi,readSettingsFromDom,openDirectory,closeDialog,openLegal,clearError,clearPinMode,showError,showActionStatus,hideActionStatus,commitPeople,setSidebarFace,flashTooltip,setFairness,clearPointNotice,onSearchSettled } from './js/ui.js';
 import { exportDiagnostics } from './js/diagnostics.js';
 import { clearPoint } from './js/map.js';
 import { initScrollShadows } from './js/scroll.js';
@@ -94,7 +94,12 @@ async function init(){
   }
 }
 
-$('add').onclick=()=>{if(store.people.length<8){store.people.push({id:`p${store.seq++}`,name:'',origin:null,walkMinutes:20});commitPeople();}};
+$('add').onclick=()=>{
+  if(store.people.length>=8){showActionStatus(t('people.max'));return;}
+  store.people.push({id:`p${store.seq++}`,name:'',origin:null,walkMinutes:20});
+  commitPeople();
+  if(store.people.length>=8)showActionStatus(t('people.max'));
+};
 $('library').onclick=openDirectory;
 $('libraryClose').onclick=()=>closeDialog($('peopleDialog'));
 $('directorySearch').oninput=renderDirectoryList;
@@ -123,6 +128,7 @@ document.querySelectorAll('.chip').forEach(chip=>chip.onclick=()=>{
     return;
   }
   chip.setAttribute('aria-pressed',String(!on));
+  hideActionStatus();
   clearError();readSettingsFromDom();
 });
 document.querySelectorAll('#fairnessToggle [data-fairness]').forEach(button=>button.onclick=()=>setFairness(button.dataset.fairness));
@@ -150,7 +156,16 @@ $('jumpSettings')?.addEventListener('click',()=>{
   heading.scrollIntoView({block:'start',behavior:'smooth'});
   heading.focus({preventScroll:true});
 });
-$('go').onclick=()=>{setMobileView('results');triggerSearch(!isMobileLayout());};
+$('go').onclick=()=>{
+  setMobileView('results');
+  // Focus results only for an explicit Search, never for debounced recomputes,
+  // so editing a name keeps its caret (see audit-ui focus regression).
+  const stop=onSearchSettled(()=>{
+    stop();
+    document.querySelector('#resultsList .result-row')?.focus({preventScroll:true});
+  });
+  triggerSearch(!isMobileLayout());
+};
 $('share').onclick=shareScenario;
 $('cancelPin').onclick=()=>{clearPinMode();setMobileView('plan');};
 $('closeRoute')?.addEventListener('click',closeMobileRoute);

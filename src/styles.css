@@ -317,6 +317,7 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .step .dot{width:26px;height:26px;border:1px solid var(--border);border-radius:var(--r-sm);display:grid;place-items:center;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:-.02em;flex:none}
 .step .dot.person-0,.step .dot.person-1,.step .dot.person-2,.step .dot.person-3,.step .dot.person-4,.step .dot.person-5,.step .dot.person-6,.step .dot.person-7{border-color:currentColor}
 .step .txt{display:grid;gap:4px;color:var(--text);min-width:0}
+.step .txt>b{min-width:0;overflow-wrap:anywhere}
 .step .muted{color:var(--muted)}
 .route-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--mono);font-variant-numeric:tabular-nums}
 .route-meta .person-fares{margin:0}
