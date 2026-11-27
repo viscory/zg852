@@ -127,14 +127,16 @@ def main():
         key = score_route_match(line, index, route_list)
         url = route_url(key)
         if url is None:
-            # Both fallback cases ship the same generic reason; the specific
-            # cause cannot be reconstructed from static/data/hkbus-meta.json.
+            # Record the two fallback causes distinctly: no candidate key vs. a
+            # sitemap key whose page 404s.
+            # The shipped hkbus-meta.json was produced by the older generic-reason version and gains these reasons on the next regeneration.
             if not key:
                 unmatched += 1
+                meta.append({"status": "fallback", "reason": "no-matching-key"})
             else:
                 skipped_fullwidth += 1
                 print(f"SKIP {line['l']}: hkbus.app page 404s for fullwidth-slash key {key!r}; using in-app search")
-            meta.append({"status": "fallback", "reason": "no-deep-link"})
+                meta.append({"status": "fallback", "reason": "page-404"})
             urls.append(SEARCH_URL)
         else:
             matched += 1

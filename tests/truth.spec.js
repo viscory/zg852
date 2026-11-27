@@ -59,11 +59,17 @@ test('no-JavaScript fallback copy matches the English catalogue', async ({ page 
   }
 });
 
-test('every no-JavaScript fallback in index.html matches the English catalogue', async ({ page }) => {
+test('no-JavaScript fallbacks match the English catalogue except two documented shorter labels', async ({ page }) => {
   const html = readFileSync('src/index.html', 'utf8');
   const en = JSON.parse(readFileSync('static/i18n/en.json', 'utf8'));
-  // Reviewed exceptions: these no-JS labels are deliberately shorter than the
-  // full translated tooltip/aria text and are not stale translations.
+  // Reviewed exceptions: these no-JS literals are deliberately shorter than
+  // their catalogue counterparts, and are not stale translations:
+  // - legal.title: the fallback aria-label on <nav class="legal-links"> is
+  //   "Legal"; en.json carries the longer page heading "Legal and project
+  //   information".
+  // - diag.help: the fallback tooltip on #exportDiagnostics is "Diagnostics";
+  //   en.json carries the full sentence explaining the export.
+  // Every other fallback is still compared byte-for-byte with en.json below.
   const shorterLabels = new Set(['legal.title', 'diag.help']);
 
   // Parse the markup with the browser DOM parser so the comparison is

@@ -1,4 +1,4 @@
-const CACHE='zg852-v80';
+const CACHE='zg852-v81';
 const ASSETS=['./index.html','./app.js','./app.css','./legal.css','./preview-noindex.js','./preview-config.js','./maplibre-gl-worker.mjs','./favicon.ico','./favicon.svg','./icon-180.png','./icon-512.png','./manifest.webmanifest','./og-image.png','./privacy.html','./terms.html','./credits.html','./process.html','./data/nodes.json','./data/network.json','./data/districts.json','./data/poi-index.json','./data/hkbus.json','./data/mtr-fares.json','./data/route-fares.json','./i18n/en.json','./i18n/zh-Hant.json','./i18n/zh-Hans.json','./i18n/ja.json','./i18n/ko.json','./i18n/hi.json','./i18n/ur.json','./i18n/fil.json','./i18n/id.json','./i18n/fr.json','./i18n/th.json','./i18n/vi.json','./i18n/ne.json','./i18n/es.json','./i18n/de.json'];
 // Cache keys are path-only (query strings are ignored) on purpose: the app
 // requests the maplibre worker with a `?v=` cache-buster, and that request must
@@ -31,7 +31,7 @@ function networkFirst(event,key){
   return fetch(request).then(res=>{
     if(res.ok&&res.type==='basic'&&new URL(res.url||request.url).origin===self.location.origin){
       const copy=res.clone();
-      event.waitUntil(caches.open(CACHE).then(c=>c.put(key,copy)).catch(()=>{}));
+      event.waitUntil(caches.open(CACHE).then(c=>c.put(key,copy)).catch(err=>console.warn('cache write failed', err)));
     }
     return res;
   }).catch(()=>cacheFallback(request,key));

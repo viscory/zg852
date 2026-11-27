@@ -2,6 +2,7 @@ const { test, expect, devices } = require('@playwright/test');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const { sliderPosition } = require('./helpers');
+const { loadSourceModule } = require('./source-modules');
 
 const EN_CATALOGUE = JSON.parse(readFileSync(join(__dirname, '..', 'static', 'i18n', 'en.json'), 'utf8'));
 
@@ -127,15 +128,16 @@ test('the three tabs are real destinations and show exactly one job', async ({ p
 });
 
 test('search moves to Fair areas and a result opens the route card on Map', async ({ page }) => {
+  const { RESULTS_LIMIT } = await loadSourceModule('config.js');
   await page.locator('#go').click();
   await waitForSearch(page, { heat: true });
   await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'results');
   const rows = await page.locator('.result-row').count();
   await expect(page.locator('#nres')).toHaveText(EN_CATALOGUE['results.header'].replace('{count}', String(rows)));
   await expect(page.locator('#mobileScenarioText')).toHaveText('Tsuen Wan → North Point');
-  // Deliberate cap regression: this count is hardcoded (not derived from the
-  // catalogue or the DOM) so an accidental change to the top-7 limit is caught.
-  await expect(page.locator('.result-row')).toHaveCount(7);
+  // Cap regression: the expected count comes from the app's own RESULTS_LIMIT
+  // constant, so the test and the engine cannot drift apart silently.
+  await expect(page.locator('.result-row')).toHaveCount(RESULTS_LIMIT);
 
   await page.locator('.result-row[data-index="0"]').click();
   await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'map');

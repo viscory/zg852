@@ -118,7 +118,7 @@
             </div>
           </div>
           <div class="steps" id="steps" aria-label="Routes" data-i18n-aria-label="results.routes"></div>
-          <p class="note fare-note" data-i18n="results.fareNote">MTR fares are published adult Octopus values; bus and ferry fares come from Transport Department full fares. ≈ marks a distance-band estimate when a lookup is missing. Check the operator before travelling.</p>
+          <p class="note fare-note" data-i18n="results.fareNote">MTR fares use published adult Octopus values where a station-pair entry exists; bus and ferry fares come from Transport Department full fares. ≈ marks a distance-band estimate when a lookup is missing. Check the operator before travelling.</p>
           <p class="note walk-note" data-i18n="results.walkPreference">A direct walk within the walk tolerance is shown instead of transit; a faster transit route may exist.</p>
         </section>
         <p class="detail-placeholder" id="detailPlaceholder" data-i18n="map.areaHint">Tap a shaded area to see routes.</p>
@@ -149,7 +149,7 @@
         <span class="icon icon-close" aria-hidden="true"></span>
       </button>
     </div>
-    <div class="unbounded-hint" id="unboundedHint" hidden data-i18n="map.pickAnywhere">Unlimited mode is on: tap the map to choose the nearest reachable stop as a meeting point. The 90-minute travel limit still applies.</div>
+    <div class="unbounded-hint" id="unboundedHint" hidden data-i18n="map.pickAnywhere">Unlimited mode is on: tap the map to choose a reachable nearby stop as a meeting point, weighted by distance and travel time. The 90-minute travel limit still applies.</div>
     <div class="map-tooltip" id="mapTooltip" role="tooltip" hidden></div>
     <div class="legend disclosure open" id="mapLegend">
       <button class="legend-head disclosure-head" id="legendToggle" type="button" aria-expanded="true" aria-controls="legendBody">
@@ -159,7 +159,7 @@
         <div class="legend-body">
         <div class="cloud-key"><span class="swatch h6"></span><span class="swatch h5"></span><span class="swatch h4"></span><span class="swatch h3"></span><span class="swatch h2"></span><span class="swatch h1"></span> <span id="legendFairText" data-i18n="map.fairArea">Fair area, darker means shorter travel time</span><span class="fare-scale" id="legendFareScale" hidden></span></div>
         <div class="route-key">
-          <span data-i18n="map.routeKey">Route key</span><span class="route-key-help" data-i18n="map.routeKeyHelp">Colour = person · dotted walk, dashed bus, solid rail</span>
+          <span data-i18n="map.routeKey">Route key</span><span class="route-key-help" data-i18n="map.routeKeyHelp">Colour = person · dotted walk, dashed bus, solid rail, ferry and light rail</span>
           <span class="key-line route-walk"></span><span data-i18n="map.walkKey">Walk</span>
           <span class="key-line route-rail"></span><span data-i18n="map.railKey">MTR</span>
           <span class="key-line route-bus"></span><span data-i18n="map.busKey">Bus</span>
@@ -216,7 +216,7 @@
       </button>
       <div class="vector-section" id="vectorSection" hidden>
         <div class="section-title vector-title" data-i18n="options.interests">Nearby interests</div>
-        <p class="note vector-help" data-i18n="options.interestsHelp">Areas are chosen by travel time in Time mode, or by fares in Fare mode. Interest ratings are informational and do not change ranking. Off adds no preference.</p>
+        <p class="note vector-help" data-i18n="options.interestsHelp">Areas are chosen by travel time in Time mode, or by fares in Fare mode. Interest ratings are informational and do not change ranking; they count feed rows, not deduplicated places. Off adds no preference.</p>
         <p class="note beta-disclosure" data-i18n="beta.diagnosticsHelp">Beta also shows a Diagnostics button in the footer. It downloads and copies your names, start places, routes, fares, settings, the current URL and the areas shown on the map.</p>
         <div class="vector-grid">
           <div class="vector-row"><span class="icon icon-food" aria-hidden="true"></span><label for="vec-food" data-i18n="vector.food">Food</label><input type="range" id="vec-food" data-vector="food" min="-3" max="3" step="1" value="0"><span class="value" id="vec-food-val" data-i18n="vector.off">Off</span></div>

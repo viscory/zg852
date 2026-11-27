@@ -78,6 +78,12 @@ if (!en) {
     if (valueMismatch.length) {
       errors.push(`FALLBACK values differ from en.json: ${list(valueMismatch)}`);
     }
+    // 2c. The reverse direction: a FALLBACK-only key is either a reviewed
+    // plural base (tp() builds _one/_other forms in catalogues) or a bug.
+    const fallbackOnlyKeys = Object.keys(FALLBACK).filter(key => !(key in en) && !pluralBases.has(key));
+    if (fallbackOnlyKeys.length) {
+      errors.push(`FALLBACK keys absent from en.json (not reviewed plural bases): ${list(fallbackOnlyKeys)}`);
+    }
 
     // 3. Literal keys used in src JS/HTML must exist in en.json and FALLBACK.
     // Patterns are anchored to t()/tp() calls, data-i18n* attributes, and
@@ -166,7 +172,7 @@ if (!en) {
     }
 
     if (!errors.length) {
-      console.log(`i18n check passed: ${catalogFiles.length} catalogues, ${enKeys.length} keys each, ${Object.keys(FALLBACK).length} fallback keys, ${used.size} literal keys verified, no dead keys, no untranslated copy in the reviewed key set (${REQUIRED_TRANSLATION_KEYS.length} keys), FALLBACK values match en.json.`);
+      console.log(`i18n check passed: ${catalogFiles.length} catalogues, ${enKeys.length} keys each, ${Object.keys(FALLBACK).length} fallback keys, ${used.size} literal keys verified, no dead keys, no untranslated copy in the reviewed key set (${REQUIRED_TRANSLATION_KEYS.length} keys), FALLBACK values match en.json for shared keys.`);
     }
   }
 }

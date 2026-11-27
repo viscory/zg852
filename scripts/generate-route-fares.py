@@ -51,7 +51,9 @@ MATCH_SCORE_THRESHOLD = 1       # minimum evidence to accept an ambiguous number
 # Every fare emitted by this script comes from the TD FULL_FARE snapshot. The
 # value is recorded on each line index in a sibling `fareSources` field so the
 # app (which reads `fares`) can later distinguish snapshots from band fallbacks
-# without a breaking schema change.
+# without a breaking schema change. When equally scored TD candidates disagree,
+# the higher full fare is deliberately selected: a disclosed policy, not a
+# measurement.
 FARE_SOURCE = 'td-full-fare'
 
 # LAST_UPDATE_DATE cells are ISO-like strings. Parsing them explicitly replaces
@@ -131,8 +133,9 @@ def endpoint_from_url(url):
     Deep links look like
     ``https://hkbus.app/en/route/{route}-{serviceType}-{origin}-{destination}``
     with percent-encoded names. Splitting the slug after ``/route/`` at the
-    first two hyphens is the historical behaviour; keep it verbatim so the set
-    of selected fares cannot drift.
+    first two hyphens truncates hyphenated origin/destination names. This is a
+    known limitation kept for snapshot stability; it is disclosed, not claimed
+    correct.
     """
     try:
         parts = unquote(url.split('/route/', 1)[1]).split('-', 2)
@@ -220,6 +223,8 @@ def main():
                      + (ENDPOINT_SUBSTRING_WEIGHT if end and end in endpoint_norm else 0))
             score += len(endpoint_tokens & tokens(record.get('LOC_START_NAMEE'))) / TOKEN_OVERLAP_DIVISOR
             score += len(endpoint_tokens & tokens(record.get('LOC_END_NAMEE'))) / TOKEN_OVERLAP_DIVISOR
+            # POLICY DISCLOSURE (not a measurement):
+            # When two TD candidate records score equally, this deliberately chooses the higher full fare; the choice is disclosed in Process copy and is a policy, not a measurement.
             if best is None or score > best[0] or (score == best[0] and fare > best[1]):
                 best = (score, fare)
         # An unmatched ambiguous route number is not evidence for any one fare.

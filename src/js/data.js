@@ -12,9 +12,10 @@ export function nodePriority(kind){return KIND_PRIORITY.get(kind)??3;}
 export function catKey(priority){return PRIORITY_LABEL.get(priority)??'bus';}
 // hkbus.json has one positional slot per network line; nulls are alignment for
 // lines without a published route page, so the line index maps straight there.
-// The parallel hkbus-meta.json records each slot's status (ok, fallback, etc.),
-// but the app deliberately ignores that status record: a usable URL alone
-// decides whether a route chip is offered.
+// The parallel hkbus-meta.json records each slot's status (ok, fallback, etc.).
+// The app filters out the generic search URL, which is exactly the value used
+// for every "fallback" status slot, so the status is effectively honoured
+// through the URL value rather than read directly.
 export const HKBUS_URL_MISSING=null;
 export function hkbusUrl(lineIndex){return store.HKBUS_URLS?.[lineIndex]??HKBUS_URL_MISSING;}
 // One resolver for every route chip: a link is only offered when the bundled

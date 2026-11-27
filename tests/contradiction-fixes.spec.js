@@ -217,9 +217,10 @@ test('process summary does not call every bus fare an estimate', () => {
   expect(summary.includes('bus fares are estimates.')).toBe(false);
 });
 
-// The count must disclose the actual sort key, not an obsolete fairness claim.
-test('results header does not claim a fairest-first ordering', () => {
-  expect(en['results.header'].toLowerCase().includes('fairest first')).toBe(false);
+// The count must disclose the actual sort key, not any absolute fairness
+// ranking: "fairest" and "best balance" both overstate what the ordering means.
+test('results header makes no absolute fairness-ranking claim', () => {
+  expect(/fairest|best balance/i.test(en['results.header'])).toBe(false);
 });
 
 // The hidden rank key and the walk-first preference are disclosed to users.
@@ -228,6 +229,9 @@ test('process and detail copy disclose the fit score, walk preference and buffer
   expect(process).toContain('stored fit score');
   expect(process).toContain('faster transit route may still exist');
   expect(process).toContain('1-minute buffer');
+  // The fare-tie policy and the POI proxy disclosure must stay visible to users.
+  expect(process).toContain('higher of those full fares');
+  expect(process).toContain('per-row proxies, not deduplicated venues');
   // The bus-link wording is copy owned by i18n; only require it to be present.
   expect(en['route.busLink']).toBeTruthy();
   await page.goto('/');

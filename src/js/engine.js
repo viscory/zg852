@@ -1,4 +1,4 @@
-import { MAX_CLOUD_CELLS,RECOMPUTE_DELAY,TRAVEL_BUDGET_MINUTES,FARE_GAP_FLOOR,activeFairnessMetric,travelTolerance,fareTolerance,isUnboundedTolerance,modesMask } from './config.js';
+import { MAX_CLOUD_CELLS,RECOMPUTE_DELAY,TRAVEL_BUDGET_MINUTES,RESULTS_LIMIT,FARE_GAP_FLOOR,activeFairnessMetric,travelTolerance,fareTolerance,isUnboundedTolerance,modesMask } from './config.js';
 import { store } from './store.js';
 import { compareAreaRank,fairnessTolerance,noFitErrorKey,noReachErrorKey } from './model.js';
 
@@ -79,7 +79,7 @@ export function compute(reveal=false){
     const cells=buildCells(effectiveGrids,store.unbounded?Infinity:fairnessTolerance('time',store.settings),TRAVEL_BUDGET_MINUTES);
     const ordered=rankCells(cells);
     store.cloudCells=ordered.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
-    store.results=ordered.slice(0,7).map(({cell:c})=>cellToResult(c));
+    store.results=ordered.slice(0,RESULTS_LIMIT).map(({cell:c})=>cellToResult(c));
     store.results.forEach(r=>prepareRoutes(r,store.activePeople));
   }else{
     // Fare mode keeps the same time-feasibility filter and 90-minute cap, then
@@ -123,7 +123,7 @@ export function compute(reveal=false){
     // largest-fare colour.
     passing.sort((a,b)=>compareAreaRank(a.cell,b.cell,'fare'));
     store.cloudCells=passing.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
-    store.results=passing.slice(0,7).map(({cell})=>{
+    store.results=passing.slice(0,RESULTS_LIMIT).map(({cell})=>{
       const result=cellToResult(cell);
       prepareRoutes(result,store.activePeople);
       return result;

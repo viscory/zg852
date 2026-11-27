@@ -110,6 +110,10 @@ test('an unbounded tap before Search reports that data is still loading without 
     slider.value = '201';
     slider.dispatchEvent(new Event('input', { bubbles: true }));
   });
+  // Wait until the app has actually processed the input: under parallel load the
+  // UI listener may attach after data-net is ready, and tapping before it does
+  // selects a heat cell instead of entering point-picking mode.
+  await expect(page.locator('#tolerance')).toHaveAttribute('aria-valuetext', 'Unlimited');
   await page.locator('#mobileTabbar [data-mobile-view="map"]').click();
   const mapBox = await page.locator('#map').boundingBox();
   expect(mapBox).not.toBeNull();

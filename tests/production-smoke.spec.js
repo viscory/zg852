@@ -16,7 +16,7 @@ async function installedCacheName(page) {
 // Reviewed allowlist of key namespaces used by this check. It is a best-effort
 // guard against raw keys leaking into the scanned body text, not a guarantee
 // that no raw key appears anywhere in the app.
-const RAW_KEY = /\b(app|people|options|results|map|route|legal|vector|status|error|unit|tag|cat|mode|share|beta|search|place|district|note|locale)\.[A-Za-z][A-Za-z0-9]*/;
+const RAW_KEY = /\b(app|people|options|results|map|route|legal|vector|status|error|unit|tag|cat|mode|share|beta|search|place|district|note|locale|diag|nav)\.[A-Za-z][A-Za-z0-9]*/;
 
 function isLocal(url) {
   if (process.env.TEST_BASE_URL) return url.startsWith(process.env.TEST_BASE_URL);
@@ -68,7 +68,7 @@ test('production stylesheet inlines icons and loads with no missing assets', asy
   expect(failures).toEqual([]);
 });
 
-test('production header copy is exact and no raw i18n keys leak into the UI', async ({ page }) => {
+test('production header copy is exact and no raw i18n keys leak into the scanned text (best-effort)', async ({ page }) => {
   await setup(page);
   await expect(page.locator('.brand .logo')).toHaveText('ZG');
   await expect(page.locator('.brand .logo')).toBeVisible();

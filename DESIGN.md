@@ -33,7 +33,7 @@ Unlimited still respects the fixed 90-minute travel budget and each person's wal
 
 The heatmap palette is a dark-maroon → red → orange → yellow sequence so adjacent fairness steps are distinguishable.
 
-The map key and Interest ratings are proper disclosure panels with a +/− mark and a grid-row height/opacity transition. The desktop map key starts open; the mobile key starts closed; both can be collapsed. Fare heat shows how expensive the meeting is (highest fare), not how fair the fare spread is, while result ordering still uses the fare-disparity score. (superseded — incorrect in current build)
+The map key and Interest ratings are proper disclosure panels with a +/− mark and a grid-row height/opacity transition. The desktop map key starts open; the mobile key starts closed; both can be collapsed. Fare heat shows how expensive the meeting is (highest fare), not how fair the fare spread is, while result ordering still uses the fare-disparity score. (still true in current build)
 
 The desktop three-column shell, header, parameters sticky behaviour, results/footer, and people/detail flip are unchanged.
 

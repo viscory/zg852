@@ -463,7 +463,7 @@ export function renderSelection(r,active=store.activePeople,fit=false){
       legCount++;
       const dash=leg.mode==='walk'?'1 6':leg.mode==='bus'?'8 5':null;
       // Each person keeps their own colour; the line style still carries the
-      // mode (dotted walk, dashed bus, solid rail).
+      // mode (dotted walk, dashed bus, solid rail/ferry/light rail).
       const color=PERSON_COLORS[j%PERSON_COLORS.length];
       L.polyline(leg.coords,{pane:'routePane',color,weight:leg.mode==='walk'?2:4,opacity:leg.mode==='walk'?.7:1,dashArray:dash,className:`route-line route-${leg.mode} route-person-${j}`})
         .bindTooltip(esc(`${displayName(active[j],j)}: ${legLabel(leg)}`)).addTo(routeLayer);

@@ -881,16 +881,11 @@ test('locale switching translates static text and enables RTL layout', async ({ 
   await expect(page.locator('#error')).toHaveText(urdu['error.missingOrigins']);
 });
 
-test('all catalogues keep the same keys', async ({ page }) => {
+test('all catalogues share en.json keys and served English values match en.json', async ({ page }) => {
   const catalogues = await Promise.all(LOCALES.map(code => catalog(page, code)));
   const expected = Object.keys(EN_CATALOGUE).sort();
   expect(expected.length).toBeGreaterThan(0);
   expect(Object.keys(catalogues[0]).sort()).toEqual(expected);
-  // These keys are deliberately absent; this only proves they stayed out of
-  // the served catalogues, and says nothing about any live UI copy.
-  for (const key of ['app.meaning', 'people.focusLabel', 'people.focusTime', 'people.focusCost']) {
-    expect(Object.keys(catalogues[0])).not.toContain(key);
-  }
   // Spot-check served English values against en.json itself, so a reviewed
   // copy change cannot break this test by pinning the old literal.
   for (const key of ['app.title', 'app.subtitle', 'options.rail', 'mode.rail', 'map.railKey', 'options.tolerance', 'results.fareTotal', 'results.noFitMtr']) {

@@ -23,6 +23,9 @@ export const WALK_SPEED_KMH=4.5;
 export const WALK_DETOUR=1.3;
 export const MAX_CLOUD_CELLS=600;
 export const TRAVEL_BUDGET_MINUTES=90;
+// Only this many top-ranked areas are published in the results list. Shared
+// with the mobile cap regression so the two cannot drift apart.
+export const RESULTS_LIMIT=7;
 export const DEFAULT_INCLUDE_HEADWAY=true;
 // Fairness is a percentage of disparity. The slider starts at 5%, runs linear
 // in 1% steps to 100%, then logarithmic to 300%, then one unbounded stop.
