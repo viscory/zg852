@@ -276,6 +276,9 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
    click, so show the click affordance instead. Pinning keeps the crosshair. */
 #map{position:absolute;inset:0;cursor:pointer}
 #map.pinning{cursor:crosshair}
+/* A pin tap must reach the map even when it lands on a heat cell, route line
+   or existing marker; those layers otherwise swallow the click. */
+#map.pinning .leaflet-interactive,#map.pinning .leaflet-marker-icon{pointer-events:none!important}
 .pin-banner{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:var(--z-banner);display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--elevated);color:var(--text);font-size:12px;box-shadow:0 6px 20px rgba(80,20,20,.14)}
 .pin-banner .avatar{width:22px;height:22px;font-size:9px}
 .point-banner{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:var(--z-banner);display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--accent);border-radius:var(--r-md);background:var(--elevated);color:var(--text);font-size:12px;box-shadow:0 6px 20px rgba(80,20,20,.14)}

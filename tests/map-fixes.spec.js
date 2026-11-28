@@ -29,6 +29,7 @@ async function openApp(page) {
 async function search(page) {
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  console.log('MARK L2');
 }
 
 async function savedSelection(page) {
@@ -69,6 +70,69 @@ test('mode and beta toggles keep the chosen result when rows do not change', asy
   await expect.poll(() => page.locator('#goLabel').textContent()).toBe('Find fair areas');
   await expect(page.locator('.result-row.selected')).toHaveCount(1);
   await expect(page.locator('#detailTitle')).toHaveText(title);
+});
+
+test.setTimeout(60000);
+test('re-pinning a start replaces it even when the tap lands on a map layer', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  const origin = () => page.evaluate(() => JSON.parse(localStorage.getItem('hkfair.v2.people'))[0].origin);
+  // Seed a real pinned start at a station so the first search always succeeds.
+  const url = await page.evaluate(async () => {
+    const nodes = await (await fetch('data/nodes.json')).json();
+    const station = name => {
+      const node = nodes.names.findIndex((v, i) => v === name && nodes.kind[i] === 1);
+      return { kind: 'node', node, label: nodes.names[node], lat: nodes.lat[node], lon: nodes.lon[node] };
+    };
+    const kwunTong = station('Kwun Tong');
+    const state = {
+      v: 1,
+      people: [
+        { id: 'p1', name: 'A', origin: { kind: 'coords', source: 'pin', label: 'Pinned point · Kwun Tong', lat: kwunTong.lat, lon: kwunTong.lon, district: 'Kwun Tong' } },
+        { id: 'p2', name: 'B', origin: station('North Point') },
+      ],
+      settings: { modes: ['rail', 'bus', 'ferry', 'lightRail'], fairness: 'time', tolerance: 0.25, includeHeadway: true },
+      locale: 'en',
+      selected: { kind: 'result', index: 0 },
+    };
+    const bytes = new TextEncoder().encode(JSON.stringify(state));
+    let binary = '';
+    bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+    return `${location.origin}${location.pathname}#s=${btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}`;
+  });
+  await page.goto(url);
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  const first = await origin();
+
+  // The Search reveal may or may not have completed its flip; navigate to the
+  // people face deterministically rather than assuming the current face.
+  const peopleHidden = await page.evaluate(() =>
+    document.querySelector('.side-left .face[data-face="people"]').hidden);
+  if (peopleHidden) await page.locator('#swapFace').click();
+  await expect(page.locator('.card').first().locator('.pin')).toBeVisible();
+  await expect.poll(() => page.locator('#flipStage').evaluate(el =>
+    el.classList.contains('flip-out') || el.classList.contains('flip-in'))).toBe(false);
+  await page.locator('.card').first().locator('.pin').click();
+  await expect(page.locator('#pinBanner')).toBeVisible();
+  await expect(page.locator('#actionStatus')).toContainText('Pinning');
+  await expect(page.locator('path.heat-cell').first()).toHaveCSS('pointer-events', 'none');
+
+  // Tap the centre of a heat cell: its click handler would normally swallow
+  // the map click, leaving the second pin silently inert.
+  const target = await page.locator('path.heat-cell').evaluateAll(cells => {
+    for (const cell of cells) {
+      const rect = cell.getBoundingClientRect();
+      const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+      if (x > 0 && y > 0 && x < innerWidth && y < innerHeight) return { x, y };
+    }
+    return null;
+  });
+  expect(target).not.toBeNull();
+  await page.mouse.click(target.x, target.y);
+  await expect.poll(async () => (await origin()).lat).not.toBe(first.lat);
+  await expect(page.locator('#pinBanner')).toBeHidden();
 });
 
 test('keyboard focus on a heat cell shows its rating tooltip and blur hides it', async ({ page }) => {

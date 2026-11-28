@@ -10,6 +10,13 @@
 - The recenter control belongs on the map beside the Leaflet zoom control, not in the right sidebar.
 - Route-affecting changes must call `scheduleRecompute()` so results update without pressing Search.
 
+## Browser QA hygiene
+
+- There is one shared Playwright MCP browser. After every `browser_run_code_unsafe` swarm, close every context you created with `await ctx.close()` and check `browser_tabs list`: only the MCP's own tab(s) may remain. Never leave orphaned `about:blank` tabs or extra Chromium renderers behind.
+- If stale Chromium renderers accumulate from earlier runs, identify them with `ps -eo pid,ppid,etime,args` and terminate only the orphan PIDs. Never kill the live `playwright-mcp` node process, its root Chromium browser, or the active `/tmp/playwright_chromiumdev_profile-*` directory; other sessions depend on them. Remove only stale `/tmp/playwright-artifacts-*` directories you created.
+- Before reporting any finding, re-capture the build identity (cache-busted doc ETag, live `sw.js` CACHE string, installed cache keys and asset ETags) and re-run the repro against that final build. A document ETag alone is not a build identity; withdraw findings that a rollout has already fixed.
+- Performance claims need in-page evidence: a `PerformanceObserver` on `longtask`, max single-task duration, total blocking time and wall time, measured in fresh contexts and repeated at least once.
+
 ## Fast runbook: turn a QA report into a verified fix push
 
 - Scope: when asked to "fix push" after a report, implement **every** numbered finding, add focused regressions, rebuild/verify, then commit and push. Do not re-run the report unless asked.

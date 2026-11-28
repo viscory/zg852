@@ -781,6 +781,9 @@ export function startPinMode(id,input,sug){
   avatar.className=`avatar ${avatarClass(idx)}`;
   label.textContent=t('map.pinActive',{name:displayName(store.people[idx],idx)});
   banner.hidden=false;
+  // Make the mode explicit even if the banner is off-screen on a small
+  // viewport, and on a repeated pin of an already pinned person.
+  showActionStatus(t('map.pinActive',{name:displayName(store.people[idx],idx)}));
   if(isMobileLayout())setMobileView('map');
   // A queued Photon response must not reopen the panel we just dismissed.
   originState(input)?.cancel?.();
