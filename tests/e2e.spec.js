@@ -94,6 +94,16 @@ async function clickableHeatCell(page) {
 // fair area with a line change for at least one person, which produces a real
 // interchange-wait note. No synthetic timetable is needed, so the test
 // exercises the shipped graph.
+async function setModes(page, modes) {
+  await page.evaluate(list => {
+    const settings = JSON.parse(localStorage.getItem('hkfair.v2.settings'));
+    settings.modes = list;
+    localStorage.setItem('hkfair.v2.settings', JSON.stringify(settings));
+  }, modes);
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+}
+
 async function openInterchangeScenario(page) {
   const state = await page.evaluate(async () => {
     const nodes = await (await fetch('data/nodes.json')).json();
@@ -103,7 +113,7 @@ async function openInterchangeScenario(page) {
     };
     return {
       v: 1,
-      people: ['Tsuen Wan', 'Tai Wai'].map((name, i) => ({
+      people: ['North Point', 'Yuen Long'].map((name, i) => ({
         id: `p${i + 1}`, name: ['A', 'B'][i], origin: origin(name), walkMinutes: 20,
       })),
       settings: { modes: ['rail'], fairness: 'time', tolerance: 3.05, includeHeadway: true },
@@ -161,6 +171,8 @@ test('transport modes never let both MTR and bus be switched off', async ({ page
   const bus = page.locator('.chip[data-mode="bus"]');
   await expect(rail).toHaveAttribute('aria-pressed', 'true');
   await expect(bus).toHaveAttribute('aria-pressed', 'true');
+  // Narrow the canonical four-mode default to rail+bus before testing the veto.
+  await setModes(page, ['rail', 'bus']);
 
   await rail.click();
   await expect(rail).toHaveAttribute('aria-pressed', 'false');
@@ -801,7 +813,8 @@ test('diagnostics dump downloads a timestamped JSON file and copies it', async (
   const file = JSON.parse(readFileSync(await download.path(), 'utf8'));
   expect(file.schema).toBe(1);
   expect(file.settings.fairness).toBe('time');
-  expect(file.settings.modes).toEqual(['rail', 'bus']);
+  const { DEFAULT_MODES } = await loadSourceModule('config.js');
+  expect(file.settings.modes).toEqual(DEFAULT_MODES);
   expect(file.settings.tolerance).toBeGreaterThan(0);
   expect(file.settings.fareTolerance).toBeGreaterThan(0);
   expect(file.settings.travelBudgetMinutes).toBeNull();
@@ -913,6 +926,7 @@ test('rejects an unset origin with an inline error and no map output', async ({ 
 });
 
 test('tight tolerance across spread-out starts produces no map areas', async ({ page }) => {
+  await setModes(page, ['rail', 'bus']);
   await page.locator('#add').click();
   await page.locator('#add').click();
   await pickStation(page, 0, 'Lo Wu');
@@ -930,7 +944,7 @@ test('MTR-only search still finds fair areas with default settings', async ({ pa
   await expect(page.locator('.card')).toHaveCount(2);
   await expect(page.locator('.chip[data-mode="rail"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#tolval')).toHaveText('10%');
-  await page.locator('.chip[data-mode="bus"]').click();
+  await setModes(page, ['rail']);
   await expect(page.locator('.chip[data-mode="bus"]')).toHaveAttribute('aria-pressed', 'false');
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
@@ -951,13 +965,13 @@ test('MTR-only search still finds fair areas with default settings', async ({ pa
 });
 
 test('MTR-only no-fit message names the disabled mode', async ({ page }) => {
+  await setModes(page, ['rail']);
   await page.locator('#add').click();
   await page.locator('#add').click();
   await pickStation(page, 0, 'Lo Wu');
   await pickStation(page, 1, 'Airport');
   await pickStation(page, 2, 'Tuen Mun');
   await pickStation(page, 3, 'Tsuen Wan');
-  await page.locator('.chip[data-mode="bus"]').click();
   await setRange(page, '#tolerance', '0.05');
   await page.locator('#go').click();
   await expect(page.locator('path.heat-cell')).toHaveCount(0);
@@ -1218,23 +1232,15 @@ test('headway parameter persists through storage, reload and routes', async ({ p
   }
 });
 
-test('per-person walk tolerance defaults to 20 and persists through reload', async ({ page }) => {
-  const card = page.locator('.card').first();
-  const slider = card.locator('[data-walk]');
-  await expect(slider).toHaveValue('20');
-  await slider.evaluate(el => {
-    el.value = '15';
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-  await expect(slider).toHaveValue('15');
-  expect(await page.evaluate(() => localStorage.getItem('hkfair.v2.people'))).toMatch(/"walkMinutes":15/);
+test('there is no walk slider and no walk value in storage', async ({ page }) => {
+  await expect(page.locator('[data-walk]')).toHaveCount(0);
+  await expect(page.locator('.walk-row')).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem('hkfair.v2.people'))).not.toContain('walkMinutes');
   await page.locator('#go').click();
   await expect.poll(() => page.locator('path.heat-cell').count()).toBeGreaterThan(0);
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
-  await expect(page.locator('.card').first().locator('[data-walk]')).toHaveValue('15');
-  await page.locator('#go').click();
-  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('[data-walk]')).toHaveCount(0);
   await expect(page.locator('#steps')).not.toContainText(/\b(route|results|map|people|mode|unit)\.[A-Za-z]/);
 });
 
@@ -1248,10 +1254,6 @@ test('share links restore the current scenario', async ({ page }) => {
   });
   await page.locator('.card').first().locator('.name-input').fill('Alex');
   await page.locator('#includeHeadway').uncheck();
-  await page.locator('.card').first().locator('[data-walk]').evaluate(el => {
-    el.value = '10';
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-  });
   await page.locator('#go').click();
   await page.locator('#share').click();
   await expect(page.locator('#shareStatus')).toBeVisible();
@@ -1263,13 +1265,11 @@ test('share links restore the current scenario', async ({ page }) => {
   const state = await sharedState(page, sharedUrl);
   expect(state.people[0].name).toBe('Alex');
   expect(state.people[0]).not.toHaveProperty('focus');
-  expect(state.people[0].walkMinutes).toBe(10);
   expect(state.settings.includeHeadway).toBe(false);
   await page.goto(sharedUrl);
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
   await expect(page.locator('.name-input').first()).toHaveValue('Alex');
   await expect(page.locator('#includeHeadway')).not.toBeChecked();
-  await expect(page.locator('.card').first().locator('[data-walk]')).toHaveValue('10');
 });
 
 test('sharing a setup before any search does not invent a selected result', async ({ page }) => {

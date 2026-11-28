@@ -60,6 +60,30 @@ test('a delayed timetable keeps the whole app behind a staged loading overlay', 
   await expect(page.locator('body')).not.toHaveAttribute('aria-busy', 'true');
 });
 
+test('a search shows a visible calculating card over the map', async ({ page }) => {
+  const en = await catalog(page, 'en');
+  // Record the transient state: on a fast machine the card can appear and
+  // disappear inside one poll interval.
+  await page.evaluate(() => {
+    window.__progress = { seen: false, text: '', busy: false };
+    const el = document.getElementById('searchProgress');
+    new MutationObserver(() => {
+      if (!el.hidden) {
+        window.__progress.seen = true;
+        window.__progress.text = document.getElementById('searchProgressText').textContent;
+        window.__progress.busy = el.getAttribute('aria-busy') === 'true';
+      }
+    }).observe(el, { attributes: true, attributeFilter: ['hidden', 'aria-busy'] });
+  });
+  await page.locator('#go').click();
+  await expect.poll(() => page.evaluate(() => window.__progress.seen)).toBe(true);
+  const seen = await page.evaluate(() => window.__progress);
+  expect(seen.text).toBe(en['search.calculating']);
+  expect(seen.busy).toBe(true);
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  await expect(page.locator('#searchProgress')).toBeHidden();
+});
+
 test('removing the pinned person clears pin mode', async ({ page }) => {
   await page.locator('.card').first().locator('.pin').click();
   await expect(page.locator('#map')).toHaveClass(/pinning/);
@@ -192,10 +216,7 @@ test.describe('mobile screen stability', () => {
     };
 
     await resetWatch();
-    await page.locator('.card').first().locator('[data-walk]').evaluate(el => {
-      el.value = '30';
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-    });
+    await page.locator('#includeHeadway').uncheck();
     await waitForRecompute();
     await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
     await expect(page.locator('body')).toHaveAttribute('data-mobile-view', 'plan');

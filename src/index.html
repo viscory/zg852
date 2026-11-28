@@ -129,7 +129,7 @@
           </div>
           <div class="steps" id="steps" aria-label="Routes" data-i18n-aria-label="results.routes"></div>
           <p class="note fare-note" data-i18n="results.fareNote">MTR fares use published adult Octopus values where a station-pair entry exists; bus and ferry figures are the Transport Department full-route adult fare for that line, not a segment fare. ≈ marks a distance-band estimate when a lookup is missing. Check the operator before travelling.</p>
-          <p class="note walk-note" data-i18n="results.walkPreference">A direct walk within the walk tolerance is shown instead of transit; a faster transit route may exist.</p>
+          <p class="note walk-note" data-i18n="results.walkPreference">In Fare mode, a direct walk of up to 30 minutes is shown instead of transit; a faster transit route may exist.</p>
         </section>
         <p class="detail-placeholder" id="detailPlaceholder" data-i18n="map.areaHint">Tap a shaded area to see routes.</p>
       </div>
@@ -159,7 +159,11 @@
         <span class="icon icon-close" aria-hidden="true"></span>
       </button>
     </div>
-    <div class="unbounded-hint" id="unboundedHint" hidden data-i18n="map.pickAnywhere">Unlimited mode is on: tap the map to choose a reachable nearby stop as a meeting point, weighted by distance and travel time. Journeys have no time limit in this mode. A pick is rejected only if the final walk for any person exceeds their walk tolerance.</div>
+    <div class="unbounded-hint" id="unboundedHint" hidden data-i18n="map.pickAnywhere">Unlimited mode is on: tap the map to choose a reachable nearby stop as a meeting point, weighted by distance and travel time. Journeys have no time limit in this mode. In Fare mode a pick is rejected if the final walk exceeds 30 minutes.</div>
+    <div class="search-progress" id="searchProgress" role="status" aria-live="polite" hidden>
+      <span class="loading-spinner" aria-hidden="true"></span>
+      <span id="searchProgressText" data-i18n="search.calculating">Finding fair areas…</span>
+    </div>
     <div class="map-tooltip" id="mapTooltip" role="tooltip" hidden></div>
     <div class="legend disclosure open" id="mapLegend">
       <button class="legend-head disclosure-head" id="legendToggle" type="button" aria-expanded="true" aria-controls="legendBody">

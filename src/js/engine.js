@@ -70,12 +70,16 @@ export function compute(reveal=false){
     showError(t(noReachErrorKey('no-common-area')));
     return;
   }
-  // A direct walk is only credited when it fits the person's walk tolerance;
-  // otherwise the same destination is reached through the transit grid. This
-  // keeps the walk cap and the pin walk check on the same raw (unrounded) value.
+  // Only Fare mode credits a direct walk into the feasibility grid (up to 30
+  // minutes). In Time mode the grid stays transit-based for a coherent
+  // fairness band; the itinerary builder may still pick a direct walk when it
+  // is genuinely faster, without any walking limit.
   const effectiveGrids=grids.map((grid,i)=>{
-    const limit=walkBudget(store.activePeople[i]),out=new Float64Array(grid.length);
-    for(let idx=0;idx<grid.length;idx++){const walk=walkGrids[i][idx];out[idx]=isFinite(walk)&&walk<=limit?walk:grid[idx];}
+    const limit=walkBudget(),creditWalk=Number.isFinite(limit),out=new Float64Array(grid.length);
+    for(let idx=0;idx<grid.length;idx++){
+      const walk=walkGrids[i][idx];
+      out[idx]=creditWalk&&isFinite(walk)&&walk<=limit?walk:grid[idx];
+    }
     return out;
   });
   store.effectiveGrids=effectiveGrids;
@@ -92,7 +96,7 @@ export function compute(reveal=false){
     const timeTolerance=fairnessTolerance('time',store.settings);
     const timeCells=buildCells(effectiveGrids,timeTolerance,travelCap);
     const ordered=rankCells(timeCells);
-    const cacheKey=`${solveKey}|${store.activePeople.map(p=>walkBudget(p)).join(',')}`;
+    const cacheKey=`${solveKey}|${metric}|${walkBudget()}`;
     if(store.costCacheKey!==cacheKey){store.costCacheKey=cacheKey;store.costCache=new Map();}
     const fareUnbounded=isUnboundedTolerance(fareLimit);
     const passing=[];

@@ -1,17 +1,11 @@
-import { travelTolerance, fareTolerance, GAP_FLOOR_STATION_MIN, GAP_FLOOR_STOP_MIN, WALK_STEP_MIN, WALK_STEP_MAX, WALK_STEP_DEFAULT } from './config.js';
+import { travelTolerance, fareTolerance, GAP_FLOOR_STATION_MIN, GAP_FLOOR_STOP_MIN } from './config.js';
 import { clamp } from './util.js';
 
 // One definition of the rules the interface describes. Ranking, colouring,
 // matching and messages import from here so a hidden factor cannot creep back
 // into one consumer without changing the rule that every other consumer uses.
 
-export { GAP_FLOOR_STATION_MIN, GAP_FLOOR_STOP_MIN, WALK_STEP_MIN, WALK_STEP_MAX, WALK_STEP_DEFAULT };
-
-export function snapWalkMinutes(value){
-  const n = Number(value);
-  const safe = Number.isFinite(n) ? n : WALK_STEP_DEFAULT;
-  return Math.min(WALK_STEP_MAX, Math.max(0, Math.round(safe / WALK_STEP_MIN) * WALK_STEP_MIN));
-}
+export { GAP_FLOOR_STATION_MIN, GAP_FLOOR_STOP_MIN };
 
 // Time and fare tolerance are fractions of the relevant disparity, not slider
 // positions. The active metric picks which stored setting applies.

@@ -570,7 +570,7 @@ export function selectPoint(lat,lon){
   hideTooltip();
   clearPointNotice();
   const grids=store.effectiveGrids,round=value=>Math.round(value*10)/10;
-  const walkLimits=store.activePeople.map(person=>walkBudget(person));
+  const walkLimit=walkBudget();
   const approachMinutes=distance=>distance/1000/WALK_SPEED_KMH*60*WALK_DETOUR;
   let nearest=-1,bestScore=Infinity,walkOnlyRejected=false;
   for(const index of store.surface){
@@ -578,7 +578,7 @@ export function selectPoint(lat,lon){
     if(times.some(value=>!isFinite(value)))continue;
     const distance=haversine(lat,lon,store.NODES.lat[index],store.NODES.lon[index]);
     const walk=approachMinutes(distance);
-    if(times.some((_,person)=>walk>walkLimits[person]+1e-9)){walkOnlyRejected=true;continue;}
+    if(walk>walkLimit+1e-9){walkOnlyRejected=true;continue;}
     const score=distance+Math.max(...times)*RANKING_WEIGHTS.time;
     if(score<bestScore){bestScore=score;nearest=index;}
   }

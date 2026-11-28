@@ -24,7 +24,6 @@
   "people.save": "I-save ang tao",
   "people.remove": "Alisin ang taong {letter}",
   "people.hintEmpty": "Pumili ng lugar",
-  "people.walkTolerance": "Lakad sa halip na transportasyon hanggang",
   "people.saved": "Nai-save sa iyong mga tao",
   "people.libraryTitle": "Mga naka-save na tao",
   "people.librarySearch": "Hanapin ang mga naka-save na tao",
@@ -87,7 +86,7 @@
   "error.noReach": "Walang start place na nakakaabot sa network.",
   "error.someNoReach": "Isa o higit pang panimulang lugar ang hindi makakonekta sa transit network.",
   "error.pointOutOfReach": "Hindi maabot ng lahat ang puntong iyon.",
-  "error.pointWalkLimit": "Ang puntong iyon ay nangangailangan ng huling lakad na lampas sa walking limit ng isang tao.",
+  "error.pointWalkLimit": "Ang puntong ito ay nangangailangan ng huling paglalakad na lampas sa 30-minutong limitasyon ng mode na Pamasahe.",
   "error.searchFailed": "Nabigo ang paghahanap: {message}",
   "error.timetableFailed": "Hindi ma-load ang iskedyul: {message}",
   "people.defaultName": "Tao {letter}",
@@ -131,7 +130,7 @@
   "results.noFitMtr": "Walang lugar na MTR-only ang pasok sa tolerance na ito. I-enable ang bus o taasan ang tolerance.",
   "results.noFitBus": "Walang lugar na bus-only ang pasok sa tolerance na ito. I-enable ang MTR o taasan ang tolerance.",
   "results.fareNote": "Ang mga pamasahe sa MTR ay mga publishes na halaga ng Octopus para sa matatanda kung may entry para sa pares ng estasyon; ang pamasahe sa bus at ferry ay ang buong-route na pamasahe ng linyang iyon, hindi pamasahe para sa bahagi ng biyahe. Ang ≈ ay nagpapahayag ng pagtatantya batay sa distansya kapag walang halaga. Suriin sa operator bago magbiyahe.",
-  "results.walkPreference": "Kung may tuwirang lakad sa loob ng toleransiya, ipapakita ito sa halip na transit; maaaring may mas mabilis na ruta.",
+  "results.walkPreference": "Sa mode na Pamasahe, ipinapakita ang direktang paglalakad hanggang 30 minuto sa halip na transportasyon; maaaring may mas mabilis na ruta.",
   "results.fareEstimated": "Tinatayang pamasahe",
   "results.fareTotal": "Pamasahe {value}",
   "legal.privacy": "Pagkapribado",
@@ -149,7 +148,7 @@
   "mode.lightRail": "Magaan na riles",
   "error.mapFailed": "Hindi nagsimula ang mapa. Gumagana pa rin ang paghahanap. {message}",
   "options.unbounded": "Walang hanggan",
-  "map.pickAnywhere": "Naka-on ang walang-hanggan na mode: pindutin ang mapa upang pumili ng naaabot na malapit na hintuan bilang tagpuan, na may timbang na distansya at oras ng paglalakbay. Walang limitasyon sa oras ng paglalakbay sa mode na ito. Tatanggiin lamang ang pagpili kung ang huling paglalakad ng sinuman ay lumampas sa kanilang pagpapahintulot sa paglalakad.",
+  "map.pickAnywhere": "Naka-on ang walang-hanggan na mode: pindutin ang mapa upang pumili ng naaabot na malapit na hintuan bilang tagpuan, na may timbang na distansya at oras ng paglalakbay. Walang limitasyon sa oras ng paglalakbay sa mode na ito. Sa mode na Pamasahe, tatanggiin ang pagpili kung ang huling paglalakad ay lumampas sa 30 minuto.",
   "map.pinnedPoint": "Naka-pin na punto",
   "map.clearPoint": "Tanggalin ang pin",
   "route.busLink": "Buksan ang pinakamalapit na bus route sa HK Bus ETA",
@@ -205,5 +204,6 @@
   "results.header_one": "Unang {count} lugar · nakaayos ayon sa angkop",
   "legal.title": "Impormasyong legal at proyekto",
   "results.noFitLightRail": "Walang lugar na light-rail lamang ang swak sa tolerance na ito. I-enable ang ibang mode o taasan ang tolerance.",
-  "results.noFitFerry": "Walang lugar na ferry lamang ang swak sa tolerance na ito. I-enable ang ibang mode o taasan ang tolerance."
+  "results.noFitFerry": "Walang lugar na ferry lamang ang swak sa tolerance na ito. I-enable ang ibang mode o taasan ang tolerance.",
+  "search.calculating": "Kinakalkula ang patas na lugar…"
 }

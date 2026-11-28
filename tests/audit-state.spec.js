@@ -283,6 +283,9 @@ test('an out-of-reach pinned point blames the walk, not a travel cap', async ({ 
     includeHeadway: true,
     selected: { kind: 'point', lat: 22.20, lon: 114.40 },
   });
+  // Only Fare mode has a walk cap; Time mode would accept this far pin.
+  state.settings.fairness = 'fare';
+  state.settings.fareTolerance = 3.05;
   const url = await makeShareUrl(page, state);
   await page.goto(url);
 

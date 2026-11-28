@@ -1,4 +1,4 @@
-import { TRAVEL_TOLERANCE_DEFAULT,FARE_TOLERANCE_DEFAULT } from './config.js';
+import { TRAVEL_TOLERANCE_DEFAULT,FARE_TOLERANCE_DEFAULT,DEFAULT_MODES } from './config.js';
 
 // Single home for every mutable cross-module value. Modules own behaviour;
 // this object owns state so imports never need to reassign bindings.
@@ -6,7 +6,7 @@ let selectionState={kind:'result',index:0};
 let sharedSelectionState=null;
 export const store={
   NODES:{names:[],kind:[],lat:[],lon:[],st:[]},lowerNames:[],NET:null,HKBUS_URLS:null,MTR_FARES:null,ROUTE_FARES:null,walkAdj:null,rideAdj:null,nodeLines:null,surface:[],
-  people:[],directory:[],settings:{modes:['rail','bus'],fairness:'time',tolerance:TRAVEL_TOLERANCE_DEFAULT,fareTolerance:FARE_TOLERANCE_DEFAULT,includeHeadway:true,vectors:null,beta:{vectors:false}},seq:1,directorySeq:1,pendingDelete:null,lastDialogFocus:null,
+  people:[],directory:[],settings:{modes:[...DEFAULT_MODES],fairness:'time',tolerance:TRAVEL_TOLERANCE_DEFAULT,fareTolerance:FARE_TOLERANCE_DEFAULT,includeHeadway:true,vectors:null,beta:{vectors:false}},seq:1,directorySeq:1,pendingDelete:null,lastDialogFocus:null,
   results:[],cloudCells:[],sols:[],effectiveGrids:null,unbounded:false,pointSelection:null,selectedDetail:null,activePeople:[],selected:0,
   get selection(){return selectionState;},
   // A map clear must not discard a point/cell selection still waiting to be

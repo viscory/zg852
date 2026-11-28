@@ -1,4 +1,4 @@
-import { LOCALES,KEY,MIN_PEOPLE,MAX_PEOPLE,WALK_STEP_DEFAULT } from './js/config.js';
+import { LOCALES,KEY,MIN_PEOPLE,MAX_PEOPLE } from './js/config.js';
 import { store } from './js/store.js';
 import { $ } from './js/util.js';
 import { t,ensureCatalog,detectLocale,setDocumentLocale,changeLocale,applyStaticText } from './js/i18n.js';
@@ -100,7 +100,7 @@ async function init(){
   }
 }
 
-$('add').onclick=()=>{if(store.people.length<MAX_PEOPLE){store.people.push({id:`p${store.seq++}`,name:'',origin:null,walkMinutes:WALK_STEP_DEFAULT});commitPeople();}};
+$('add').onclick=()=>{if(store.people.length<MAX_PEOPLE){store.people.push({id:`p${store.seq++}`,name:'',origin:null});commitPeople();}};
 $('library').onclick=openDirectory;
 $('libraryClose').onclick=()=>closeDialog($('peopleDialog'));
 $('loadingRetry').onclick=()=>location.reload();

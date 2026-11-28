@@ -24,7 +24,6 @@
   "people.save": "Guardar persona",
   "people.remove": "Eliminar persona {letter}",
   "people.hintEmpty": "Elige un lugar",
-  "people.walkTolerance": "Caminar en vez de transporte hasta",
   "people.saved": "Guardado en tus personas",
   "people.libraryTitle": "Personas guardadas",
   "people.librarySearch": "Buscar personas guardadas",
@@ -87,7 +86,7 @@
   "error.noReach": "Ningún punto de partida llega a la red.",
   "error.someNoReach": "Uno o más puntos de partida no pueden conectarse a la red de transporte.",
   "error.pointOutOfReach": "No todas las personas pueden llegar a ese punto.",
-  "error.pointWalkLimit": "Ese punto exige a alguien una caminata final más larga que su límite de caminata.",
+  "error.pointWalkLimit": "Ese punto requiere un último trayecto a pie superior al límite de 30 minutos del modo Tarifa.",
   "error.searchFailed": "La búsqueda falló: {message}",
   "error.timetableFailed": "No se pudo cargar el horario: {message}",
   "people.defaultName": "Persona {letter}",
@@ -131,7 +130,7 @@
   "results.noFitMtr": "Ninguna zona solo de MTR encaja con esta tolerancia. Activa el autobús o aumenta la tolerancia.",
   "results.noFitBus": "Ninguna zona solo de autobús encaja con esta tolerancia. Activa el MTR o aumenta la tolerancia.",
   "results.fareNote": "Las tarifas del MTR son valores publicados de Octopus para adultos cuando existe una entrada por par de estaciones; las tarifas de autobús y transbordador son la tarifa completa publicada para adultos de esa línea, no la de un tramo. ≈ marca una estimación por franja de distancia cuando falta un valor. Compruebe con el operador antes de viajar.",
-  "results.walkPreference": "Si una caminata directa cabe en la tolerancia, se muestra en lugar del transporte; puede existir una ruta más rápida.",
+  "results.walkPreference": "En el modo Tarifa, se muestra una caminata directa de hasta 30 minutos en lugar del transporte; puede existir una ruta de transporte más rápida.",
   "results.fareEstimated": "Tarifa estimada",
   "results.fareTotal": "Tarifa {value}",
   "legal.privacy": "Privacidad",
@@ -149,7 +148,7 @@
   "mode.lightRail": "Tren ligero",
   "error.mapFailed": "El mapa no pudo iniciarse. La búsqueda sigue disponible. {message}",
   "options.unbounded": "Ilimitado",
-  "map.pickAnywhere": "Modo ilimitado activado: toca el mapa para elegir una parada cercana accesible como punto de encuentro, ponderando distancia y tiempo de viaje. En este modo los viajes no tienen límite de tiempo. Una elección solo se rechaza si el último trayecto a pie de cualquier persona supera su tolerancia de caminata.",
+  "map.pickAnywhere": "Modo ilimitado activado: toca el mapa para elegir una parada cercana accesible como punto de encuentro, ponderando distancia y tiempo de viaje. En este modo los viajes no tienen límite de tiempo. En el modo Tarifa, una elección se rechaza si el último trayecto a pie supera los 30 minutos.",
   "map.pinnedPoint": "Punto fijado",
   "map.clearPoint": "Quitar el punto fijado",
   "route.busLink": "Abrir la ruta de autobús más cercana en HK Bus ETA",
@@ -205,5 +204,6 @@
   "results.header_one": "La {count} zona principal · ordenada por idoneidad",
   "legal.title": "Información legal y del proyecto",
   "results.noFitLightRail": "Ningún área solo de tren ligero se ajusta a esta tolerancia. Active otro modo o aumente la tolerancia.",
-  "results.noFitFerry": "Ningún área solo de ferry se ajusta a esta tolerancia. Active otro modo o aumente la tolerancia."
+  "results.noFitFerry": "Ningún área solo de ferry se ajusta a esta tolerancia. Active otro modo o aumente la tolerancia.",
+  "search.calculating": "Calculando áreas justas…"
 }

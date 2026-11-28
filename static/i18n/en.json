@@ -24,7 +24,6 @@
   "people.save": "Save person",
   "people.remove": "Remove person {letter}",
   "people.hintEmpty": "Choose a place",
-  "people.walkTolerance": "Walk instead of transit up to",
   "people.saved": "Saved to your people",
   "people.libraryTitle": "Saved people",
   "people.librarySearch": "Search saved people",
@@ -87,7 +86,7 @@
   "error.noReach": "No start place reaches the network.",
   "error.someNoReach": "One or more start places cannot reach the transit network.",
   "error.pointOutOfReach": "That point cannot be reached by everyone.",
-  "error.pointWalkLimit": "That point needs a final walk longer than someone's walk tolerance.",
+  "error.pointWalkLimit": "That point needs a final walk longer than the 30-minute Fare-mode limit.",
   "error.searchFailed": "The search failed: {message}",
   "error.timetableFailed": "Could not load the timetable: {message}",
   "people.defaultName": "Person {letter}",
@@ -131,7 +130,7 @@
   "results.noFitMtr": "No MTR-only areas fit this tolerance. Enable bus or increase tolerance.",
   "results.noFitBus": "No bus-only areas fit this tolerance. Enable MTR or increase tolerance.",
   "results.fareNote": "MTR fares use published adult Octopus values where a station-pair entry exists; bus and ferry figures are the Transport Department full-route adult fare for that line, not a segment fare. ≈ marks a distance-band estimate when a lookup is missing. Check the operator before travelling.",
-  "results.walkPreference": "A direct walk within the walk tolerance is shown instead of transit; a faster transit route may exist.",
+  "results.walkPreference": "In Fare mode, a direct walk of up to 30 minutes is shown instead of transit; a faster transit route may exist.",
   "results.fareEstimated": "Estimated fare",
   "results.fareTotal": "Fare {value}",
   "legal.privacy": "Privacy",
@@ -149,7 +148,7 @@
   "mode.lightRail": "Light rail",
   "error.mapFailed": "The map failed to start. Search still works. {message}",
   "options.unbounded": "Unlimited",
-  "map.pickAnywhere": "Unlimited mode is on: tap the map to choose a reachable nearby stop as a meeting point, weighted by distance and travel time. Journeys have no time limit in this mode. A pick is rejected only if the final walk for any person exceeds their walk tolerance.",
+  "map.pickAnywhere": "Unlimited mode is on: tap the map to choose a reachable nearby stop as a meeting point, weighted by distance and travel time. Journeys have no time limit in this mode. In Fare mode a pick is rejected if the final walk exceeds 30 minutes.",
   "map.pinnedPoint": "Pinned point",
   "map.clearPoint": "Clear pinned point",
   "route.busLink": "Open the closest matching bus route on HK Bus ETA",
@@ -205,5 +204,6 @@
   "results.header_one": "Top {count} area · ordered by fit",
   "legal.title": "Legal and project information",
   "results.noFitLightRail": "No light-rail-only areas fit this tolerance. Enable another mode or increase tolerance.",
-  "results.noFitFerry": "No ferry-only areas fit this tolerance. Enable another mode or increase tolerance."
+  "results.noFitFerry": "No ferry-only areas fit this tolerance. Enable another mode or increase tolerance.",
+  "search.calculating": "Finding fair areas…"
 }

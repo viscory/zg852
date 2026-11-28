@@ -101,7 +101,6 @@ export function diagnosticData(){
     people:store.people.map((person,i)=>({
       letter:LETTERS[i%LETTERS.length],
       name:person.name,
-      walkMinutes:person.walkMinutes,
       origin:person.origin?{
         kind:person.origin.kind,
         node:person.origin.node??null,

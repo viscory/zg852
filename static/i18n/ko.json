@@ -24,7 +24,6 @@
   "people.save": "멤버 저장",
   "people.remove": "멤버 {letter} 삭제",
   "people.hintEmpty": "장소를 선택하세요",
-  "people.walkTolerance": "대중교통 대신 도보 이동 허용 시간",
   "people.saved": "멤버 목록에 저장되었습니다",
   "people.libraryTitle": "저장된 멤버",
   "people.librarySearch": "저장된 멤버 검색",
@@ -87,7 +86,7 @@
   "error.noReach": "출발지가 교통 네트워크에 연결되지 않습니다.",
   "error.someNoReach": "하나 이상의 출발지가 교통망에 연결되지 않습니다.",
   "error.pointOutOfReach": "모두가 그 지점에 도착할 수는 없습니다.",
-  "error.pointWalkLimit": "그 지점은 누군가의 마지막 도보가 허용 도보 시간을 넘습니다.",
+  "error.pointWalkLimit": "이 지점은 요금 모드의 30분 제한보다 긴 최종 도보가 필요합니다.",
   "error.searchFailed": "검색 실패: {message}",
   "error.timetableFailed": "시간표를 불러올 수 없습니다: {message}",
   "people.defaultName": "사람 {letter}",
@@ -131,7 +130,7 @@
   "results.noFitMtr": "이 허용 범위에 맞는 철도 전용 지역이 없습니다. 버스를 켜거나 허용 범위를 늘리세요.",
   "results.noFitBus": "이 허용 범위에 맞는 버스 전용 지역이 없습니다. 철도를 켜거나 허용 범위를 늘리세요.",
   "results.fareNote": "MTR 요금은 역 쌍 항목이 있을 때 공개된 성인 옥토퍼스 요금입니다. 버스와 페리 요금은 해당 노선의 공개된 성인 전 구간 요금이며, 이용 구간의 요금이 아닙니다. ≈는 조회값이 없을 때 거리 구간에 따른 추정치를 표시합니다. 이용 전에 운영자에게 확인하세요.",
-  "results.walkPreference": "도보 허용 시간 내에 직접 걸어갈 수 있으면 대중교통 대신 도보가 표시됩니다. 더 빠른 교통 경로가 있을 수 있습니다.",
+  "results.walkPreference": "요금 모드에서는 대중교통 대신 최대 30분의 직접 도보가 표시됩니다. 더 빠른 교통 경로가 있을 수 있습니다.",
   "results.fareEstimated": "추정 요금",
   "results.fareTotal": "요금 {value}",
   "legal.privacy": "개인정보 처리방침",
@@ -149,7 +148,7 @@
   "mode.lightRail": "경전철",
   "error.mapFailed": "지도를 시작하지 못했습니다. 검색은 계속 사용할 수 있습니다. {message}",
   "options.unbounded": "무제한",
-  "map.pickAnywhere": "무제한 모드가 켜졌습니다. 지도를 눌러 거리와 이동 시간을 고려해 도달 가능한 주변 정류장을 만남 지점으로 고르세요. 이 모드에는 이동 시간 제한이 없습니다. 누군가의 최종 도보가 도보 허용 시간을 넘을 때만 해당 지점 선택이 거부됩니다.",
+  "map.pickAnywhere": "무제한 모드가 켜졌습니다. 지도를 눌러 거리와 이동 시간을 고려해 도달 가능한 주변 정류장을 만남 지점으로 고르세요. 이 모드에는 이동 시간 제한이 없습니다. 요금 모드에서는 최종 도보가 30분을 넘으면 선택이 거부됩니다.",
   "map.pinnedPoint": "고정된 지점",
   "map.clearPoint": "고정 지점 해제",
   "route.busLink": "가장 가까운 일치 버스 노선을 HK Bus ETA에서 열기",
@@ -205,5 +204,6 @@
   "results.header_one": "상위 {count}개 지역 · 적합도순",
   "legal.title": "법률 및 프로젝트 정보",
   "results.noFitLightRail": "경전철만으로 이 허용오차에 맞는 지역이 없습니다. 다른 교통수단을 켜거나 허용오차를 늘리세요.",
-  "results.noFitFerry": "페리만으로 이 허용오차에 맞는 지역이 없습니다. 다른 교통수단을 켜거나 허용오차를 늘리세요."
+  "results.noFitFerry": "페리만으로 이 허용오차에 맞는 지역이 없습니다. 다른 교통수단을 켜거나 허용오차를 늘리세요.",
+  "search.calculating": "공정한 지역을 계산하는 중…"
 }

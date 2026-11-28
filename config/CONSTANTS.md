@@ -10,7 +10,7 @@ Namespaces keep identical numerals with different meanings distinct:
 | --- | --- | --- |
 | `shared` | unit conversions and coordinate precision | `metresPerKm`, `earthRadiusM`, `coordinateDigits` |
 | `graph` | `scripts/build_graph.py` | `walkSpeedKmh`, `walkRadiusM`, `edgeMinMinutes`, `estimatedSpeedsKmh` |
-| `runtime` | `src/js/config.js` and its consumers | `travelBudgetMinutes: null`, `modeBits`, `nodeKinds`, `rankingWeights` |
+| `runtime` | `src/js/config.js` and its consumers | `travelBudgetMinutes: null`, `defaultModes`, `fareWalkLimitMinutes`, `modeBits`, `nodeKinds`, `rankingWeights` |
 | `fares` | fare-band lookups | `railBands`, `lightRailFares`, `busBands` |
 | `hkbus`, `poi`, `build` | their generators and the finalize step | limits, timeouts, port |
 | `sw` | `static/sw.js` | `cacheVersion`, `assets` |

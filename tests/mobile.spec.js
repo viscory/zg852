@@ -224,6 +224,8 @@ test('no-results card explains the failure instead of repeating setup instructio
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  // Ferry is on by default, so an island start needs it switched off to fail.
+  await page.locator('.chip[data-mode="ferry"]').click();
   await page.locator('#start-p2').fill('Cheung Chau');
   await expect(page.locator('#suggest-p2 .suggestion').first()).toBeVisible();
   await page.locator('#suggest-p2 .suggestion').first().click();

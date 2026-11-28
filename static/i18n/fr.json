@@ -24,7 +24,6 @@
   "people.save": "Enregistrer la personne",
   "people.remove": "Supprimer la personne {letter}",
   "people.hintEmpty": "Choisissez un lieu",
-  "people.walkTolerance": "Marcher plutôt que les transports jusqu'à",
   "people.saved": "Enregistré dans vos personnes",
   "people.libraryTitle": "Personnes enregistrées",
   "people.librarySearch": "Rechercher parmi les personnes enregistrées",
@@ -87,7 +86,7 @@
   "error.noReach": "Aucun point de départ ne rejoint le réseau.",
   "error.someNoReach": "Un ou plusieurs points de départ ne peuvent pas rejoindre le réseau de transport.",
   "error.pointOutOfReach": "Tout le monde ne peut pas atteindre ce point.",
-  "error.pointWalkLimit": "Ce point impose à quelqu'un une marche finale plus longue que sa limite de marche.",
+  "error.pointWalkLimit": "Ce point nécessite un dernier trajet à pied supérieur à la limite de 30 minutes du mode Tarif.",
   "error.searchFailed": "La recherche a échoué : {message}",
   "error.timetableFailed": "Impossible de charger les horaires : {message}",
   "people.defaultName": "Personne {letter}",
@@ -131,7 +130,7 @@
   "results.noFitMtr": "Aucune zone MTR uniquement ne correspond à cette tolérance. Activez le bus ou augmentez la tolérance.",
   "results.noFitBus": "Aucune zone bus uniquement ne correspond à cette tolérance. Activez le MTR ou augmentez la tolérance.",
   "results.fareNote": "Les tarifs du MTR sont les valeurs publiées d'Octopus adulte lorsqu'une entrée par paire de gares existe ; les tarifs de bus et de ferry sont le tarif adulte publié pour l'ensemble de la ligne, et non celui d'un tronçon. ≈ signale une estimation par tranche de distance lorsqu'une valeur manque. Vérifiez auprès de l'exploitant avant de voyager.",
-  "results.walkPreference": "Si une marche directe tient dans la tolérance, elle est affichée au lieu du transport ; un trajet plus rapide peut exister.",
+  "results.walkPreference": "En mode Tarif, une marche directe d’au plus 30 minutes est affichée à la place des transports ; un trajet plus rapide peut exister.",
   "results.fareEstimated": "Tarif estimé",
   "results.fareTotal": "Tarif {value}",
   "legal.privacy": "Confidentialité",
@@ -149,7 +148,7 @@
   "mode.lightRail": "Métro léger",
   "error.mapFailed": "La carte n'a pas démarré. La recherche fonctionne encore. {message}",
   "options.unbounded": "Illimité",
-  "map.pickAnywhere": "Mode illimité activé : touchez la carte pour choisir un arrêt proche accessible comme point de rencontre, en pondérant la distance et le temps de trajet. Les trajets n'ont aucune limite de temps dans ce mode. Une sélection n'est refusée que si le dernier trajet à pied d'une personne dépasse sa tolérance de marche.",
+  "map.pickAnywhere": "Mode illimité activé : touchez la carte pour choisir un arrêt proche accessible comme point de rencontre, en pondérant la distance et le temps de trajet. Les trajets n’ont aucune limite de temps dans ce mode. En mode Tarif, une sélection est refusée si le dernier trajet à pied dépasse 30 minutes.",
   "map.pinnedPoint": "Point épinglé",
   "map.clearPoint": "Effacer l'épingle",
   "route.busLink": "Ouvrir la ligne de bus correspondante sur HK Bus ETA",
@@ -205,5 +204,6 @@
   "results.header_one": "{count} zone principale · classée par pertinence",
   "legal.title": "Informations juridiques et sur le projet",
   "results.noFitLightRail": "Aucune zone en light rail seulement ne correspond à cette tolérance. Activez un autre mode ou augmentez la tolérance.",
-  "results.noFitFerry": "Aucune zone en ferry seulement ne correspond à cette tolérance. Activez un autre mode ou augmentez la tolérance."
+  "results.noFitFerry": "Aucune zone en ferry seulement ne correspond à cette tolérance. Activez un autre mode ou augmentez la tolérance.",
+  "search.calculating": "Recherche de zones équitables…"
 }

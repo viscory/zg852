@@ -24,7 +24,6 @@
   "people.save": "メンバーを保存",
   "people.remove": "メンバー {letter} を削除",
   "people.hintEmpty": "場所を選択してください",
-  "people.walkTolerance": "交通機関の代わりに徒歩で行く上限",
   "people.saved": "メンバー一覧に保存しました",
   "people.libraryTitle": "保存済みメンバー",
   "people.librarySearch": "保存済みメンバーを検索",
@@ -87,7 +86,7 @@
   "error.noReach": "出発地が交通ネットワークに接続していません。",
   "error.someNoReach": "一部の出発地は交通ネットワークに接続できません。",
   "error.pointOutOfReach": "その地点には全員が到達できません。",
-  "error.pointWalkLimit": "その地点では、誰かの最終徒歩が許容歩行時間を超えます。",
+  "error.pointWalkLimit": "この地点には、運賃モードの30分制限を超える最終徒歩が必要です。",
   "error.searchFailed": "検索に失敗しました：{message}",
   "error.timetableFailed": "時刻表を読み込めませんでした：{message}",
   "people.defaultName": "メンバー {letter}",
@@ -131,7 +130,7 @@
   "results.noFitMtr": "この許容範囲に合う鉄道のみのエリアがありません。バスを有効にするか、許容範囲を広げてください。",
   "results.noFitBus": "この許容範囲に合うバスのみのエリアがありません。鉄道を有効にするか、許容範囲を広げてください。",
   "results.fareNote": "MTR の運賃は、駅ペアのデータがある場合は公表された大人の Octopus 運賃です。バスとフェリーの運賃は、その路線の公表された大人の全区間運賃であり、乗車区間の運賃ではありません。≈ は照会先がない場合の距離帯による推定値です。乗車前に事業者に確認してください。",
-  "results.walkPreference": "歩行許容時間内に直接歩ける場合は交通機関ではなく徒歩を表示します。より速い交通ルートが存在する場合があります。",
+  "results.walkPreference": "運賃モードでは、公共交通の代わりに30分以内の直通徒歩が表示されます。より速い交通ルートがある場合があります。",
   "results.fareEstimated": "概算運賃",
   "results.fareTotal": "運賃 {value}",
   "legal.privacy": "プライバシー",
@@ -149,7 +148,7 @@
   "mode.lightRail": "軽鉄",
   "error.mapFailed": "地図を開始できませんでした。検索は使えます。{message}",
   "options.unbounded": "無制限",
-  "map.pickAnywhere": "無制限モード中：地図をタップして、距離と移動時間を加味して到達可能な近くの停留所を待ち合わせ地点として選びます。このモードでは移動時間に上限はありません。いずれかの人の最終的な徒歩が徒歩許容時間を超える場合にのみ、その選択は拒否されます。",
+  "map.pickAnywhere": "無制限モード中：地図をタップして、距離と移動時間を加味して到達可能な近くの停留所を待ち合わせ地点として選びます。このモードでは移動時間に上限はありません。運賃モードでは、最終的な徒歩が30分を超える場合に選択は拒否されます。",
   "map.pinnedPoint": "ピン留めした地点",
   "map.clearPoint": "ピン留めを解除",
   "route.busLink": "最も近い一致するバス路線を HK Bus ETA で開く",
@@ -205,5 +204,6 @@
   "results.header_one": "上位 {count} 件のエリア · 適合度順",
   "legal.title": "法的情報とプロジェクト情報",
   "results.noFitLightRail": "輕軌のみでこの許容範囲に合う地域はありません。別の交通手段を有効にするか、許容範囲を広げてください。",
-  "results.noFitFerry": "フェリーのみでこの許容範囲に合う地域はありません。別の交通手段を有効にするか、許容範囲を広げてください。"
+  "results.noFitFerry": "フェリーのみでこの許容範囲に合う地域はありません。別の交通手段を有効にするか、許容範囲を広げてください。",
+  "search.calculating": "公平なエリアを計算中…"
 }

@@ -118,6 +118,8 @@ test('an unbounded tap before Search asks for a search without selecting a point
   const mapBox = await page.locator('#map').boundingBox();
   expect(mapBox).not.toBeNull();
   await page.mouse.click(mapBox.x + mapBox.width / 2, mapBox.y + 100);
+  // The notice auto-hides after seven seconds; catch it while it is visible.
+  await page.waitForFunction(() => !document.querySelector('#pointNotice').hidden, null, { timeout: 10000 });
   const snapshot = await page.evaluate(() => ({
     noticeHidden: document.querySelector('#pointNotice').hidden,
     noticeText: document.querySelector('#pointNoticeText').textContent,

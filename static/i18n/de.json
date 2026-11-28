@@ -24,7 +24,6 @@
   "people.save": "Person speichern",
   "people.remove": "Person {letter} entfernen",
   "people.hintEmpty": "Ort auswählen",
-  "people.walkTolerance": "Zu Fuß statt ÖPNV bis zu",
   "people.saved": "In deinen Personen gespeichert",
   "people.libraryTitle": "Gespeicherte Personen",
   "people.librarySearch": "Gespeicherte Personen suchen",
@@ -87,7 +86,7 @@
   "error.noReach": "Kein Startort erreicht das Netz.",
   "error.someNoReach": "Ein oder mehrere Startpunkte können das Verkehrsnetz nicht erreichen.",
   "error.pointOutOfReach": "Dieser Punkt ist nicht für alle erreichbar.",
-  "error.pointWalkLimit": "Dieser Punkt erfordert für jemanden einen letzten Fußweg, der über dessen Gehlimite hinausgeht.",
+  "error.pointWalkLimit": "Dieser Punkt erfordert einen letzten Fußweg, der länger als das 30-Minuten-Limit im Modus „Fare“ ist.",
   "error.searchFailed": "Die Suche ist fehlgeschlagen: {message}",
   "error.timetableFailed": "Fahrplan konnte nicht geladen werden: {message}",
   "people.defaultName": "Person {letter}",
@@ -131,7 +130,7 @@
   "results.noFitMtr": "Keine reinen MTR-Bereiche passen zu dieser Toleranz. Aktiviere den Bus oder erhöhe die Toleranz.",
   "results.noFitBus": "Keine reinen Bus-Bereiche passen zu dieser Toleranz. Aktiviere die MTR oder erhöhe die Toleranz.",
   "results.fareNote": "MTR-Fahrpreise sind veröffentlichte Erwachsenen-Octopus-Werte, sofern ein Bahnhofspaar-Eintrag vorhanden ist; Bus- und Fährpreise sind der veröffentlichte Erwachsenen-Gesamtstreckenpreis der jeweiligen Linie, kein Preis für einen Teilabschnitt. ≈ kennzeichnet eine Schätzung aus der Entfernungsstaffel, wenn kein Tabellenwert vorhanden ist. Prüfen Sie vor der Fahrt beim Betreiber.",
-  "results.walkPreference": "Wenn ein direkter Fußweg innerhalb der Toleranz liegt, wird er statt des Nahverkehrs angezeigt; es kann eine schnellere Route geben.",
+  "results.walkPreference": "Im Modus „Fare“ wird statt ÖPNV ein direkter Fußweg von bis zu 30 Minuten angezeigt; es kann eine schnellere ÖPNV-Verbindung geben.",
   "results.fareEstimated": "Geschätzter Fahrpreis",
   "results.fareTotal": "Fahrpreis {value}",
   "legal.privacy": "Datenschutz",
@@ -149,7 +148,7 @@
   "mode.lightRail": "Stadtbahn",
   "error.mapFailed": "Die Karte konnte nicht starten. Die Suche funktioniert weiter. {message}",
   "options.unbounded": "Unbegrenzt",
-  "map.pickAnywhere": "Unbegrenzter Modus aktiv: Tippe auf die Karte, um eine erreichbare nahe Haltestelle als Treffpunkt zu wählen; die Auswahl gewichtet Entfernung und Reisezeit. In diesem Modus gilt keine Reisezeitbegrenzung. Eine Auswahl wird nur abgelehnt, wenn der letzte Fußweg einer Person deren Geh-Toleranz überschreitet.",
+  "map.pickAnywhere": "Unbegrenzter Modus aktiv: Tippe auf die Karte, um eine erreichbare nahe Haltestelle als Treffpunkt zu wählen; die Auswahl gewichtet Entfernung und Reisezeit. In diesem Modus gilt keine Reisezeitbegrenzung. Im Modus „Fare“ wird eine Auswahl abgelehnt, wenn der letzte Fußweg 30 Minuten überschreitet.",
   "map.pinnedPoint": "Fixierter Punkt",
   "map.clearPoint": "Fixierung aufheben",
   "route.busLink": "Passende Buslinie auf HK Bus ETA öffnen",
@@ -205,5 +204,6 @@
   "results.header_one": "Top {count} Gebiet · nach Passung sortiert",
   "legal.title": "Rechtliche Informationen und Projektinformationen",
   "results.noFitLightRail": "Keine reinen Leichtbahngebiete passen zu dieser Toleranz. Aktivieren Sie einen anderen Modus oder erhöhen Sie die Toleranz.",
-  "results.noFitFerry": "Keine reinen Fährgebiete passen zu dieser Toleranz. Aktivieren Sie einen anderen Modus oder erhöhen Sie die Toleranz."
+  "results.noFitFerry": "Keine reinen Fährgebiete passen zu dieser Toleranz. Aktivieren Sie einen anderen Modus oder erhöhen Sie die Toleranz.",
+  "search.calculating": "Fair berechnen…"
 }

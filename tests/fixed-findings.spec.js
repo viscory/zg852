@@ -153,28 +153,25 @@ test('mode exclusions explain that no compatible nearby stop was found', async (
   await expect(page.locator('#error')).toHaveText('No nearby stop is available for the selected travel modes.');
 });
 
-test('a rejected pin blames the walk limit when that is what failed', async ({ page }) => {
+test('a rejected pin blames the fare-mode walk limit', async ({ page }) => {
   await page.goto('/');
-  const [central, mongKok] = await nodeOrigins(page, ['Central', 'Mong Kok']);
+  const [loWu] = await nodeOrigins(page, ['Lo Wu']);
   const state = {
     v: 1,
     people: [
-      { id: 'p1', name: 'A', origin: central, walkMinutes: 0 },
-      { id: 'p2', name: 'B', origin: mongKok, walkMinutes: 0 },
+      { id: 'p1', name: 'A', origin: loWu },
+      { id: 'p2', name: 'B', origin: loWu },
     ],
-    settings: { modes: ['rail', 'bus'], fairness: 'time', tolerance: 3.05, includeHeadway: true },
+    settings: { modes: ['rail'], fairness: 'fare', tolerance: 3.05, fareTolerance: 3.05, includeHeadway: true },
     locale: 'en',
-    // A few dozen metres from Central: transit reaches the area in time, but
-    // the final walk is longer than a zero-minute walk tolerance allows.
-    selected: { kind: 'point', lat: central.lat + 0.0003, lon: central.lon + 0.0003 },
+    // ~2.2 km north of Lo Wu: over the 30-minute Fare-mode walk limit.
+    selected: { kind: 'point', lat: loWu.lat + 2200 / 111320, lon: loWu.lon },
   };
   const en = await (await page.request.get('i18n/en.json')).json();
-  expect(en['error.pointWalkLimit']).toBe("That point needs a final walk longer than someone's walk tolerance.");
+  expect(en['error.pointWalkLimit']).toBe('That point needs a final walk longer than the 30-minute Fare-mode limit.');
   await page.goto(await shareUrl(page, state));
-  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
-  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
-  await expect(page.locator('#pointNotice')).toBeVisible();
-  await expect(page.locator('#pointNoticeText')).toHaveText("That point needs a final walk longer than someone's walk tolerance.");
+  await page.waitForFunction(() => !document.querySelector('#pointNotice').hidden, null, { timeout: 20000 });
+  await expect(page.locator('#pointNoticeText')).toHaveText(en['error.pointWalkLimit']);
 });
 
 test('bus deep-link snapshot stays aligned with the network and records real fallbacks', () => {

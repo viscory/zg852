@@ -1,8 +1,7 @@
-import { LETTERS,VECTOR_KEYS,FAIRNESS_METRICS,activeFairnessMetric,travelTolerance,fareTolerance,isUnboundedTolerance,toleranceFromSlider,sliderPositionForTolerance,MAX_PEOPLE,SEARCH_LIMIT,WALK_TOLERANCE_MAX,WALK_STEP_MIN } from './config.js';
+import { LETTERS,VECTOR_KEYS,FAIRNESS_METRICS,activeFairnessMetric,travelTolerance,fareTolerance,isUnboundedTolerance,toleranceFromSlider,sliderPositionForTolerance,MAX_PEOPLE,SEARCH_LIMIT } from './config.js';
 import { store } from './store.js';
-import { snapWalkMinutes } from './model.js';
 import { $,esc,icon,initialsFor,avatarClass,clone,isNum } from './util.js';
-import { t,tp,intNum,minuteText } from './i18n.js';
+import { t,tp,intNum } from './i18n.js';
 import { normalizeVectors,vectorLabel,betaVectorsEnabled } from './vectors.js';
 import { syncScrollShadows } from './scroll.js';
 import { searchPlaces,districtFor } from './data.js';
@@ -499,11 +498,23 @@ export function renderSkeleton(){
   syncMobileResults('loading');
   applyUnboundedUi();
 }
+// Visible progress over the map while the solver runs. The rest of the app
+// stays in place; only the results/route layers are rebuilt by renderSkeleton.
+export function showSearchProgress(){
+  const el=$('searchProgress');if(!el)return;
+  const text=$('searchProgressText');if(text)text.textContent=t('search.calculating');
+  el.hidden=false;el.setAttribute('aria-busy','true');
+}
+export function hideSearchProgress(){
+  const el=$('searchProgress');if(!el)return;
+  el.hidden=true;el.removeAttribute('aria-busy');
+}
 export function setWorking(working){
   const label=working?t('options.searching'):t('options.search');
   const go=$('go');go.disabled=working;go.title=label;go.dataset.tooltip=label;go.setAttribute('aria-label',label);
   $('goLabel').textContent=label;
-  if(working)renderSkeleton();
+  if(working){showSearchProgress();renderSkeleton();}
+  else hideSearchProgress();
 }
 export function setOrigin(person,place,input,sug){
   const state=originState(input,{sug:sug||null});
@@ -606,11 +617,6 @@ export function makeCard(person){
       <button class="icon-button pin" type="button" aria-label="${pinLabel}" title="${pinLabel}" data-tooltip="${pinLabel}">${icon('pin')}</button>
     </div>
   </div>
-  <div class="walk-row slider-row">
-    <label for="walk-${id}">${esc(t('people.walkTolerance'))}</label>
-    <span class="value" id="walk-${id}-val">${esc(minuteText(person.walkMinutes))}</span>
-  </div>
-  <input type="range" id="walk-${id}" data-walk min="0" max="${WALK_TOLERANCE_MAX}" step="${WALK_STEP_MIN}" value="${person.walkMinutes}">
   <div class="suggestions" id="suggest-${id}" role="listbox" hidden></div>`;
   $('cards').appendChild(card);
   // CSS.escape() output is an identifier escape, not a string escape, so it
@@ -674,12 +680,6 @@ export function makeCard(person){
     }});
   };
   card.querySelector('.pin').onclick=()=>startPinMode(id,input,sug);
-  const walk=card.querySelector('[data-walk]'),walkValue=card.querySelector('.walk-row .value');
-  walk.oninput=()=>{
-    person.walkMinutes=snapWalkMinutes(walk.value);
-    walkValue.textContent=minuteText(person.walkMinutes);
-    save();scheduleRecompute();
-  };
   refreshMeta();
 }
 export function renderCards(){
@@ -706,8 +706,6 @@ export function refreshMeta(){
     const nameInput=card.querySelector('.name-input');if(nameInput)nameInput.placeholder=t('people.name',{letter});
     const startLabel=card.querySelector('label[for^="start-"]');if(startLabel)startLabel.textContent=t('people.start');
     const startInput=card.querySelector('.start-input');if(startInput)startInput.placeholder=t('people.startPlaceholder');
-    const walkLabel=card.querySelector('.walk-row label');if(walkLabel)walkLabel.textContent=t('people.walkTolerance');
-    const walkValue=card.querySelector('.walk-row .value');if(walkValue)walkValue.textContent=minuteText(person.walkMinutes);
     const remove=card.querySelector('.remove');remove.hidden=store.people.length<=1;setLabel(remove,t('people.remove',{letter}));
     setLabel(card.querySelector('.pin'),t('people.pin'));
     setLabel(card.querySelector('.save-person'),t('people.save'));
@@ -803,7 +801,7 @@ export function savePersonToDirectory(person){
   if(!person.origin){showError(t('people.hintEmpty'));return;}
   const name=displayName(person,store.people.indexOf(person));
   const existing=store.directory.find(d=>d.id===person.directoryId)||store.directory.find(d=>d.name===name&&d.origin?.label===person.origin.label);
-  if(existing){existing.name=name;existing.origin=clone(person.origin);existing.walkMinutes=snapWalkMinutes(person.walkMinutes);existing.updated=Date.now();person.directoryId=existing.id;}
+  if(existing){existing.name=name;existing.origin=clone(person.origin);existing.updated=Date.now();person.directoryId=existing.id;}
   else{const profile=profileFromPerson({...person,name});store.directory.push(profile);person.directoryId=profile.id;}
   saveDirectory();save();renderDirectoryList();flashSaved(person.id);
 }
@@ -826,7 +824,7 @@ export function addDirectoryPerson(profile){
     const message=t('people.max');showDirectoryError(message);showError(message);return false;
   }
   clearDirectoryError();
-  store.people.push({id:`p${store.seq++}`,name:profile.name,origin:clone(profile.origin),directoryId:profile.id,walkMinutes:snapWalkMinutes(profile.walkMinutes)});
+  store.people.push({id:`p${store.seq++}`,name:profile.name,origin:clone(profile.origin),directoryId:profile.id});
   commitPeople();
   return true;
 }
@@ -842,7 +840,7 @@ export function editDirectoryPerson(profile){
     person=store.people[store.people.length-1];
   }
   clearDirectoryError();
-  person.name=profile.name;person.origin=clone(profile.origin);person.walkMinutes=snapWalkMinutes(profile.walkMinutes);
+  person.name=profile.name;person.origin=clone(profile.origin);
   commitPeople();
   return true;
 }

@@ -180,7 +180,6 @@ input[type=text]:focus-visible{outline:2px solid var(--accent);outline-offset:1p
 .headway-section{margin:0 0 12px}
 .toggle-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);cursor:pointer}
 .toggle-row input[type=checkbox]{width:14px;height:14px;flex:none;margin:0;accent-color:var(--accent)}
-.walk-row{margin-top:8px}
 .card input[type=range]{margin:4px 0 0}
 .slider-gap{margin-top:12px}
 .fairness-toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 8px}
@@ -268,6 +267,9 @@ input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--acc
 .loading-detail{margin:0;color:var(--muted);font-size:13px}
 .loading-error{margin:2px 0 0;color:var(--danger);font-size:12px;line-height:1.45;overflow-wrap:anywhere}
 .loading-retry{padding:6px 14px;border:1px solid var(--accent);border-radius:var(--r-md);background:var(--accent);color:#fff;font-weight:600}
+/* Non-blocking progress over the map while a search computes. */
+.search-progress{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:var(--z-floating);display:flex;align-items:center;gap:10px;max-width:min(90%,520px);padding:7px 12px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--elevated);color:var(--text);font-size:12px;box-shadow:0 6px 20px rgba(80,20,20,.12);pointer-events:none}
+.search-progress .loading-spinner{width:16px;height:16px;border-width:2px}
 @media (prefers-reduced-motion:reduce){.loading-spinner{animation:none}}
 .main{grid-column:2;grid-row:1;position:relative;min-width:0;background:var(--bg)}
 /* Leaflet's default grab hand says "drag me"; the map's primary action is a
@@ -543,7 +545,7 @@ html[dir="rtl"] .legend{left:auto;right:24px}
   .legend.open .legend-body{padding-bottom:8px}
   .legend-body{width:min(285px,calc(100vw - 108px))}
   body.mobile-route-open .legend{display:none}
-  .pin-banner,.point-banner,.point-notice,.unbounded-hint{top:8px;max-width:calc(100% - 24px)}
+  .pin-banner,.point-banner,.point-notice,.unbounded-hint,.search-progress{top:8px;max-width:calc(100% - 24px)}
   .pin-banner{flex-wrap:wrap}
   .point-notice{font-size:12px}
   #pointBanner:not([hidden]) + .point-notice{top:56px}

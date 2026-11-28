@@ -24,7 +24,6 @@
   "people.save": "Simpan orang",
   "people.remove": "Hapus orang {letter}",
   "people.hintEmpty": "Pilih tempat",
-  "people.walkTolerance": "Jalan kaki daripada transportasi hingga",
   "people.saved": "Tersimpan ke daftar orang Anda",
   "people.libraryTitle": "Orang tersimpan",
   "people.librarySearch": "Cari orang tersimpan",
@@ -87,7 +86,7 @@
   "error.noReach": "Tidak ada titik awal yang mencapai jaringan.",
   "error.someNoReach": "Satu atau lebih titik awal tidak dapat menjangkau jaringan transportasi.",
   "error.pointOutOfReach": "Titik itu tidak dapat dicapai semua orang.",
-  "error.pointWalkLimit": "Titik itu memerlukan jalan kaki akhir lebih lama dari batas jalan kaki seseorang.",
+  "error.pointWalkLimit": "Titik ini memerlukan jalan kaki terakhir lebih lama dari batas 30 menit mode Tarif.",
   "error.searchFailed": "Pencarian gagal: {message}",
   "error.timetableFailed": "Gagal memuat jadwal: {message}",
   "people.defaultName": "Orang {letter}",
@@ -131,7 +130,7 @@
   "results.noFitMtr": "Tidak ada area khusus MTR yang cocok dengan toleransi ini. Aktifkan bus atau naikkan toleransi.",
   "results.noFitBus": "Tidak ada area khusus bus yang cocok dengan toleransi ini. Aktifkan MTR atau naikkan toleransi.",
   "results.fareNote": "Tarif MTR adalah nilai Octopus dewasa yang dipublikasikan bila ada entri pasangan stasiun; tarif bus dan feri adalah tarif dewasa seluruh rute untuk jalur tersebut, bukan tarif per segmen. ≈ menandakan perkiraan berbasis jarak bila nilai tidak tersedia. Periksa ke operator sebelum bepergian.",
-  "results.walkPreference": "Jika jalan kaki langsung masih dalam toleransi, itu ditampilkan alih-alih transit; mungkin ada rute transit yang lebih cepat.",
+  "results.walkPreference": "Pada mode Tarif, jalan kaki langsung hingga 30 menit ditampilkan alih-alih transportasi; mungkin ada rute yang lebih cepat.",
   "results.fareEstimated": "Tarif perkiraan",
   "results.fareTotal": "Tarif {value}",
   "legal.privacy": "Privasi",
@@ -149,7 +148,7 @@
   "mode.lightRail": "Kereta ringan",
   "error.mapFailed": "Peta gagal dimulai. Pencarian tetap bisa dipakai. {message}",
   "options.unbounded": "Tanpa batas",
-  "map.pickAnywhere": "Mode tanpa batas aktif: ketuk peta untuk memilih halte di sekitar yang dapat dicapai sebagai titik pertemuan, dengan bobot jarak dan waktu perjalanan. Dalam mode ini perjalanan tidak memiliki batas waktu. Pilihan hanya ditolak jika jalan kaki terakhir siapa pun melebihi toleransi jalan kaki mereka.",
+  "map.pickAnywhere": "Mode tanpa batas aktif: ketuk peta untuk memilih halte di sekitar yang dapat dicapai sebagai titik pertemuan, dengan bobot jarak dan waktu perjalanan. Dalam mode ini perjalanan tidak memiliki batas waktu. Pada mode Tarif, pilihan ditolak jika jalan kaki terakhir melebihi 30 menit.",
   "map.pinnedPoint": "Titik disemat",
   "map.clearPoint": "Hapus sematan",
   "route.busLink": "Buka rute bus yang paling cocok di HK Bus ETA",
@@ -205,5 +204,6 @@
   "results.header_one": "{count} area teratas · diurutkan berdasarkan kecocokan",
   "legal.title": "Informasi hukum dan proyek",
   "results.noFitLightRail": "Tidak ada area khusus light rail yang cocok dengan toleransi ini. Aktifkan moda lain atau naikkan toleransi.",
-  "results.noFitFerry": "Tidak ada area khusus ferry yang cocok dengan toleransi ini. Aktifkan moda lain atau naikkan toleransi."
+  "results.noFitFerry": "Tidak ada area khusus ferry yang cocok dengan toleransi ini. Aktifkan moda lain atau naikkan toleransi.",
+  "search.calculating": "Mencari area yang adil…"
 }

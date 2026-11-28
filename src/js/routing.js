@@ -1,11 +1,11 @@
-import { RAIL_FARE_BANDS,BUS_FARE_BANDS,FARE_INTERCHANGE_WALK_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE,WALK_SPEED_KMH,WALK_DETOUR,NODE_KINDS,SHARED_CONSTANTS,lineCategoryBit } from './config.js';
+import { RAIL_FARE_BANDS,BUS_FARE_BANDS,FARE_INTERCHANGE_WALK_MINUTES,FARE_WALK_LIMIT_MINUTES,ACCESS_RADIUS_M,MAX_ACCESS_NODES,CELL_SIZE,WALK_SPEED_KMH,WALK_DETOUR,NODE_KINDS,SHARED_CONSTANTS,lineCategoryBit } from './config.js';
 import { railFare,aelFareForNodes,lightRailFare,isEstimatedFare,warnOnce } from './fares.js';
 import { store } from './store.js';
 import { isNum,haversine,walkMinutes,round1,esc } from './util.js';
 import { t,tp,num,minuteText } from './i18n.js';
 import { nodePriority,catKey,districtFor } from './data.js';
 import { cellVector,cellCount,cellPreference,cellFitScore,cellRatings,overallRating } from './vectors.js';
-import { compareAreaRank,overFairnessBand,snapWalkMinutes,sourceRankMinutes,WALK_STEP_DEFAULT } from './model.js';
+import { compareAreaRank,overFairnessBand,sourceRankMinutes } from './model.js';
 
 // The routing engine: multi-source Dijkstra over the walk+ride graph, fare
 // estimation, leg narration, and fair-cell construction. Pure with respect to
@@ -103,10 +103,13 @@ export function routeFares(route){
   flushRail();flushLightRail();
   return{rail:round1(rail),lightRail:round1(lightRail),bus:round1(bus),total:round1(rail+lightRail+bus),estimated};
 }
-export const walkBudget=person=>snapWalkMinutes(person?.walkMinutes);
+// No per-person walk tolerance. A direct walk is uncapped in Time mode and
+// capped at 30 minutes only in Fare mode.
+export const walkBudget=()=>store.settings.fairness==='fare'?FARE_WALK_LIMIT_MINUTES:Infinity;
 export function prepareRoutes(result,active=store.activePeople){
+  const walkLimit=walkBudget();
   result.routes=store.sols.map((solution,j)=>reconcileDisplayMinutes(
-    describe(solution,active[j].origin,result.node,walkBudget(active[j]),result.point||null),result.times[j]));
+    describe(solution,active[j].origin,result.node,walkLimit,result.point||null),result.times[j]));
   // The card's per-person times are the totals the route steps actually show.
   result.times=result.routes.map(route=>route.shownTotal);
   result.fastest=Math.min(...result.times);result.slowest=Math.max(...result.times);
@@ -338,8 +341,8 @@ function samePoint(point,target){
   return Array.isArray(point)&&point.length>=2&&target&&
     Math.abs(point[0]-target[0])<GEOMETRY_EPSILON&&Math.abs(point[1]-target[1])<GEOMETRY_EPSILON;
 }
-export function describe(sol,origin,target,walkMinutes=WALK_STEP_DEFAULT,targetPoint=null){
-  const walkLimit=snapWalkMinutes(walkMinutes),includeHeadway=store.settings.includeHeadway!==false,candidates=[];
+export function describe(sol,origin,target,walkLimit=Infinity,targetPoint=null){
+  const includeHeadway=store.settings.includeHeadway!==false,candidates=[];
   for(let l=FRESH;l<store.NET.lines.length;l++){
     const k=sol.key(target,l),d=sol.dist.get(k);
     if(d===undefined)continue;
@@ -413,10 +416,13 @@ export function describe(sol,origin,target,walkMinutes=WALK_STEP_DEFAULT,targetP
     candidates.push({d,line:l,legs:merged,fares,total:fares.total});
   }
   if(!candidates.length)return{text:t('route.unreachable'),legs:[],path:[[origin.lat,origin.lon]],fares:{rail:0,lightRail:0,bus:0,total:0,estimated:false}};
-  // By design a direct walk wins whenever it fits options.walkTolerance: this
-  // is a walk-first preference, not a fastest-path guarantee. Faster transit
-  // routes are only considered when no walk candidate fits the tolerance.
-  const walk=candidates.find(c=>c.line===FRESH&&c.d<=walkLimit);
+  // By design a direct walk wins whenever it fits the active walk limit: in
+  // Time mode that is unlimited, in Fare mode it is 30 minutes. This is a
+  // walk-first preference, not a fastest-path guarantee.
+  // Walk-first only where a walk limit exists (Fare mode). In Time mode the
+  // walk is uncapped but not forced: the fastest candidate wins, whether that
+  // is a long direct walk or a transit route.
+  const walk=Number.isFinite(walkLimit)?candidates.find(c=>c.line===FRESH&&c.d<=walkLimit):null;
   if(!walk)candidates.sort((a,b)=>a.d-b.d||a.total-b.total);
   const best=walk||candidates[0],legs=best.legs;
   const text=legs.map(leg=>leg.text).join(' -> ')||t('route.already');

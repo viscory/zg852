@@ -8,9 +8,9 @@ Effective 22 November 2026.
 
 The app stores these values in browser `localStorage`:
 
-- `hkfair.v2.people`: current people — names, start places, and per-person walk tolerance
+- `hkfair.v2.people`: current people — names and start places
 - `hkfair.v2.settings`: modes, tolerance, the `includeHeadway` parameter (on by default), and beta preferences
-- `hkfair.v2.directory`: saved people library, including each saved walk tolerance
+- `hkfair.v2.directory`: saved people library
 - `hkfair.v2.geocache`: recent place-search results
 - `hkfair.v2.locale`: selected language
 - `hkfair.v2.selection`: selected area or cell and any pinned meeting point

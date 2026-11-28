@@ -114,8 +114,8 @@ export const MTR_LINE_COLORS={
   SIL:'#008264',TCL:'#F5A623',TKL:'#9C5FB8',TML:'#923011',TWL:'#ED1D24',
 };
 export const MTR_LINE_DEFAULT_COLOR='#8A8A8A';
-export const WALK_TOLERANCE_DEFAULT=C.runtime.walkToleranceDefault;
-export const WALK_TOLERANCE_MAX=C.runtime.walkToleranceMax;
+export const DEFAULT_MODES=[...C.runtime.defaultModes];
+export const FARE_WALK_LIMIT_MINUTES=C.runtime.fareWalkLimitMinutes;
 export const VECTOR_KEYS=['food','drinks','activities','culture','outdoors','shopping'];
 export const VECTOR_BONUS_MINUTES=C.runtime.vectorBonusMinutes;
 export const RECOMPUTE_DELAY=C.runtime.recomputeDelayMs;
@@ -129,9 +129,6 @@ export const BUS_FARE_BANDS=bands(C.fares.busBands);
 export const FARE_INTERCHANGE_WALK_MINUTES=C.runtime.fareInterchangeWalkMinutes;
 export const GAP_FLOOR_STATION_MIN=C.runtime.gapFloorStationMin;
 export const GAP_FLOOR_STOP_MIN=C.runtime.gapFloorStopMin;
-export const WALK_STEP_MIN=C.runtime.walkStepMin;
-export const WALK_STEP_MAX=C.runtime.walkStepMax;
-export const WALK_STEP_DEFAULT=C.runtime.walkStepDefault;
 export const DEDUPE_RADIUS_M=C.runtime.dedupeRadiusM;
 export const TAP_SNAP_RADIUS=C.runtime.tapSnapRadiusPx;
 export const EARTH_RADIUS_M=C.shared.earthRadiusM;

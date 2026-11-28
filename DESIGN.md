@@ -12,7 +12,7 @@ This section is the truth for the current build. Everything below it is history,
 - The sidebar footer has the legal links plus a Beta-gated Diagnostics button (`#exportDiagnostics`) and its `#diagStatus` output; there is no attribution or inspiration note.
 - The empty state uses `#goPlan`.
 - The results count reads "Top {count} areas": only seven result rows are listed while up to 600 cells are drawn.
-- Searches have no travel-time cap: journeys may take as long as the reachable network allows. The only remaining pin rejection is the per-person final-walk tolerance.
+- Searches have no travel-time cap: journeys may take as long as the reachable network allows. Direct walks are unlimited in Time mode; Fare mode applies a fixed 30-minute walking limit, including to a pinned point.
 - Heat colours use a logarithmic scale: against the slowest visible cell for time, and against the largest displayed fare in Fare mode.
 
 ## History — superseded
@@ -31,7 +31,7 @@ The tolerance slider starts at 5%, runs linear in 1% steps to 100%, logarithmic 
 
 MTR fares are looked up, not calculated from distance. `scripts/generate-mtr-fares.mjs` snapshots the Adult Octopus station-pair matrix and Airport Express table from MTR open data into `static/data/mtr-fares.json`; `railFare()` resolves each continuous paid-area rail run from its boarding and alighting stations. Bus and ferry fares are exact Transport Department full-fare snapshots; distance-band estimates apply only when a lookup is missing. (still true in current build)
 
-Unlimited mode has no travel budget: it resolves the whole reachable network and each person's walk tolerance still applies. A map pick only resolves to a stop everyone can reach and whose final walk fits every person; otherwise a map notice blames the walk or a genuinely unreachable point instead of inventing a long walk. Pinned-point totals include the final walk, so the displayed total matches the route legs. Diagnostics export the active fairness metric, both tolerances and the bounded travel budget.
+Unlimited mode has no travel budget: it resolves the whole reachable network. Direct walks are uncapped in Time mode; Fare mode caps a direct walk and a pin's final walk at 30 minutes. A map pick only resolves to a stop everyone can reach and whose final walk fits the active limit; otherwise a map notice blames the walk or a genuinely unreachable point instead of inventing a long walk. Pinned-point totals include the final walk, so the displayed total matches the route legs. Diagnostics export the active fairness metric, both tolerances and the unbounded marker.
 
 The heatmap palette is a dark-maroon → red → orange → yellow sequence so adjacent fairness steps are distinguishable. Its mapping is logarithmic, so short trips spread across the swatches instead of collapsing into the darkest bucket.
 

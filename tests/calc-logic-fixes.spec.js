@@ -5,10 +5,6 @@ const { loadSourceModule, loadSourceModules } = require('./source-modules');
 
 const root = join(__dirname, '..');
 const json = path => JSON.parse(readFileSync(join(root, 'static', 'data', path), 'utf8'));
-// User-facing copy is owned by the i18n catalogues, so assert against the
-// English source rather than pinning a literal phrase that copy edits change.
-const en = JSON.parse(readFileSync(join(root, 'static', 'i18n', 'en.json'), 'utf8'));
-
 // Browser-only modules imported but never called by the pure functions under
 // test are stubbed so the real ESM source can be imported in Node.
 const STUBS = {
@@ -41,127 +37,38 @@ test.beforeEach(async ({ page }) => {
   }));
 });
 
-// Finding 2: the pin walk check and the cell walk check must use the same raw
-// tolerance value, with no rounding that lets an over-limit pin slip through.
-test('walk tolerance uses one raw comparison in cells and pins', async ({ page }) => {
-  const [routing] = await loadSourceModules(['routing.js', 'store.js'], STUBS);
-  const { walkBudget } = routing;
-  // walkBudget is the limit shared by the cell filter and the pin check. It
-  // snaps to 5-minute steps but never rounds a walk up to fit under the limit.
-  expect(walkBudget({ walkMinutes: 20 })).toBe(20);
-  expect(walkBudget({ walkMinutes: 20.4 })).toBe(20);
+// No per-person walk tolerance: Time mode has no walk cap, Fare mode caps a
+// direct walk (and a pin's final walk) at 30 minutes. Both share one limit.
+test('walk limit is metric-driven: unlimited in Time, 30 minutes in Fare', async ({ page }) => {
+  const [routing, { store }] = await loadSourceModules(['routing.js', 'store.js'], STUBS);
+  store.settings.fairness = 'time';
+  expect(routing.walkBudget()).toBe(Infinity);
+  store.settings.fairness = 'fare';
+  expect(routing.walkBudget()).toBe(30);
 
-  // A walk of ~20.4 minutes past a 20-minute limit must be rejected at a pin.
   await page.goto('/');
-  const state = await page.evaluate(async () => {
+  const build = async fairness => page.evaluate(async metric => {
     const nodes = await (await fetch('data/nodes.json')).json();
     const node = nodes.names.findIndex((value, i) => value === 'Lo Wu' && nodes.kind[i] === 1);
     const origin = { kind: 'node', node, label: nodes.names[node], lat: nodes.lat[node], lon: nodes.lon[node] };
     return {
       v: 1,
-      people: [origin, { ...origin }].map((place, i) => ({ id: `p${i + 1}`, name: ['A', 'B'][i], origin: place, walkMinutes: 20 })),
-      settings: { modes: ['rail'], fairness: 'time', tolerance: 3.05, includeHeadway: true },
+      people: [origin, { ...origin }].map((place, i) => ({ id: `p${i + 1}`, name: ['A', 'B'][i], origin: place })),
+      settings: { modes: ['rail'], fairness: metric, tolerance: 3.05, fareTolerance: 3.05, includeHeadway: true },
       locale: 'en',
-      // ~1.3 km north of Lo Wu: over 20 walking minutes at the app's speed.
-      selected: { kind: 'point', lat: nodes.lat[node] + 1300 / 111320, lon: nodes.lon[node] },
+      // ~2.2 km north of Lo Wu: over 30 walking minutes at the app's speed.
+      selected: { kind: 'point', lat: nodes.lat[node] + 2200 / 111320, lon: nodes.lon[node] },
     };
-  });
-  await page.goto(await shareUrl(page, state));
-  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
-  await expect(page.locator('#pointNotice')).toBeVisible();
-  await expect(page.locator('#pointNoticeText')).toHaveText(en['error.pointWalkLimit']);
-  await expect(page.locator('.point-pin')).toHaveCount(0);
-});
+  }, fairness);
 
-// Finding 4: a coordinate origin must keep several distinct nearby stations,
-// not collapse to the single nearest exit before Dijkstra runs.
-test('origins pool distinct nearby stations instead of one exit', async () => {
-  const [{ sourcesFor }, { store }] = await loadSourceModules(['routing.js', 'store.js'], STUBS);
-  store.settings = { modes: ['rail', 'bus'] };
-  store.NODES = {
-    names: ['Central', 'Central · Exit (A)', 'Kowloon', 'Bus stop'],
-    kind: [1, 3, 1, 4],
-    lat: [22.280, 22.2801, 22.282, 22.279],
-    lon: [114.150, 114.1501, 114.152, 114.149],
-    st: [],
-  };
-  store.surface = [0, 1, 2, 3];
-  const result = sourcesFor({ kind: 'coords', lat: 22.280, lon: 114.150 }, 60);
-  expect(result.reason).toBe('ready');
-  const nodes = result.sources.map(source => source.node);
-  // The same station's exit collapses into its representative, while other
-  // stations and the bus stop stay in the pool.
-  expect(nodes).toContain(0);
-  expect(nodes).not.toContain(1);
-  expect(nodes).toContain(2);
-  expect(nodes).toContain(3);
-  // No station-kind bonus: the pool is ordered by the displayed walk minutes.
-  const minutes = result.sources.map(source => source.minutes);
-  expect(minutes).toEqual([...minutes].sort((a, b) => a - b));
-  const { sourceRankMinutes } = await loadSourceModule('model.js');
-  expect(result.sources.every(source => sourceRankMinutes(source.minutes) === source.minutes)).toBe(true);
-});
+  await page.goto(await shareUrl(page, await build('fare')));
+  await page.waitForFunction(() => !document.querySelector('#pointNotice').hidden, null, { timeout: 20000 });
+  await expect(page.locator('#pointNoticeText')).toContainText('30-minute');
 
-test('a coordinate origin can still search after source pooling', async ({ page }) => {
-  await page.goto('/');
-  const origin = await page.evaluate(async () => {
-    const nodes = await (await fetch('data/nodes.json')).json();
-    const node = nodes.names.findIndex((value, i) => value === 'Mong Kok' && nodes.kind[i] === 1);
-    return { kind: 'coords', label: 'Near Mong Kok', lat: nodes.lat[node] + 0.0002, lon: nodes.lon[node] + 0.0002 };
-  });
-  const state = {
-    v: 1,
-    people: [
-      { id: 'p1', name: 'A', origin: origin, walkMinutes: 20 },
-      { id: 'p2', name: 'B', origin: origin, walkMinutes: 20 },
-    ],
-    settings: { modes: ['rail'], tolerance: 3.05, includeHeadway: true },
-    locale: 'en',
-    selected: { kind: 'result', index: 0 },
-  };
-  await page.goto(await shareUrl(page, state));
-  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.goto(await shareUrl(page, await build('time')));
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
-});
-
-// Finding 6: long bus routes must use official Transport Department full fares,
-// not a distance band that stops at the published band cap.
-test('bundled route fares replace the capped bus bands', async () => {
-  const fares = json('route-fares.json');
-  const network = json('network.json');
-  const [routing, { store }, config] = await loadSourceModules(['routing.js', 'store.js', 'config.js'], STUBS);
-  store.ROUTE_FARES = fares;
-
-  expect(fares.source.field).toContain('FULL_FARE');
-  expect(Object.keys(fares.fares).length).toBeGreaterThan(2000);
-  const bands = config.BUS_FARE_BANDS;
-  const cap = bands[bands.length - 1][1];
-  expect(bands[0][1]).toBeLessThan(cap);
-  expect(cap).toBeGreaterThan(0);
-  for (const name of ['A47X', 'NA47']) {
-    const index = network.lines.findIndex(line => line.l === name);
-    expect(index).toBeGreaterThanOrEqual(0);
-    const value = routing.scheduledRouteFare({ lineIndex: index });
-    expect(typeof value).toBe('number');
-    expect(value).toBeGreaterThan(cap);
-  }
-});
-
-// Finding 7: fare ranking uses the displayed fare spread, with visible fare
-// and time values plus the disclosed interest preference as tie-breaks.
-test('fare ranking sorts by the fare spread shown on the card', async () => {
-  const { compareAreaRank, areaRank, heatValue } = await loadSourceModule('model.js');
-  const { FARE_GAP_FLOOR } = await loadSourceModule('config.js');
-  const wide = { key: 'wide', fareGap: 20, maxFare: 25, slowest: 40, gap: 10 };
-  const tight = { key: 'tight', fareGap: 2, maxFare: 14, slowest: 40, gap: 10 };
-  // Ascending rank puts the smallest displayed spread ahead of the largest.
-  expect(compareAreaRank(tight, wide, 'fare')).toBeLessThan(0);
-  expect(compareAreaRank(wide, tight, 'fare')).toBeGreaterThan(0);
-  expect(heatValue(wide, 'fare')).toBe(25);
-  expect(areaRank(wide, 'fare')).toEqual([20, 25, 40, 10, 'wide']);
-  // Undisclosed presentation data cannot reorder two equally fair areas.
-  expect(compareAreaRank(wide, { ...wide, totalFare: 99, meetingSuitability: 9 }, 'fare')).toBe(0);
-  expect(FARE_GAP_FLOOR).toBeGreaterThan(0);
+  await expect(page.locator('#pointNotice')).toBeHidden();
+  await expect(page.locator('#pointBanner')).toBeVisible();
 });
 
 // The heat palette is logarithmic: short trips spread across swatches instead

@@ -147,10 +147,9 @@ test('recenter keeps route lines visible and leaves start inputs unchanged', asy
   await expect(page.locator('.legend .recenter-key')).toHaveText(en['map.recenterKey']);
 });
 
-// Persisted and shared walk minutes snap to 5-minute steps at the boundaries.
-test('walk tolerance is snapped to 5-minute steps at the outer boundaries', async ({ page }) => {
-  const { snapWalkMinutes } = await model();
-  expect([-7, 0, 17, 59, 63].map(snapWalkMinutes)).toEqual([0, 0, 15, 60, 60]);
+// The walk tolerance value is gone: no slider, no persisted field, and old
+// links carrying walkMinutes are simply ignored.
+test('the walk slider is gone and stale walk values are ignored', async ({ page }) => {
   await page.goto('/');
   const origins = await page.evaluate(async () => {
     const nodes = await (await fetch('data/nodes.json')).json();
@@ -159,24 +158,20 @@ test('walk tolerance is snapped to 5-minute steps at the outer boundaries', asyn
       return { kind: 'node', node, label: nodes.names[node], lat: nodes.lat[node], lon: nodes.lon[node] };
     });
   });
-  for (const [raw, snapped] of [[-7, 0], [63, 60]]) {
-    const state = {
-      v: 1,
-      people: origins.map((origin, i) => ({ id: `p${i + 1}`, name: ['A', 'B'][i], origin, walkMinutes: raw })),
-      settings: { modes: ['rail', 'bus'], fairness: 'time', tolerance: 3.05, includeHeadway: true },
-      locale: 'en',
-      selected: { kind: 'result', index: 0 },
-    };
-    await page.goto(await shareUrl(page, state));
-    await page.reload();
-    await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
-    for (const slider of await page.locator('[data-walk]').all()) {
-      await expect(slider).toHaveAttribute('step', '5');
-      await expect(slider).toHaveValue(String(snapped));
-    }
-    await expect.poll(() => page.evaluate(() => localStorage.getItem('hkfair.v2.people')))
-      .toContain(`"walkMinutes":${snapped}`);
-  }
+  const state = {
+    v: 1,
+    people: origins.map((origin, i) => ({ id: `p${i + 1}`, name: ['A', 'B'][i], origin, walkMinutes: 63 })),
+    settings: { modes: ['rail', 'bus'], fairness: 'time', tolerance: 3.05, includeHeadway: true },
+    locale: 'en',
+    selected: { kind: 'result', index: 0 },
+  };
+  await page.goto(await shareUrl(page, state));
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await expect(page.locator('[data-walk]')).toHaveCount(0);
+  await expect(page.locator('.walk-row')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('hkfair.v2.people')))
+    .not.toContain('walkMinutes');
+  expect(en['people.walkTolerance']).toBeUndefined();
 });
 
 // The no-fit message matches the modes that are actually enabled.
@@ -285,7 +280,7 @@ test('Unlimited hint promises no travel cap and discloses the walk rejection', (
   const english = en['map.pickAnywhere'];
   expect(english.toLowerCase()).toContain('no time limit');
   expect(english.toLowerCase()).toContain('final walk');
-  expect(english.toLowerCase()).toContain('walk tolerance');
+  expect(english.toLowerCase()).toContain('30 minutes');
   expect(english).not.toContain('{budget}');
   expect(english).not.toContain('travel limit still applies');
   for (const [file, data] of catalogues()) {

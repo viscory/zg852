@@ -1,6 +1,5 @@
-import { LOCALES,KEY,LETTERS,HK_BBOX,FAIRNESS_METRICS,FAIRNESS_DEFAULT,travelTolerance,fareTolerance,MIN_PEOPLE,WALK_STEP_DEFAULT } from './config.js';
+import { LOCALES,KEY,LETTERS,HK_BBOX,FAIRNESS_METRICS,FAIRNESS_DEFAULT,travelTolerance,fareTolerance,MIN_PEOPLE,DEFAULT_MODES } from './config.js';
 import { store } from './store.js';
-import { snapWalkMinutes } from './model.js';
 import { isNum,clone,decodeBase64Url,encodeBase64Url,$ } from './util.js';
 import { t } from './i18n.js';
 import { migrateVectors } from './vectors.js';
@@ -35,7 +34,7 @@ function hasLocalScenario(){
   if(!people.length)return false;
   const defaults=defaultPeople();
   const samePeople=people.length===defaults.length&&people.every((p,i)=>
-    !p.name&&p.walkMinutes===defaults[i].walkMinutes&&p.origin?.node===defaults[i].origin?.node);
+    !p.name&&p.origin?.node===defaults[i].origin?.node);
   const rawSettings=parseStored(readStorage(KEY.settings));
   const settings=buildSettings(rawSettings,Array.isArray(rawSettings?.modes)?rawSettings.modes:null);
   const sameSettings=JSON.stringify(settings)===JSON.stringify(buildSettings(null,null));
@@ -109,7 +108,7 @@ export function parsePersonSequence(id){
 export function nextSeq(people){return Math.max(1,...people.map(p=>parsePersonSequence(p?.id)))+1;}
 function buildSettings(stored,modes){
   stored=stored&&typeof stored==='object'?stored:{};
-  return{modes:Array.isArray(modes)&&modes.length?modes:['rail','bus'],fairness:FAIRNESS_METRICS.includes(stored.fairness)?stored.fairness:FAIRNESS_DEFAULT,tolerance:travelTolerance(stored.tolerance),fareTolerance:fareTolerance(stored.fareTolerance),includeHeadway:normIncludeHeadway(stored.includeHeadway),vectors:migrateVectors(stored.vectors),beta:{vectors:!!stored.beta?.vectors}};
+  return{modes:Array.isArray(modes)&&modes.length?modes:[...DEFAULT_MODES],fairness:FAIRNESS_METRICS.includes(stored.fairness)?stored.fairness:FAIRNESS_DEFAULT,tolerance:travelTolerance(stored.tolerance),fareTolerance:fareTolerance(stored.fareTolerance),includeHeadway:normIncludeHeadway(stored.includeHeadway),vectors:migrateVectors(stored.vectors),beta:{vectors:!!stored.beta?.vectors}};
 }
 export function displayName(person,i){
   const index=Number.isInteger(i)?i:Math.max(0,store.people.indexOf(person));
@@ -123,16 +122,16 @@ export function normalizePerson(raw,i){
   const validNode=origin&&origin.kind==='node'&&Number.isInteger(origin.node)&&origin.node>=0&&store.NODES&&origin.node<store.NODES.names.length;
   const validCoords=origin&&origin.kind==='coords'&&isNum(origin.lat)&&isNum(origin.lon)&&origin.lat>=HK_BBOX[1]&&origin.lat<=HK_BBOX[3]&&origin.lon>=HK_BBOX[0]&&origin.lon<=HK_BBOX[2];
   if(!validNode&&!validCoords)return null;
-  return{id:`p${i+1}`,name:cleanName(raw.name,i),origin,directoryId:raw.directoryId||null,walkMinutes:snapWalkMinutes(raw.walkMinutes)};
+  return{id:`p${i+1}`,name:cleanName(raw.name,i),origin,directoryId:raw.directoryId||null};
 }
 export function defaultPeople(){
   return ['Tsuen Wan','North Point'].map((name,i)=>{
     const node=findExact(name);
-    return{id:`p${i+1}`,name:'',walkMinutes:WALK_STEP_DEFAULT,origin:node==null?null:{kind:'node',node,label:store.NODES.names[node],lat:store.NODES.lat[node],lon:store.NODES.lon[node],district:districtFor(store.NODES.lat[node],store.NODES.lon[node])}};
+    return{id:`p${i+1}`,name:'',origin:node==null?null:{kind:'node',node,label:store.NODES.names[node],lat:store.NODES.lat[node],lon:store.NODES.lon[node],district:districtFor(store.NODES.lat[node],store.NODES.lon[node])}};
   }).filter(p=>p.origin);
 }
 export function save(){
-  writeStorage(KEY.people,JSON.stringify(store.people.map((p,i)=>({id:p.id,name:cleanName(p.name,i),origin:p.origin,directoryId:p.directoryId||null,walkMinutes:snapWalkMinutes(p.walkMinutes)}))));
+  writeStorage(KEY.people,JSON.stringify(store.people.map((p,i)=>({id:p.id,name:cleanName(p.name,i),origin:p.origin,directoryId:p.directoryId||null}))));
   store.settings.includeHeadway=normIncludeHeadway(store.settings.includeHeadway);
   writeStorage(KEY.settings,JSON.stringify(store.settings));
   writeStorage(KEY.locale,store.locale);
@@ -144,7 +143,7 @@ export function saveDirectory(){
 export function profileFromPerson(person){
   const index=Math.max(0,store.people.indexOf(person));
   const name=String(person?.name??'').trim()||displayName(person,index);
-  const profile={id:person.directoryId||`d${store.directorySeq++}`,name,origin:clone(person.origin),walkMinutes:snapWalkMinutes(person.walkMinutes),updated:Date.now()};
+  const profile={id:person.directoryId||`d${store.directorySeq++}`,name,origin:clone(person.origin),updated:Date.now()};
   person.directoryId=profile.id;
   return profile;
 }
@@ -158,7 +157,7 @@ export function restoreState(){
   if(!loaded){
     try{
       const raw=parseStored(readStorage(KEY.oldLoc));
-      if(Array.isArray(raw)&&raw.length){store.people=raw.map((l,i)=>({id:`p${i+1}`,name:'',walkMinutes:WALK_STEP_DEFAULT,origin:l.i!=null&&store.NODES&&l.i<store.NODES.names.length?{kind:'node',node:l.i,label:l.name,lat:l.lat,lon:l.lon}:null})).filter(p=>p.origin);loaded=store.people.length>0;}
+      if(Array.isArray(raw)&&raw.length){store.people=raw.map((l,i)=>({id:`p${i+1}`,name:'',origin:l.i!=null&&store.NODES&&l.i<store.NODES.names.length?{kind:'node',node:l.i,label:l.name,lat:l.lat,lon:l.lon}:null})).filter(p=>p.origin);loaded=store.people.length>0;}
     }catch(err){console.error(err);}
   }
   if(!loaded||store.people.length<1)store.people=defaultPeople();
@@ -178,7 +177,7 @@ export function restoreDirectory(){
   }catch(err){console.error(err);}
   store.directory=entries?entries.filter(p=>p&&p.origin).map((p,i)=>({
     id:p.id||`d${Date.now()}`,name:cleanName(p.name,i)||displayName({name:''},i),origin:p.origin,
-    walkMinutes:snapWalkMinutes(p.walkMinutes),updated:p.updated||Date.now(),
+    updated:p.updated||Date.now(),
   })):store.people.map(profileFromPerson);
   store.directorySeq=nextSeq(store.directory);
   store.people.forEach((person,i)=>{
@@ -240,7 +239,7 @@ export async function shareScenario(){
       :{kind:'result',index:store.selected>=0?store.selected:0};
   const settings=clone(store.settings);
   settings.includeHeadway=normIncludeHeadway(settings.includeHeadway);
-  const state={v:1,people:store.people.map(p=>({id:p.id,name:p.name,origin:p.origin,walkMinutes:snapWalkMinutes(p.walkMinutes)})),settings,locale:store.locale};
+  const state={v:1,people:store.people.map(p=>({id:p.id,name:p.name,origin:p.origin})),settings,locale:store.locale};
   if(selectedState)state.selected=selectedState;
   const url=`${location.origin}${location.pathname}${location.search}#s=${encodeBase64Url(state)}`;
   const button=$('share'),status=$('shareStatus');

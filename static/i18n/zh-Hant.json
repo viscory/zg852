@@ -24,7 +24,6 @@
   "people.save": "儲存成員",
   "people.remove": "移除成員 {letter}",
   "people.hintEmpty": "請選擇地點",
-  "people.walkTolerance": "步行代替乘車的上限",
   "people.saved": "已加入成員清單",
   "people.libraryTitle": "已儲存的成員",
   "people.librarySearch": "搜尋已儲存的成員",
@@ -87,7 +86,7 @@
   "error.noReach": "有出發地無法連接交通網絡。",
   "error.someNoReach": "一或多個起點無法連接公共交通網絡。",
   "error.pointOutOfReach": "該地點無法讓所有人抵達。",
-  "error.pointWalkLimit": "該地點需要某人步行超過其步行容忍時間。",
+  "error.pointWalkLimit": "該地點需要的最後步行時間超過票價模式的 30 分鐘上限。",
   "error.searchFailed": "搜尋失敗：{message}",
   "error.timetableFailed": "無法載入時刻表：{message}",
   "people.defaultName": "人物 {letter}",
@@ -131,7 +130,7 @@
   "results.noFitMtr": "沒有符合此容差的純港鐵區域。請啟用巴士或提高容差。",
   "results.noFitBus": "沒有符合此容差的純巴士區域。請啟用港鐵或提高容差。",
   "results.fareNote": "港鐵車費在有車站配對紀錄時採用已公布成人八達通票價；巴士和渡輪費用為該路線公布的成人全程票價，並非乘車路段的票價。≈ 表示缺少票價數據時按距離區間估算。出行前請向營運商核實。",
-  "results.walkPreference": "若步行容忍時間內可直接走到，會顯示步行而非搭車；可能有更快的交通路線。",
+  "results.walkPreference": "在票價模式下，最多 30 分鐘的直接步行會取代公共交通顯示；可能存在更快的公共交通路線。",
   "results.fareEstimated": "估算車費",
   "results.fareTotal": "車費 {value}",
   "legal.privacy": "私隱",
@@ -149,7 +148,7 @@
   "mode.lightRail": "輕鐵",
   "error.mapFailed": "地圖未能啟動。搜尋仍然可用。{message}",
   "options.unbounded": "無界限",
-  "map.pickAnywhere": "已開啟無界限模式：點選地圖即可按距離和交通時間加權選擇附近可達的車站作為會合點。此模式下行程不設時間上限。只有任何人的最後步行時間超過其步行容忍度時，該選擇才會被拒絕。",
+  "map.pickAnywhere": "已開啟無界限模式：點選地圖即可按距離和交通時間加權選擇附近可達的車站作為會合點。此模式下行程不設時間上限。在票價模式下，若最後步行超過 30 分鐘，該選擇會被拒絕。",
   "map.pinnedPoint": "已固定地點",
   "map.clearPoint": "清除已固定地點",
   "route.busLink": "在 HK Bus ETA 開啟最接近的巴士路線",
@@ -205,5 +204,6 @@
   "results.header_one": "前 {count} 個區域 · 按契合度排序",
   "legal.title": "法律及項目資訊",
   "results.noFitLightRail": "沒有隻使用輕鐵且符合此容差的區域。請啟用其他交通方式或提高容差。",
-  "results.noFitFerry": "沒有隻使用渡輪且符合此容差的區域。請啟用其他交通方式或提高容差。"
+  "results.noFitFerry": "沒有隻使用渡輪且符合此容差的區域。請啟用其他交通方式或提高容差。",
+  "search.calculating": "正在計算公平區域…"
 }
