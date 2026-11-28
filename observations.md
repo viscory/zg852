@@ -1,3 +1,18 @@
+## 2026-11-28T05:15Z — Re-pin no longer silently inert
+- Confirmed finding on v92: entering Pin mode for an already pinned start and tapping the map (especially over a heat cell or route line) left the origin unchanged with no feedback. Root cause: interactive Leaflet layers swallow the container click before map.on('click') can run.
+- CSS now disables pointer events on .leaflet-interactive and .leaflet-marker-icon while #map.pinning, so every pin tap reaches the map handler; startPinMode() also announces the active pin in #actionStatus.
+- Regression in tests/map-fixes.spec.js seeds a real pinned station origin, searches to draw interactive layers, re-enters Pin mode, asserts heat cells are unclickable during pinning, then taps a heat-cell centre and verifies the stored origin changed and the banner closed.
+- SW cache bumped to v93. npm run lint clean; CI=true npm test 219/219.
+## 2026-11-28T02:05Z — Cleanup: killed orphan Chromium renderers, hardened AGENTS.md
+- Found one live Playwright MCP browser tree (node 247127/247256, root chrome 3422470, profile /tmp/playwright_chromiumdev_profile-5Fory0) plus four orphan renderer PIDs (3428485, 3428496, 3429099, 3429110) left by my swarms. Killed only those four; verified the two current renderers and `browser_tabs list` still work. Removed stale /tmp/playwright-artifacts-Nvjgb4; left the active profile and transform cache untouched. Did not kill the MCP server or its browser.
+- Added a "Browser QA hygiene" section to AGENTS.md: close every context after a swarm, leave only MCP tabs, kill only verified orphan renderers (never the live MCP server/profile), re-capture full build identity and re-verify findings before reporting, and require PerformanceObserver longtask evidence for performance claims.
+- No source files changed; no fixes implemented.
+## 2026-11-28T01:55Z — v92 re-verification: performance freezes largely fixed; one new pin defect
+- Drift: doc ETag W/"bec1286cbf9594f3907640085ec9b648", SW zg852-v92, app.js W/"551bc0e5...". Installed key agrees.
+- Performance recheck: first Search max long task dropped from 1330-1679ms (v90) to 168ms; Fare Search from 1718ms to 174ms; locale switch 936ms -> 588ms. However result selection still blocks 923ms across 8 long tasks, Search still 991ms across 11 tasks, initial load 1131ms across 7 tasks. Ranked remaining: selection > search > initial load.
+- All five earlier functional findings still fixed on v92; mobile cap still shows .mobile-error banner; all 7 default fares/times reconcile; RTL, library, pin-first, share-pin, 8-person, diagnostics clean.
+- NEW confirmed defect (severity 5): re-pinning an already pinned person silently no-ops. Pin p1, click map -> start "Pinned point · Kwun Tong". Click Pin again and click a different map point -> start unchanged, no #actionStatus, no #pointNotice, no marker change. Reproduced 3 times including final v92 check. A workaround exists (type a place over the field) but the intended Pin control gives no feedback.
+- Could not find 10 additional defects despite broad swarms; no hallucinated findings. No source files changed.
 ## 2026-11-28T03:45Z — Cut first-Search freeze from ~1.1s to sub-200ms tasks
 - Profiled current build: first Search was one 1084ms long task (second warm Search 62ms); selection/locale were already cheap in this probe. CPU profile pointed at Dijkstra state-key allocation and per-cell route reconstruction.
 - routing.js now packs (node,line) Dijkstra states into numeric keys instead of "node:line" strings, and solve() indexes its final states by target node so describe() no longer scans all 2,929 line codes per candidate. solve() is async and yields every 20,000 heap pops.
