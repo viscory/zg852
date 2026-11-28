@@ -292,7 +292,9 @@ test('the left-panel toggle names the pane it reveals', async ({ page }) => {
   await page.locator('#go').click();
   await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
   const toggle = page.locator('#swapFace');
-  await expect(toggle).toHaveAttribute('aria-label', 'Show selected route');
+  // An explicit Search reveals the detail face; the toggle now offers People.
+  await expect(page.locator('.side-left .face[data-face="detail"]')).toBeVisible();
+  await expect(toggle).toHaveAttribute('aria-label', 'Show people and start places');
 
   await page.locator('.result-row').first().click();
   await expect(page.locator('.side-left .face[data-face="detail"]')).toBeVisible();
@@ -302,6 +304,7 @@ test('the left-panel toggle names the pane it reveals', async ({ page }) => {
   await toggle.click();
   await expect(page.locator('.side-left .face[data-face="people"]')).toBeVisible();
   await expect(page.locator('#start-p1')).toBeVisible();
+  await expect(toggle).toHaveAttribute('aria-label', 'Show selected route');
   await expect(page.locator('[data-walk]')).toHaveCount(0);
 });
 

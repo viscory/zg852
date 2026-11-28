@@ -56,11 +56,13 @@ export function loadNetwork(){
   // Search clicked mid-load cannot compute against a half-built graph.
   if(networkPromise)return networkPromise;
   networkPromise=(async()=>{
-    const net=await fetchJson('data/network.json','Timetable');
+    // Both files are independent; fetching in parallel keeps the small bus-link
+    // snapshot off the critical path of the 17 MB timetable parse.
+    const [net,urls]=await Promise.all([
+      fetchJson('data/network.json','Timetable'),
+      fetchJson('data/hkbus.json','Bus URLs').catch(err=>{console.error(err);return [];}),
+    ]);
     if(!net||!Array.isArray(net.walk)||!Array.isArray(net.lines))throw new Error('Timetable data is invalid');
-    let urls=[];
-    try{urls=await fetchJson('data/hkbus.json','Bus URLs');}
-    catch(err){console.error(err);}
     const n=store.NODES.names.length;
     const walkAdj=Array.from({length:n},()=>[]);
     const rideAdj=Array.from({length:n},()=>[]);

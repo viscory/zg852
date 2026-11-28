@@ -84,6 +84,22 @@ test('a search shows a visible calculating card over the map', async ({ page }) 
   await expect(page.locator('#searchProgress')).toBeHidden();
 });
 
+test('the first search does not freeze the page in one long task', async ({ page }) => {
+  await expect(page.locator('html')).toHaveAttribute('data-net', 'ready');
+  await page.evaluate(() => {
+    window.__longtasks = [];
+    new PerformanceObserver(list => {
+      for (const entry of list.getEntries()) window.__longtasks.push(entry.duration);
+    }).observe({ entryTypes: ['longtask'] });
+  });
+  await page.locator('#go').click();
+  await expect.poll(() => page.locator('.result-row').count()).toBeGreaterThan(0);
+  const largest = await page.evaluate(() => Math.max(0, ...window.__longtasks));
+  // The solver yields between phases; no single task may block for the old
+  // one-second freeze, even though total compute time is still measurable.
+  expect(largest).toBeLessThan(500);
+});
+
 test('removing the pinned person clears pin mode', async ({ page }) => {
   await page.locator('.card').first().locator('.pin').click();
   await expect(page.locator('#map')).toHaveClass(/pinning/);

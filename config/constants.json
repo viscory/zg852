@@ -228,7 +228,7 @@
     "minFareFallback": 25
   },
   "sw": {
-    "cacheVersion": 91,
+    "cacheVersion": 92,
     "assets": [
       "./index.html",
       "./app.js",

@@ -30,7 +30,7 @@ export function onSearchSettled(callback){
   searchSettledListeners.add(callback);
   return ()=>searchSettledListeners.delete(callback);
 }
-function notifySearchSettled(){
+export function notifySearchSettled(){
   searchSettledListeners.forEach(callback=>callback());
 }
 // These frames are defined here so the Web Animations API owns the timing,
@@ -464,7 +464,6 @@ export function renderResults(active=store.activePeople){
   requestAnimationFrame(syncScrollShadows);
   // Results are now on screen. Notify only here - not in setWorking or the
   // empty branch - so consumers act on real results, never a skeleton.
-  notifySearchSettled();
 }
 export function markSelectedResult(){
   document.querySelectorAll('.result-row').forEach(row=>row.classList.toggle('selected',Number(row.dataset.index)===store.selected));

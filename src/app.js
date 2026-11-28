@@ -57,18 +57,26 @@ async function init(){
   }
   store.locale=LOCALES.includes(storedLocale)?storedLocale:'en';
   setDocumentLocale();
+  // Start the 17 MB timetable fetch as soon as the stop list is available;
+  // POI and shell setup can overlap with its parse instead of serializing it.
+  let networkReady=null;
+  if(!fatal.length&&document.documentElement.dataset.net!=='error'&&store.NODES?.names?.length){
+    showLoading('loading.timetable');
+    networkReady=loadNetwork();
+  }
   // A share link carries both the setup and the chosen result. Re-run the
   // search once the timetable is available so the recipient sees the meeting
   // point immediately instead of an empty results panel.
   const sharedScenario=applySharedState();
   if(!sharedScenario)restoreState();else applySettingsToDom();
   const pendingSelection=readSavedSelection();
-  await loadPoi();
+  store.poiReady=loadPoi().catch(err=>{console.error(err);});
   restoreDirectory();
   applyStaticText();
+  // applyStaticText() resets data-i18n nodes; restore the active stage label.
+  if(networkReady)showLoading('loading.timetable');
   renderCards();
   renderEmpty();
-  renderDirectoryList();
   restoreSelection(pendingSelection);
   applyUnboundedUi();
   // A failed map is non-fatal: routing still works, so keep that one inline.
@@ -76,9 +84,8 @@ async function init(){
   if(fatal.length)failLoading(fatal.join(' '));
   else if(errors.length)showError(errors.join(' '));
   try{drawOrigins();}catch(err){console.error(err);}
-  if(!fatal.length&&document.documentElement.dataset.net!=='error'&&store.NODES?.names?.length){
-    showLoading('loading.timetable');
-    loadNetwork().then(()=>{
+  if(networkReady){
+    networkReady.then(()=>{
       hideLoading();
       if(sharedScenario&&store.people.length>=MIN_PEOPLE){
         setMobileView('map');

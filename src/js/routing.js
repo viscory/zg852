@@ -140,21 +140,23 @@ export class MinHeap{
     return[d,k];}
 }
 
-// Solver state identity is an explicit (node, line) pair, not a packed integer.
-// FRESH (-2) and BOARDED (-1) are walk states; line codes are >= 0. Keeping the
-// pair as a typed string avoids stride arithmetic and hidden bit allocations.
+// Solver state identity is a packed integer (node * stride + line + 2). FRESH
+// (-2) and BOARDED (-1) stay below line codes; a numeric key avoids millions of
+// temporary "node:line" strings in the Dijkstra relax loop.
 export const FRESH=-2,BOARDED=-1;
-export function encodeState(node,line){return `${node}:${line}`;}
-export function decodeNode(state){const i=state.indexOf(':');return Number(i<0?state:state.slice(0,i));}
-export function decodeLine(state){const i=state.indexOf(':');return Number(i<0?0:state.slice(i+1));}
+let STATE_STRIDE=1;
+export function encodeState(node,line){return node*STATE_STRIDE+(line+2);}
+export function decodeNode(state){return Math.floor(state/STATE_STRIDE);}
+export function decodeLine(state){return state%STATE_STRIDE-2;}
 export function isWalkState(line){return line<0;}
 export function isFreshState(line){return line===FRESH;}
 export function isBoardedState(line){return line===BOARDED;}
 
-export function solve(sources,mask,maxTime=Infinity){
+export async function solve(sources,mask,maxTime=Infinity,yieldBetween=null){
   // FRESH is on foot before any boarding, BOARDED is on foot after alighting,
   // and a non-negative line code means riding that line.
   const include=store.settings.includeHeadway!==false;
+  STATE_STRIDE=store.NET.lines.length+2;
   const key=(node,line)=>encodeState(node,line),start=-1;
   const dist=new Map(),prev=new Map(),heap=new MinHeap();
   sources.forEach(({node,minutes})=>{
@@ -166,7 +168,9 @@ export function solve(sources,mask,maxTime=Infinity){
       dist.set(k,cost);prev.set(k,from);heap.push(cost,k);
     }
   };
+  let processed=0;
   while(heap.size){
+    if(yieldBetween&&++processed%20000===0)await yieldBetween();
     const[d,k]=heap.pop();
     if(d>(dist.get(k)??Infinity)||d>maxTime)continue;
     const node=decodeNode(k),line=decodeLine(k);
@@ -184,7 +188,15 @@ export function solve(sources,mask,maxTime=Infinity){
       for(const[li,to,step]of store.rideAdj[node])if(li===line)relax(key(to,li),d+step,k);
     }
   }
-  return{dist,prev,key,start};
+  const byTarget=new Map();
+  for(const [k] of dist){
+    const node=decodeNode(k),line=decodeLine(k);
+    let list=byTarget.get(node);
+    if(!list){list=[];byTarget.set(node,list);}
+    list.push({line,k});
+  }
+  for(const list of byTarget.values())list.sort((a,b)=>a.line-b.line);
+  return{dist,prev,key,start,byTarget};
 }
 export function bestTimes(sol){
   const best=new Float64Array(store.NODES.names.length).fill(Infinity);
@@ -343,9 +355,7 @@ function samePoint(point,target){
 }
 export function describe(sol,origin,target,walkLimit=Infinity,targetPoint=null){
   const includeHeadway=store.settings.includeHeadway!==false,candidates=[];
-  for(let l=FRESH;l<store.NET.lines.length;l++){
-    const k=sol.key(target,l),d=sol.dist.get(k);
-    if(d===undefined)continue;
+  const evaluate=(l,k,d)=>{
     const legs=[],chain=reconstructChain(sol,k);
     let current=null,lastCoord=[origin.lat,origin.lon];
     const close=()=>{
@@ -414,6 +424,17 @@ export function describe(sol,origin,target,walkLimit=Infinity,targetPoint=null){
     const merged=mergeWalks(legs);
     const fares=routeFares({legs:merged});
     candidates.push({d,line:l,legs:merged,fares,total:fares.total});
+  };
+  // The solve already indexed its states by target node. Iterating that list
+  // replaces a full scan of every line code for each route reconstruction.
+  const states=sol.byTarget?.get(target);
+  if(states){
+    for(const state of states)evaluate(state.line,state.k,sol.dist.get(state.k));
+  }else{
+    for(let l=FRESH;l<store.NET.lines.length;l++){
+      const k=sol.key(target,l),d=sol.dist.get(k);
+      if(d!==undefined)evaluate(l,k,d);
+    }
   }
   if(!candidates.length)return{text:t('route.unreachable'),legs:[],path:[[origin.lat,origin.lon]],fares:{rail:0,lightRail:0,bus:0,total:0,estimated:false}};
   // By design a direct walk wins whenever it fits the active walk limit: in

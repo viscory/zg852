@@ -8,7 +8,7 @@ import { cellFitScore } from './vectors.js';
 import { fareSummary } from './fares.js';
 import { sourcesFor,solve,bestTimes,walkTimes,walkBudget,buildCells,prepareRoutes,cellToResult,legLabel,SOURCE_NO_STOP,SOURCE_WRONG_MODE,SOURCE_OUTSIDE_WALK } from './routing.js';
 import { save } from './state.js';
-import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,refreshTranslatedNames,setWorking,setSidebarFace,applyUnboundedUi,hasPendingOrigins,showLoading } from './ui.js';
+import { showError,clearError,renderEmpty,renderResults,renderDirectoryList,updateSettingsLabels,refreshTranslatedNames,setWorking,setSidebarFace,applyUnboundedUi,hasPendingOrigins,showLoading,notifySearchSettled } from './ui.js';
 import { drawOrigins,drawCloud,applySelection,applyMapLabels } from './map.js';
 
 const SOURCE_ERROR_KEYS={
@@ -19,11 +19,21 @@ const SOURCE_ERROR_KEYS={
 // Interest preferences are informational: ordering uses only the displayed
 // ranking inputs, never a preference adjustment.
 const rankCells = cells => cells.map(cell=>({cell,fitScore:cellFitScore(cell)})).sort((a,b)=>compareAreaRank(a,b,'time'));
+const CANCELLED=Symbol('search-cancelled');
+// A zero-delay timer yields to the event loop so input/paint can happen between
+// solver phases; a microtask would drain before the browser gets a chance.
+const yieldUI=()=>new Promise(resolve=>setTimeout(resolve,0));
 // No travel-time cap anywhere: journeys may take as long as the timetable
 // allows. Kept as a function so every consumer shares one definition.
 export const currentTravelCap=()=>Infinity;
 
-export function compute(reveal=false){
+export async function compute(reveal=false,token=null){
+  const step=async()=>{
+    if(token!==null&&token!==store.workSeq)throw CANCELLED;
+    await yieldUI();
+    if(token!==null&&token!==store.workSeq)throw CANCELLED;
+  };
+  if(store.poiReady)await store.poiReady;
   clearError();
   // Typed but unchosen place names must not silently fall back to an older
   // origin: ask for a suggestion before any origin is read.
@@ -42,6 +52,7 @@ export function compute(reveal=false){
   if(!store.unbounded)store.pointSelection=null;
   applyUnboundedUi();
   save();
+  await step();
   // Dijkstra runs to the whole reachable network; there is no time cap to
   // invalidate, but the solved cap is part of the cache key so a future policy
   // change cannot silently reuse capped distances.
@@ -56,8 +67,9 @@ export function compute(reveal=false){
       showError(t(SOURCE_ERROR_KEYS[missingSources.reason]||'error.noNearby'));
       return;
     }
-    store.sols=sourceResults.map(result=>solve(result.sources,mask,travelCap));
+    store.sols=await Promise.all(sourceResults.map(result=>solve(result.sources,mask,travelCap,step)));
   }
+  await step();
   if(store.sols.every(s=>!s.dist.size)){renderEmpty();showError(t('error.noReach'));return;}
   if(store.sols.some(s=>!s.dist.size)){renderEmpty();showError(t('error.someNoReach'));return;}
   const grids=store.sols.map(bestTimes),walkGrids=store.sols.map(walkTimes);
@@ -83,10 +95,13 @@ export function compute(reveal=false){
     return out;
   });
   store.effectiveGrids=effectiveGrids;
+  await step();
   if(metric==='time'){
     // Unbounded mode keeps every reachable node available for free-point picks.
     const cells=buildCells(effectiveGrids,store.unbounded?Infinity:fairnessTolerance('time',store.settings),travelCap);
+    await step();
     const ordered=rankCells(cells);
+    await step();
     store.cloudCells=ordered.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
     store.results=ordered.slice(0,RESULTS_LIMIT).map(({cell:c})=>cellToResult(c));
     store.results.forEach(r=>prepareRoutes(r,store.activePeople));
@@ -95,12 +110,18 @@ export function compute(reveal=false){
     // Unlimited mode), then orders survivors by the displayed fare spread.
     const timeTolerance=fairnessTolerance('time',store.settings);
     const timeCells=buildCells(effectiveGrids,timeTolerance,travelCap);
+    await step();
     const ordered=rankCells(timeCells);
+    await step();
     const cacheKey=`${solveKey}|${metric}|${walkBudget()}`;
     if(store.costCacheKey!==cacheKey){store.costCacheKey=cacheKey;store.costCache=new Map();}
     const fareUnbounded=isUnboundedTolerance(fareLimit);
     const passing=[];
+    let probed=0;
     for(const {cell,fitScore} of ordered){
+      // Keep the route work bounded per task: long tolerance ranges can probe
+      // over a thousand cells, each reconstructing itineraries for every person.
+      if(++probed%40===0)await step();
       let cached=store.costCache.get(cell.key);
       if(!cached){
         const probe=cellToResult(cell);
@@ -109,6 +130,7 @@ export function compute(reveal=false){
         // min-fare denominator rejected walk+transit pairs and doubled the gap
         // in the score for anyone who walked.
         cached=fareSummary(probe.routes);
+        cached.probe=probe;
         store.costCache.set(cell.key,cached);
       }
       if(!fareUnbounded&&cached.fareGap>Math.max(cached.meanFare*fareLimit,FARE_GAP_FLOOR))continue;
@@ -125,11 +147,18 @@ export function compute(reveal=false){
     passing.sort((a,b)=>compareAreaRank(a.cell,b.cell,'fare'));
     store.cloudCells=passing.slice(0,MAX_CLOUD_CELLS).map(item=>item.cell);
     store.results=passing.slice(0,RESULTS_LIMIT).map(({cell})=>{
-      const result=cellToResult(cell);
-      prepareRoutes(result,store.activePeople);
+      const cached=store.costCache.get(cell.key);
+      // Reuse the probe's itinerary instead of reconstructing it a second time.
+      const result=cached?.probe||cellToResult(cell);
+      if(!cached?.probe)prepareRoutes(result,store.activePeople);
+      result.fitScore=cell.fitScore;
+      result.fares=cached.fares;result.maxFare=cached.maxFare;result.totalFare=cached.totalFare;
+      result.fareGap=cached.fareGap;result.fareSpread=cached.fareSpread;result.fareScore=cached.fareScore;
+      result.fareEstimated=cached.estimated;
       return result;
     });
   }
+  await step();
   if(!store.results.length){
     renderEmpty();
     showError(t(metric==='fare'?'results.noFitFare':noFitErrorKey(store.settings.modes)));
@@ -151,9 +180,17 @@ export function triggerSearch(reveal=false){
   const token=++store.workSeq;
   if(!store.NET){
     setWorking(true);
-    loadNetwork().then(()=>{
+    loadNetwork().then(async()=>{
       if(token!==store.workSeq)return;
-      setWorking(false);compute(reveal);
+      try{
+        await compute(reveal,token);
+        if(token!==store.workSeq)return;
+        setWorking(false);
+        notifySearchSettled();
+      }catch(err){
+        if(err===CANCELLED||token!==store.workSeq)return;
+        console.error(err);setWorking(false);renderEmpty();showError(t('error.timetableFailed',{message:err.message}));
+      }
     }).catch(err=>{
       if(token!==store.workSeq)return;
       console.error(err);setWorking(false);renderEmpty();showError(t('error.timetableFailed',{message:err.message}));
@@ -161,11 +198,19 @@ export function triggerSearch(reveal=false){
     return;
   }
   setWorking(true);
-  // A microtask keeps the token-guard semantics without a fixed delay: every
-  // synchronous trigger bumps workSeq, and only the last token runs.
-  queueMicrotask(()=>{
+  // Compute in a microtask but yield between phases, so the browser can paint
+  // the progress card and handle input instead of freezing for the whole solve.
+  queueMicrotask(async()=>{
     if(token!==store.workSeq)return;
-    try{setWorking(false);compute(reveal);}catch(err){console.error(err);setWorking(false);renderEmpty();showError(t('error.searchFailed',{message:err.message}));}
+    try{
+      await compute(reveal,token);
+      if(token!==store.workSeq)return;
+      setWorking(false);
+      notifySearchSettled();
+    }catch(err){
+      if(err===CANCELLED||token!==store.workSeq)return;
+      console.error(err);setWorking(false);renderEmpty();showError(t('error.searchFailed',{message:err.message}));
+    }
   });
 }
 export function rerender(){

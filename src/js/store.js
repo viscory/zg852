@@ -18,7 +18,7 @@ export const store={
   set selection(value){this.setSelection(value);},
   get sharedSelection(){return sharedSelectionState;},
   set sharedSelection(value){sharedSelectionState=value;},
-  geoCache:{},pinTarget:null,recomputeSelection:null,
+  geoCache:{},pinTarget:null,recomputeSelection:null,poiReady:null,
   POI:null,poiLoaded:false,poiLoading:null,recomputeTimer:null,workSeq:0,hoverCell:null,tooltipTimer:null,solveKey:null,
   locale:'en',EN:{},I18N:{},DISTRICTS:[],sidebarFace:'people',mobile:{view:'plan',mapShown:false},
 };
